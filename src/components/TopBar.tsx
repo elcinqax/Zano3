@@ -48,23 +48,23 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors ${getPaddingTopClass()}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-15 flex items-center justify-between gap-3">
-        {/* Zone 1: Single text element wordmark */}
+    <header className={`w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/70 transition-colors shadow-xs ${getPaddingTopClass()}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+        {/* Zone 1: Brand wordmark & emblem */}
         <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => onTabChange('pos')}
-            className="flex items-center gap-2.5 text-left group"
+            className="flex items-center gap-3 text-left group transition-transform active:scale-98"
           >
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white flex items-center justify-center font-black text-lg shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-600/25 ring-1 ring-white/20">
               M
             </div>
             <div className="leading-tight">
               <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 {storeName || 'Almalı Təndiri'}
               </span>
-              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">
                 Mobil Satış & Kasa
               </span>
             </div>
@@ -72,12 +72,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Zone 2: Navigation Links (hidden on compact mobile thumb zone, visible on desktop/tablet) */}
-        <nav className="hidden md:flex items-center gap-5 text-sm font-bold text-slate-600 dark:text-slate-400">
+        <nav className="hidden md:flex items-center p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
           <button
             type="button"
             onClick={() => onTabChange('pos')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-sm ${
-              activeTab === 'pos' ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : ''
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'pos'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             1. Satış
@@ -85,8 +87,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('customers')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-sm ${
-              activeTab === 'customers' ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : ''
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'customers'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             2. Müşteriler
@@ -94,8 +98,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('products')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-sm ${
-              activeTab === 'products' ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : ''
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'products'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             3. Ürünler
@@ -103,8 +109,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('stock')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-sm ${
-              activeTab === 'stock' ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : ''
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'stock'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             4. Stok
@@ -112,8 +120,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('expenses')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-sm ${
-              activeTab === 'expenses' ? 'text-rose-600 dark:text-rose-400 font-extrabold' : ''
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'expenses'
+                ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
             }`}
           >
             5. Giderler
@@ -121,8 +131,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('reports')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-sm ${
-              activeTab === 'reports' || activeTab === 'dashboard' ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : ''
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'reports' || activeTab === 'dashboard'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             6. Raporlar
@@ -130,8 +142,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('settings')}
-            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap text-xs px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 ${
-              activeTab === 'settings' ? 'text-emerald-600 dark:text-emerald-400 font-bold ring-1 ring-emerald-500' : ''
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'settings'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             Yedek & Ayarlar
@@ -144,17 +158,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onToggleMobileFrame}
-            className="hidden lg:flex min-w-[36px] h-9 px-3 items-center gap-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-800"
+            className="hidden lg:flex min-w-[36px] h-9 px-3 items-center gap-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800"
             title="Telefon / Masaüstü Görünümünü Değiştir"
           >
             {isMobileFrame ? (
               <>
-                <Monitor className="w-4 h-4" />
+                <Monitor className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Geniş Ekran</span>
               </>
             ) : (
               <>
-                <Smartphone className="w-4 h-4" />
+                <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Android Önizleme</span>
               </>
             )}
@@ -164,13 +178,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onOpenNotifications}
-            className="relative min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="relative min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
             title="Bildirimler"
             aria-label="Bildirimler"
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white px-1 shadow-sm">
+              <span className="absolute top-1 right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white px-1 shadow-sm ring-2 ring-white dark:ring-slate-950">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -180,7 +194,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onToggleTheme}
-            className="min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
             title={isDark ? 'Açık Mod' : 'Karanlık Mod'}
             aria-label="Tema Değiştir"
           >
@@ -192,7 +206,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <button
               type="button"
               onClick={onLockApp}
-              className="min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50"
               title="Uygulamayı Kilitle"
               aria-label="Kilitle"
             >

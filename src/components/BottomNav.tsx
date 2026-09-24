@@ -54,8 +54,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="sticky bottom-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 transition-colors shadow-lg shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="grid grid-cols-6 h-16 items-center px-1 max-w-lg mx-auto sm:max-w-none">
+    <nav className="sticky bottom-0 z-40 w-full bg-white/85 dark:bg-slate-950/85 backdrop-blur-2xl border-t border-slate-200/70 dark:border-slate-800/70 transition-colors shadow-lg shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="grid grid-cols-6 h-16 items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =
@@ -67,22 +67,22 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-col items-center justify-center min-h-[50px] py-1 transition-all rounded-xl ${
+              className={`relative flex flex-col items-center justify-center min-h-[52px] py-1 transition-all rounded-2xl active:scale-95 ${
                 isActive
                   ? tab.id === 'expenses'
-                    ? 'text-rose-600 dark:text-rose-400 font-black'
-                    : 'text-emerald-600 dark:text-emerald-400 font-black'
+                    ? 'text-rose-600 dark:text-rose-400 font-extrabold'
+                    : 'text-emerald-600 dark:text-emerald-400 font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
               aria-label={tab.label}
             >
-              {/* Active Tab subtle pill indicator */}
+              {/* Active Tab indicator pill */}
               <div
-                className={`relative flex items-center justify-center w-10 sm:w-12 h-7.5 rounded-full transition-all duration-200 ${
+                className={`relative flex items-center justify-center w-11 sm:w-14 h-8 rounded-2xl transition-all duration-300 ${
                   isActive
                     ? tab.id === 'expenses'
-                      ? 'bg-rose-100/90 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400'
-                      : 'bg-emerald-100/90 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400'
+                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/25 shadow-xs'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/25 shadow-xs'
                     : 'bg-transparent'
                 }`}
               >
@@ -93,13 +93,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 />
 
                 {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-600 text-[10px] font-black text-white px-1 shadow-sm">
+                  <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-emerald-600 text-[10px] font-black text-white px-1 shadow-sm ring-2 ring-white dark:ring-slate-950">
                     {tab.badge}
                   </span>
                 )}
               </div>
 
-              <span className="text-[11px] sm:text-xs tracking-tight mt-0.5 truncate leading-none">
+              <span className="text-[11px] sm:text-xs tracking-tight mt-1 truncate leading-none">
                 {tab.label}
               </span>
             </button>

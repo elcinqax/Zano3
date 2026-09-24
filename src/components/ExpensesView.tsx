@@ -36,6 +36,7 @@ interface ExpensesViewProps {
   onAddExpenseItem: (item: Omit<ExpenseItem, 'id' | 'createdAt'>) => ExpenseItem;
   onUpdateExpenseItem: (id: string, updates: Partial<ExpenseItem>) => void;
   onDeleteExpenseItem: (id: string) => void;
+  onDeleteProductCompletely?: (id: string, name: string) => void;
 }
 
 export const ExpensesView: React.FC<ExpensesViewProps> = ({
@@ -48,6 +49,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   onAddExpenseItem,
   onUpdateExpenseItem,
   onDeleteExpenseItem,
+  onDeleteProductCompletely,
 }) => {
   // Navigation sub-tab inside Expenses
   const [activeSubTab, setActiveSubTab] = useState<'byProduct' | 'allExpenses'>('byProduct');
@@ -66,6 +68,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
   const [isAddProductOpen, setIsAddProductOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<ExpenseItem | null>(null);
+  const [isManageProductsOpen, setIsManageProductsOpen] = useState<boolean>(false);
 
   // Form states for Expense
   const [formExpenseItemId, setFormExpenseItemId] = useState<string>('');
@@ -385,6 +388,16 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     setIsAddProductOpen(false);
   };
 
+  // Delete product completely from Giderler
+  const handleDeleteProduct = (itemId: string, itemName: string) => {
+    if (window.confirm(`"${itemName}" gider ürününü ve bu ürüne ait tüm harcama kayıtlarını silmek istediğinize emin misiniz?`)) {
+      onDeleteExpenseItem(itemId);
+      if (onDeleteProductCompletely) {
+        onDeleteProductCompletely(itemId, itemName);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       {/* 1. Header & Actions */}
@@ -407,6 +420,16 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
         {/* Primary Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setIsManageProductsOpen(true)}
+            className="px-3.5 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+            title="Kayıtlı gider ürünlerini görüntüle ve sil"
+          >
+            <Layers className="w-4 h-4 text-indigo-500" />
+            <span>Gider Ürünlerini Yönet ({expenseItems.length})</span>
+          </button>
+
           <button
             type="button"
             onClick={() => handleOpenAddProduct()}
@@ -694,33 +717,29 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                         </div>
 
                         {/* Edit / Delete product definition buttons */}
-                        {isItemInKnownList && (
-                          <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
+                          {isItemInKnownList && (
                             <button
                               type="button"
                               onClick={() => {
                                 const matched = expenseItems.find((ei) => ei.id === item.id);
                                 if (matched) handleOpenAddProduct(matched);
                               }}
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                               title="Gider Ürününü Düzenle"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm(`"${item.name}" gider ürününü silmek istediğinize emin misiniz?`)) {
-                                  onDeleteExpenseItem(item.id);
-                                }
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                              title="Gider Ürününü Sil"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProduct(item.id, item.name)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+                            title="Gider Ürününü Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Main Big Metric: Her ürüne ne kadar para harcandı */}
@@ -1286,6 +1305,112 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal 3: Gider Ürünleri Yönetimi Listesi (Giderler bölmesinden ürünleri silme ve yönetme) */}
+      {isManageProductsOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Gider Ürünleri Yönetimi
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Kayıtlı gider ürünlerini düzenleyin veya silin</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsManageProductsOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  Toplam {expenseItems.length} Ürün Kalemi
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManageProductsOpen(false);
+                    handleOpenAddProduct();
+                  }}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Yeni Ürün Ekle</span>
+                </button>
+              </div>
+
+              {expenseItems.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  Kayıtlı gider ürünü bulunmamaktadır.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {expenseItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
+                          {item.name}
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          <span className="bg-slate-200/80 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                            {item.category}
+                          </span>
+                          <span>Birim: {item.defaultUnit || 'Adet'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsManageProductsOpen(false);
+                            handleOpenAddProduct(item);
+                          }}
+                          className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          title="Düzenle"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(item.id, item.name)}
+                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
+                          title="Gider Ürününü Sil"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="hidden sm:inline">Sil</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsManageProductsOpen(false)}
+                className="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
+              >
+                Kapat
+              </button>
+            </div>
           </div>
         </div>
       )}

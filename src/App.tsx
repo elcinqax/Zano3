@@ -135,7 +135,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors selection:bg-emerald-500/20 selection:text-emerald-500 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-slate-200/90 dark:bg-[#060911]' : ''}`}>
       {/* Lock Screen Overlay if PIN locked */}
       {isLocked && settings.isPinEnabled && (
         <LockScreen
@@ -150,7 +150,7 @@ export default function App() {
       <div
         className={`w-full transition-all duration-300 ${
           isMobileFrame
-            ? 'lg:max-w-[420px] lg:h-[860px] lg:rounded-[44px] lg:border-[8px] lg:border-slate-800 lg:shadow-2xl lg:overflow-hidden lg:flex lg:flex-col lg:relative lg:ring-1 lg:ring-slate-700/50 bg-white dark:bg-slate-950'
+            ? 'lg:max-w-[420px] lg:h-[860px] lg:rounded-[48px] lg:border-[8px] lg:border-slate-800 dark:lg:border-slate-800/90 lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] lg:overflow-hidden lg:flex lg:flex-col lg:relative lg:ring-1 lg:ring-slate-700/50 bg-white dark:bg-[#0d1424]'
             : 'min-h-screen flex flex-col'
         }`}
       >
@@ -187,15 +187,6 @@ export default function App() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
-
-          {/* Offline indicator banner */}
-          <div className="bg-slate-900 dark:bg-emerald-950/40 text-emerald-400 px-4 py-1 text-[11px] font-medium flex items-center justify-between border-b border-emerald-500/20">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>SQLite Yerel Mod · İnternetsiz ve Güvenli</span>
-            </div>
-            <span className="hidden sm:inline text-slate-400">Veriler cihazınızda saklanır</span>
-          </div>
         </div>
 
         {/* Scrollable Content Body */}
@@ -274,6 +265,7 @@ export default function App() {
               onAddExpenseItem={(item) => sqliteStorage.addExpenseItem(item)}
               onUpdateExpenseItem={(id, updates) => sqliteStorage.updateExpenseItem(id, updates)}
               onDeleteExpenseItem={(id) => sqliteStorage.deleteExpenseItem(id)}
+              onDeleteProductCompletely={(id, name) => sqliteStorage.deleteProductExpenses(id, name)}
             />
           )}
 
@@ -288,6 +280,7 @@ export default function App() {
               settings={settings}
               onNavigateTab={setActiveTab}
               onSelectSaleForReceipt={setReceiptSale}
+              onResetAllReports={() => sqliteStorage.resetAllReports()}
               onOpenAddProduct={() => {
                 setActiveTab('products');
                 setOpenAddProductTrigger(true);
@@ -321,6 +314,7 @@ export default function App() {
               onUpdateSettings={(updates) => sqliteStorage.updateSettings(updates)}
               onRestoreBackup={(dump) => sqliteStorage.importDump(dump)}
               onResetToSampleData={() => sqliteStorage.resetToSampleData()}
+              onResetAllReports={() => sqliteStorage.resetAllReports()}
             />
           )}
         </main>

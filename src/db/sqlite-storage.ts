@@ -156,8 +156,8 @@ const SEED_CUSTOMERS: Customer[] = [
     phone: '0532 555 12 34',
     email: 'ahmet.yilmaz@email.com',
     address: 'Moda Cad. No:12, Kadıköy',
-    balance: 850, // 850 TL debt
-    totalPurchases: 4650,
+    balance: 0,
+    totalPurchases: 0,
     notes: 'Haftalık düzenli müşteri, veresiye açık hesap.',
     createdAt: '2026-09-01T10:00:00.000Z',
     updatedAt: '2026-09-22T14:30:00.000Z',
@@ -169,7 +169,7 @@ const SEED_CUSTOMERS: Customer[] = [
     email: 'selin.demir@email.com',
     address: 'Bağdat Cad. No:140/4, Kadıköy',
     balance: 0,
-    totalPurchases: 1820,
+    totalPurchases: 0,
     notes: 'Kredi kartı tercih ediyor.',
     createdAt: '2026-09-05T11:20:00.000Z',
     updatedAt: '2026-09-20T16:15:00.000Z',
@@ -180,8 +180,8 @@ const SEED_CUSTOMERS: Customer[] = [
     phone: '0555 777 88 99',
     email: 'kaya.ticaret@email.com',
     address: 'Sanayi Mah. 4. Sok. No:8',
-    balance: 2400, // 2400 TL debt
-    totalPurchases: 12500,
+    balance: 0,
+    totalPurchases: 0,
     notes: 'Toptan alıcı, ay sonu EFT ile kapatır.',
     createdAt: '2026-08-15T09:00:00.000Z',
     updatedAt: '2026-09-23T11:00:00.000Z',
@@ -193,7 +193,7 @@ const SEED_CUSTOMERS: Customer[] = [
     email: 'zeynep.aktas@email.com',
     address: 'Rıhtım Sok. No:5, Üsküdar',
     balance: 0,
-    totalPurchases: 780,
+    totalPurchases: 0,
     notes: 'Nakit alıcı.',
     createdAt: '2026-09-12T15:40:00.000Z',
     updatedAt: '2026-09-24T09:10:00.000Z',
@@ -299,192 +299,19 @@ const SEED_PRODUCTS: Product[] = [
   },
 ];
 
-const SEED_SALES: Sale[] = [
-  {
-    id: 'sale-1',
-    invoiceNo: 'ST-2026-00101',
-    customerId: 'cust-1',
-    customerName: 'Ahmet Yılmaz',
-    customerPhone: '0532 555 12 34',
-    items: [
-      {
-        id: 'item-1',
-        saleId: 'sale-1',
-        productId: 'prod-1',
-        productName: 'Türk Kahvesi 100g',
-        quantity: 2,
-        unitPrice: 50.0,
-        buyPrice: 32.0,
-        discount: 0,
-        total: 100.0,
-      },
-      {
-        id: 'item-2',
-        saleId: 'sale-1',
-        productId: 'prod-2',
-        productName: 'Çaykur Rize Çayı 1000g',
-        quantity: 1,
-        unitPrice: 195.0,
-        buyPrice: 140.0,
-        discount: 0,
-        total: 195.0,
-      },
-    ],
-    subtotal: 295.0,
-    discount: 0,
-    taxRate: 0,
-    taxAmount: 0,
-    total: 295.0,
-    costTotal: 204.0,
-    profit: 91.0,
-    paymentMethod: 'credit', // veresiye
-    status: 'completed',
-    paidAmount: 0,
-    changeAmount: 0,
-    notes: 'Veresiye defterine işlendi.',
-    createdAt: '2026-09-23T11:45:00.000Z',
-  },
-  {
-    id: 'sale-2',
-    invoiceNo: 'ST-2026-00102',
-    customerId: 'cust-2',
-    customerName: 'Selin Demir',
-    customerPhone: '0544 333 45 67',
-    items: [
-      {
-        id: 'item-3',
-        saleId: 'sale-2',
-        productId: 'prod-4',
-        productName: 'USB-C Hızlı Şarj Kablosu 1.5m',
-        quantity: 1,
-        unitPrice: 160.0,
-        buyPrice: 85.0,
-        discount: 0,
-        total: 160.0,
-      },
-      {
-        id: 'item-4',
-        saleId: 'sale-2',
-        productId: 'prod-5',
-        productName: 'Kablosuz Optik Mouse',
-        quantity: 1,
-        unitPrice: 290.0,
-        buyPrice: 160.0,
-        discount: 0,
-        total: 290.0,
-      },
-    ],
-    subtotal: 450.0,
-    discount: 20.0,
-    taxRate: 0,
-    taxAmount: 0,
-    total: 430.0,
-    costTotal: 245.0,
-    profit: 185.0,
-    paymentMethod: 'mixed',
-    status: 'completed',
-    paidAmount: 430.0,
-    changeAmount: 0,
-    cashPaid: 200.0,
-    transferPaid: 230.0,
-    customerBalanceDelta: 0,
-    notes: 'Karışık ödeme (200₺ Nakit, 230₺ Havale).',
-    createdAt: '2026-09-23T16:20:00.000Z',
-  },
-  {
-    id: 'sale-3',
-    invoiceNo: 'ST-2026-00103',
-    customerId: 'cust-4',
-    customerName: 'Zeynep Aktaş',
-    customerPhone: '0505 444 22 11',
-    items: [
-      {
-        id: 'item-5',
-        saleId: 'sale-3',
-        productId: 'prod-6',
-        productName: 'Sıvı El Sabunu 500ml',
-        quantity: 2,
-        unitPrice: 45.0,
-        buyPrice: 25.0,
-        discount: 0,
-        total: 90.0,
-      },
-      {
-        id: 'item-6',
-        saleId: 'sale-3',
-        productId: 'prod-1',
-        productName: 'Türk Kahvesi 100g',
-        quantity: 1,
-        unitPrice: 50.0,
-        buyPrice: 32.0,
-        discount: 0,
-        total: 50.0,
-      },
-    ],
-    subtotal: 140.0,
-    discount: 0,
-    taxRate: 0,
-    taxAmount: 0,
-    total: 140.0,
-    costTotal: 82.0,
-    profit: 58.0,
-    paymentMethod: 'cash',
-    status: 'completed',
-    paidAmount: 200.0,
-    changeAmount: 60.0,
-    notes: 'Nakit tahsil edildi.',
-    createdAt: '2026-09-24T08:30:00.000Z',
-  },
-];
+const SEED_SALES: Sale[] = [];
 
-const SEED_PAYMENTS: CustomerPayment[] = [
-  {
-    id: 'pay-1',
-    customerId: 'cust-1',
-    customerName: 'Ahmet Yılmaz',
-    amount: 500,
-    paymentMethod: 'cash',
-    notes: 'Kısmi veresiye ödemesi yapıldı.',
-    createdAt: '2026-09-22T14:30:00.000Z',
-  },
-];
+const SEED_PAYMENTS: CustomerPayment[] = [];
 
 const SEED_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif-1',
-    title: 'Kritik Stok Uyarısı',
-    message: 'A4 Fotokopi Kağıdı stoğu 2 pakete düştü (Kritik sınır: 10).',
-    type: 'stock_alert',
-    isRead: false,
-    actionTab: 'products',
-    createdAt: '2026-09-24T08:00:00.000Z',
-  },
-  {
-    id: 'notif-2',
-    title: 'Kritik Stok Uyarısı',
-    message: 'Kablosuz Optik Mouse ve Zeytinyağı stokları kritik seviyede.',
-    type: 'stock_alert',
-    isRead: false,
-    actionTab: 'products',
-    createdAt: '2026-09-23T18:00:00.000Z',
-  },
-  {
-    id: 'notif-3',
-    title: 'Bekleyen Veresiye Hatırlatması',
-    message: 'Kaya Ticaret firmasının 2.400,00 ₺ açık hesap bakiyesi bulunmaktadır.',
-    type: 'debt_reminder',
-    isRead: false,
-    actionTab: 'customers',
-    createdAt: '2026-09-23T10:00:00.000Z',
-  },
-  {
-    id: 'notif-4',
-    title: 'SQLite Yerel Veritabanı Hazır',
-    message: 'Tüm satış ve müşteri verileriniz cihazınızda güvenli bir şekilde saklanmaktadır.',
+    title: 'MobilSatış Hazır',
+    message: 'Satış, stok, müşteri ve gider takip sisteminiz kullanıma hazırdır.',
     type: 'system',
     isRead: true,
-    actionTab: 'settings',
-    createdAt: '2026-09-20T09:00:00.000Z',
+    actionTab: 'pos',
+    createdAt: '2026-09-24T08:00:00.000Z',
   },
 ];
 
@@ -540,83 +367,7 @@ const SEED_EXPENSE_ITEMS: ExpenseItem[] = [
   },
 ];
 
-const SEED_EXPENSES: Expense[] = [
-  {
-    id: 'exp-1',
-    expenseItemId: 'exp-item-1',
-    title: 'Un (50 kg Kisə / Çuval)',
-    category: 'İstehsalat & Xammal',
-    quantity: 10,
-    unit: 'Kisə',
-    unitPrice: 28,
-    amount: 280,
-    paymentMethod: 'cash',
-    supplier: 'Dəyirman Un Təchizatı',
-    notes: '1-ci növ əla un alındı.',
-    date: '2026-09-20T10:00:00.000Z',
-    createdAt: '2026-09-20T10:00:00.000Z',
-  },
-  {
-    id: 'exp-2',
-    expenseItemId: 'exp-item-2',
-    title: 'Odun (Təndir Yanacağı)',
-    category: 'İstehsalat & Yanacaq',
-    quantity: 1,
-    unit: 'Maşın',
-    unitPrice: 150,
-    amount: 150,
-    paymentMethod: 'cash',
-    supplier: 'Meşə Təsərrüfatı',
-    notes: 'Quru palıd odunu gətirildi.',
-    date: '2026-09-21T14:30:00.000Z',
-    createdAt: '2026-09-21T14:30:00.000Z',
-  },
-  {
-    id: 'exp-3',
-    expenseItemId: 'exp-item-3',
-    title: 'Təndir Mayası (Paket)',
-    category: 'İstehsalat & Xammal',
-    quantity: 5,
-    unit: 'Paket',
-    unitPrice: 4,
-    amount: 20,
-    paymentMethod: 'cash',
-    supplier: 'Qida Təchizat',
-    notes: 'Pakmayadan 5 qutu alındı.',
-    date: '2026-09-22T09:15:00.000Z',
-    createdAt: '2026-09-22T09:15:00.000Z',
-  },
-  {
-    id: 'exp-4',
-    expenseItemId: 'exp-item-5',
-    title: 'Qablaşdırma & Çörək Torbası',
-    category: 'Qablaşdırma & Sərfi',
-    quantity: 4,
-    unit: 'Paket',
-    unitPrice: 12,
-    amount: 48,
-    paymentMethod: 'cash',
-    supplier: 'Polietilen Topdan',
-    notes: 'Logo çaplı təndir torbaları.',
-    date: '2026-09-23T11:00:00.000Z',
-    createdAt: '2026-09-23T11:00:00.000Z',
-  },
-  {
-    id: 'exp-5',
-    expenseItemId: 'exp-item-6',
-    title: 'Elektrik & Qaz Ödənişi',
-    category: 'Kommunal & Əməliyyat',
-    quantity: 1,
-    unit: 'Ay',
-    unitPrice: 65,
-    amount: 65,
-    paymentMethod: 'transfer',
-    supplier: 'Azərişıq ASC',
-    notes: 'Aylıq elektrik sərfiyyatı ödənildi.',
-    date: '2026-09-24T08:30:00.000Z',
-    createdAt: '2026-09-24T08:30:00.000Z',
-  },
-];
+const SEED_EXPENSES: Expense[] = [];
 
 class SQLiteStorageManager {
   private memoryCache: {
@@ -727,6 +478,22 @@ class SQLiteStorageManager {
       this.memoryCache.settings = DEFAULT_SETTINGS;
       this.memoryCache.expenses = SEED_EXPENSES;
       this.memoryCache.expenseItems = SEED_EXPENSE_ITEMS;
+    }
+
+    // Force reset all sales, expenses, payments and customer balances to 0 as requested by user
+    const REPORTS_RESET_MIGRATION_KEY = 'mobilsatis_reports_reset_2026_09_24';
+    if (typeof window !== 'undefined' && window.localStorage && localStorage.getItem(REPORTS_RESET_MIGRATION_KEY) !== 'done') {
+      this.memoryCache.sales = [];
+      this.memoryCache.expenses = [];
+      this.memoryCache.payments = [];
+      if (Array.isArray(this.memoryCache.customers)) {
+        this.memoryCache.customers.forEach((c) => {
+          c.balance = 0;
+          c.totalPurchases = 0;
+        });
+      }
+      localStorage.setItem(REPORTS_RESET_MIGRATION_KEY, 'done');
+      this.persistAll();
     }
 
     this.isInitialized = true;
@@ -1122,14 +889,45 @@ class SQLiteStorageManager {
   }
 
   public deleteExpenseItem(id: string): boolean {
-    const prevLen = this.memoryCache.expenseItems.length;
+    const item = this.memoryCache.expenseItems.find((i) => i.id === id);
+    const itemName = item?.name;
+    const prevItemsLen = this.memoryCache.expenseItems.length;
     this.memoryCache.expenseItems = this.memoryCache.expenseItems.filter((i) => i.id !== id);
-    if (this.memoryCache.expenseItems.length !== prevLen) {
+
+    // Also remove any expenses associated with this item id or title so it disappears completely from Giderler
+    const prevExpensesLen = this.memoryCache.expenses.length;
+    this.memoryCache.expenses = this.memoryCache.expenses.filter(
+      (e) => e.expenseItemId !== id && (!itemName || e.title.toLowerCase() !== itemName.toLowerCase())
+    );
+
+    if (this.memoryCache.expenseItems.length !== prevItemsLen || this.memoryCache.expenses.length !== prevExpensesLen) {
       this.persistAll();
       this.notify();
       return true;
     }
     return false;
+  }
+
+  public deleteProductExpenses(productIdOrTitle: string, titleFallback?: string): boolean {
+    const idLower = productIdOrTitle.toLowerCase();
+    const titleLower = (titleFallback || productIdOrTitle).toLowerCase();
+
+    const prevItemsLen = this.memoryCache.expenseItems.length;
+    this.memoryCache.expenseItems = this.memoryCache.expenseItems.filter(
+      (i) => i.id !== productIdOrTitle && i.name.toLowerCase() !== idLower && i.name.toLowerCase() !== titleLower
+    );
+
+    const prevExpensesLen = this.memoryCache.expenses.length;
+    this.memoryCache.expenses = this.memoryCache.expenses.filter(
+      (e) =>
+        e.expenseItemId !== productIdOrTitle &&
+        e.title.toLowerCase() !== idLower &&
+        e.title.toLowerCase() !== titleLower
+    );
+
+    this.persistAll();
+    this.notify();
+    return true;
   }
 
   // --- Expenses ---
@@ -1297,6 +1095,20 @@ class SQLiteStorageManager {
       console.error('Failed to import dump:', e);
       return false;
     }
+  }
+
+  public resetAllReports(): void {
+    this.memoryCache.sales = [];
+    this.memoryCache.expenses = [];
+    this.memoryCache.payments = [];
+    if (Array.isArray(this.memoryCache.customers)) {
+      this.memoryCache.customers.forEach((c) => {
+        c.balance = 0;
+        c.totalPurchases = 0;
+      });
+    }
+    this.persistAll();
+    this.notify();
   }
 
   public resetToSampleData(): void {

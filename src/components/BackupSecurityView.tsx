@@ -32,6 +32,7 @@ interface BackupSecurityViewProps {
   onUpdateSettings: (updates: Partial<AppSettings>) => void;
   onRestoreBackup: (dump: DatabaseDump) => void;
   onResetToSampleData: () => void;
+  onResetAllReports?: () => void;
 }
 
 export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
@@ -42,6 +43,7 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   onUpdateSettings,
   onRestoreBackup,
   onResetToSampleData,
+  onResetAllReports,
 }) => {
   const [storeName, setStoreName] = useState(settings.storeName);
   const [storePhone, setStorePhone] = useState(settings.storePhone);
@@ -373,21 +375,42 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-[11px] text-slate-400">Örnek verilerle sıfırla:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('Tüm veriler varsayılan örnek verilerle yenilenecektir. Onaylıyor musunuz?')) {
-                    onResetToSampleData();
-                    showNotification('Örnek veriler yeniden yüklendi.');
-                  }
-                }}
-                className="text-xs text-rose-500 hover:underline flex items-center gap-1 font-medium"
-              >
-                <RefreshCw className="w-3 h-3" />
-                Varsayılanı Yükle
-              </button>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-slate-400">Örnek verilerle sıfırla:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Tüm veriler varsayılan örnek verilerle yenilenecektir. Onaylıyor musunuz?')) {
+                      onResetToSampleData();
+                      showNotification('Örnek veriler yeniden yüklendi.');
+                    }
+                  }}
+                  className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 font-medium"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Varsayılanı Yükle
+                </button>
+              </div>
+
+              {onResetAllReports && (
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100/60 dark:border-slate-800/60">
+                  <span className="text-[11px] text-rose-500 font-semibold">Tüm rapor ve kasa verileri:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('DİKKAT: Tüm satış, gider ve finansal raporlar sıfırlanacaktır. Devam etmek istiyor musunuz?')) {
+                        onResetAllReports();
+                        showNotification('Tüm raporlar ve kasa verileri sıfırlandı.');
+                      }
+                    }}
+                    className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-bold"
+                  >
+                    <RefreshCw className="w-3 h-3 text-rose-500" />
+                    Raporları Sıfırla (0)
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

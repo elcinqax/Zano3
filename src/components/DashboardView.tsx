@@ -21,6 +21,7 @@ import {
   Tag,
   Receipt,
   X,
+  RotateCcw,
 } from 'lucide-react';
 import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerProductPurchaseSummary } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
@@ -42,6 +43,7 @@ interface DashboardViewProps {
   onSelectSaleForReceipt?: (sale: Sale) => void;
   onOpenAddProduct?: () => void;
   onOpenAddCustomer?: () => void;
+  onResetAllReports?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -51,6 +53,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   expenses = [],
   expenseItems = [],
   settings,
+  onResetAllReports,
 }) => {
   // Report View Selection (Sadece raporlar arasında geçiş)
   const [activeReportTab, setActiveSubReportTab] = useState<'customerProducts' | 'financialSummary' | 'topProducts' | 'expenseSummary'>('customerProducts');
@@ -410,6 +413,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <Download className="w-3.5 h-3.5" />
             <span>CSV</span>
           </button>
+
+          {onResetAllReports && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('DİKKAT: Tüm satışlar, harcamalar ve rapor verileri sıfırlanacaktır. Bu işlem geri alınamaz. Onaylıyor musunuz?')) {
+                  onResetAllReports();
+                }
+              }}
+              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+              title="Tüm Raporları Sıfırla"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-rose-500" />
+              <span>Raporları Sıfırla</span>
+            </button>
+          )}
         </div>
       </div>
 
