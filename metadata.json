@@ -1,0 +1,6 @@
+{
+  "name": "MobilSatış - Android Satış & Stok Takip",
+  "description": "Android telefonlar için internetsiz çalışan, SQLite tabanlı satış, müşteri ve ürün takip uygulaması. Excel/CSV dışa aktarma, grafiksel raporlama ve şifreli giriş.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
