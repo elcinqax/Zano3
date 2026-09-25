@@ -71,6 +71,19 @@ export const initGoogleAuth = (
 };
 
 /**
+ * Check if running inside Capacitor or an Android WebView environment
+ */
+export const isCapacitorEnvironment = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    (window as any).Capacitor ||
+    (window as any).AndroidBridge ||
+    navigator.userAgent.includes('Capacitor') ||
+    navigator.userAgent.includes('wv')
+  );
+};
+
+/**
  * Sign in with Google Popup and obtain access token
  */
 export const signInWithGoogle = async (): Promise<{ user: User; accessToken: string }> => {
@@ -90,6 +103,19 @@ export const signInWithGoogle = async (): Promise<{ user: User; accessToken: str
     return { user: result.user, accessToken: credential.accessToken };
   } catch (error: any) {
     console.error('Google Sign-in Error:', error);
+    const msg = error?.message || String(error);
+    if (
+      msg.includes('Capacitor') ||
+      msg.includes('plugin not available') ||
+      msg.includes('auth/popup-blocked') ||
+      msg.includes('auth/operation-not-supported-in-this-environment')
+    ) {
+      const err = new Error(
+        'Android yerel uygulamasında (Capacitor/APK) Google Drive hesabına doğrudan sistem paylaşımı ile bağlanılır. Lütfen "Google Drive\'a Gönder (Android Paylaşım)" seçeneğini kullanınız.'
+      );
+      (err as any).code = 'CAPACITOR_PLUGIN_NOT_AVAILABLE';
+      throw err;
+    }
     throw error;
   } finally {
     isSigningIn = false;

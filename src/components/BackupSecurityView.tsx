@@ -53,6 +53,7 @@ import {
   deleteGoogleDriveBackup,
   getCurrentGoogleUser,
   getGoogleAccessToken,
+  isCapacitorEnvironment,
 } from '../services/googleDriveService';
 
 interface BackupSecurityViewProps {
@@ -143,7 +144,23 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
       showNotification(`Google Drive bağlandı: ${res.user.email || res.user.displayName}`, 'success');
     } catch (err: any) {
       console.error('Google Auth Failed:', err);
-      showNotification(err.message || 'Google Drive bağlantısı kurulamadı.', 'error');
+      const isCapacitor =
+        err?.code === 'CAPACITOR_PLUGIN_NOT_AVAILABLE' ||
+        err?.message?.includes('Capacitor') ||
+        err?.message?.includes('plugin not available') ||
+        isCapacitorEnvironment();
+
+      if (isCapacitor) {
+        showNotification(
+          'Android yerel uygulamasında (APK) Google Drive paylaşımı doğrudan çalışır. Android paylaşım penceresi açılıyor...',
+          'info'
+        );
+        setTimeout(() => {
+          handlePhoneShareOrSave();
+        }, 300);
+      } else {
+        showNotification(err.message || 'Google Drive bağlantısı kurulamadı.', 'error');
+      }
     } finally {
       setIsGoogleConnecting(false);
     }
@@ -162,10 +179,21 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   };
 
   const handleBackupToGoogleDrive = async (): Promise<boolean> => {
+    // If inside Capacitor / Android APK, use native Android Google Drive Share directly!
+    if (isCapacitorEnvironment() && !googleUser) {
+      showNotification('Telefonunuzdaki Google Drive paylaşım penceresi açılıyor...', 'info');
+      await handlePhoneShareOrSave();
+      return true;
+    }
+
     if (!googleUser || !getGoogleAccessToken()) {
       showNotification('Lütfen önce Google hesabınıza bağlanın.', 'error');
       await handleGoogleSignIn();
-      if (!getGoogleAccessToken()) return false;
+      if (!getGoogleAccessToken()) {
+        // If web sign in couldn't complete, fallback to Android native share
+        await handlePhoneShareOrSave();
+        return true;
+      }
     }
 
     setIsUploadingToDrive(true);
@@ -185,8 +213,10 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
       return true;
     } catch (err: any) {
       console.error('Drive upload failed:', err);
-      showNotification(err.message || 'Google Drive yedekleme başarısız oldu.', 'error');
-      return false;
+      // Fallback to native share on error
+      showNotification('Bulut API yerine doğrudan Android Google Drive paylaşımı açılıyor...', 'info');
+      await handlePhoneShareOrSave();
+      return true;
     } finally {
       setIsUploadingToDrive(false);
     }
@@ -535,11 +565,25 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
                   </div>
                 </div>
 
+                {/* Android Google Drive Native Share Option (Recommended for Mobile / APK) */}
+                <button
+                  type="button"
+                  onClick={handlePhoneShareOrSave}
+                  className="w-full h-11 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Google Drive'a Gönder (Android Paylaşım)</span>
+                </button>
+
+                <div className="relative py-1 text-center">
+                  <span className="text-[10px] text-slate-400 bg-white dark:bg-slate-900 px-2 uppercase font-bold tracking-wider">veya</span>
+                </div>
+
                 <button
                   type="button"
                   disabled={isGoogleConnecting}
                   onClick={handleGoogleSignIn}
-                  className="w-full h-11 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98"
+                  className="w-full h-10 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98"
                 >
                   {isGoogleConnecting ? (
                     <>
@@ -566,7 +610,7 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
                           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                         />
                       </svg>
-                      <span>Google ile Bağlan & Yetkilendir</span>
+                      <span>Web Google Hesabıyla Bağlan</span>
                     </>
                   )}
                 </button>
