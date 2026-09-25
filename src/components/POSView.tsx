@@ -27,6 +27,7 @@ import {
   BarChart3,
   ShoppingBag,
   XCircle,
+  Cloud,
 } from 'lucide-react';
 import { Product, Customer, CartItem, PaymentMethod, AppSettings, Sale } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -66,6 +67,7 @@ interface POSViewProps {
   }) => void;
   onQuickAddCustomer: (customerData: { name: string; phone?: string; address?: string }) => Customer;
   onOpenSalesHistory?: () => void;
+  onOpenBackupSettings?: () => void;
   onSelectSaleForReceipt?: (sale: Sale) => void;
   onCancelSale?: (saleId: string) => void;
 }
@@ -78,6 +80,7 @@ export const POSView: React.FC<POSViewProps> = ({
   onCompleteSale,
   onQuickAddCustomer,
   onOpenSalesHistory,
+  onOpenBackupSettings,
   onSelectSaleForReceipt,
   onCancelSale,
 }) => {
@@ -467,22 +470,37 @@ export const POSView: React.FC<POSViewProps> = ({
           </p>
         </div>
 
-        {/* Üst Köşede Satış Geçmişi Tuşu */}
-        <button
-          type="button"
-          onClick={() => {
-            if (onOpenSalesHistory) {
-              onOpenSalesHistory();
-            } else {
-              setShowSalesHistoryModal(true);
-            }
-          }}
-          className="h-11 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-xs"
-          title="Satış Geçmişi ve Faturalar"
-        >
-          <History className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Satış Geçmişi</span>
-        </button>
+        {/* Üst Köşede İşlem Butonları */}
+        <div className="flex items-center gap-2">
+          {onOpenBackupSettings && (
+            <button
+              type="button"
+              onClick={onOpenBackupSettings}
+              className="h-11 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 border border-emerald-300/70 dark:border-emerald-700/60 shadow-xs cursor-pointer"
+              title="Google Drive ve Telefona Yedek Al"
+            >
+              <Cloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Yedek Al</span>
+            </button>
+          )}
+
+          {/* Satış Geçmişi Tuşu */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenSalesHistory) {
+                onOpenSalesHistory();
+              } else {
+                setShowSalesHistoryModal(true);
+              }
+            }}
+            className="h-11 px-3.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer"
+            title="Satış Geçmişi ve Faturalar"
+          >
+            <History className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Satış Geçmişi</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. MÜŞTERİ SEÇME BÖLÜMÜ */}

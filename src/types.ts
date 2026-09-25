@@ -105,7 +105,21 @@ export interface AppSettings {
   screenTopPadding?: 'auto' | 'compact' | 'large' | 'zero';
   showStatusBarClock?: boolean;
   lastBackupDate?: string;
+  lastPhoneBackupDate?: string;
+  lastDriveBackupDate?: string;
   googleDriveSyncEmail?: string;
+  backupLocationPreference?: 'both' | 'phone' | 'gdrive';
+  autoBackupReminder?: 'daily' | 'weekly' | 'never';
+  autoBackupOnDayEnd?: boolean;
+}
+
+export interface DriveBackupFile {
+  id: string;
+  name: string;
+  size?: string;
+  createdTime?: string;
+  modifiedTime?: string;
+  webViewLink?: string;
 }
 
 export interface ExpenseItem {

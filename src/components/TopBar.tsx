@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Moon, Sun, Lock, Smartphone, Monitor } from 'lucide-react';
+import { Bell, Moon, Sun, Lock, Smartphone, Monitor, Cloud } from 'lucide-react';
 import { AppNotification } from '../types';
 
 interface TopBarProps {
@@ -154,6 +154,22 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Yedek & Ayarlar Button - Always Visible on Both Mobile & Desktop */}
+          <button
+            type="button"
+            onClick={() => onTabChange('settings')}
+            className={`min-h-[38px] px-2.5 sm:px-3 flex items-center gap-1.5 rounded-xl font-extrabold text-xs transition-all active:scale-95 border ${
+              activeTab === 'settings'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border-emerald-300/70 dark:border-emerald-700/60 shadow-xs'
+            }`}
+            title="Google Drive ve Telefona Yedek Al"
+            aria-label="Yedekleme ve Ayarlar"
+          >
+            <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110" />
+            <span className="inline font-black">Yedek</span>
+          </button>
+
           {/* Desktop Frame View Toggle */}
           <button
             type="button"

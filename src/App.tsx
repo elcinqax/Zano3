@@ -206,6 +206,7 @@ export default function App() {
                 return sqliteStorage.addCustomer(custData);
               }}
               onOpenSalesHistory={() => setActiveTab('sales')}
+              onOpenBackupSettings={() => setActiveTab('settings')}
               onSelectSaleForReceipt={setReceiptSale}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
             />

@@ -146,7 +146,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   screenTopPadding: 'auto',
   showStatusBarClock: true,
   lastBackupDate: new Date().toISOString(),
+  lastPhoneBackupDate: new Date().toISOString(),
+  lastDriveBackupDate: undefined,
   googleDriveSyncEmail: '',
+  backupLocationPreference: 'both',
+  autoBackupReminder: 'daily',
+  autoBackupOnDayEnd: true,
 };
 
 const SEED_CUSTOMERS: Customer[] = [
