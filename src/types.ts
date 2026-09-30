@@ -106,20 +106,9 @@ export interface AppSettings {
   showStatusBarClock?: boolean;
   lastBackupDate?: string;
   lastPhoneBackupDate?: string;
-  lastDriveBackupDate?: string;
-  googleDriveSyncEmail?: string;
-  backupLocationPreference?: 'both' | 'phone' | 'gdrive';
+  backupWhatsappNumber?: string;
   autoBackupReminder?: 'daily' | 'weekly' | 'never';
   autoBackupOnDayEnd?: boolean;
-}
-
-export interface DriveBackupFile {
-  id: string;
-  name: string;
-  size?: string;
-  createdTime?: string;
-  modifiedTime?: string;
-  webViewLink?: string;
 }
 
 export interface ExpenseItem {

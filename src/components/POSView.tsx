@@ -129,7 +129,13 @@ export const POSView: React.FC<POSViewProps> = ({
           (c.phone && c.phone.toLowerCase().includes(q))
       );
     }
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    return [...list].sort((a, b) => {
+    const aDebtor = a.balance > 0;
+    const bDebtor = b.balance > 0;
+    if (aDebtor !== bDebtor) return aDebtor ? -1 : 1;
+    if (aDebtor && bDebtor && a.balance !== b.balance) return b.balance - a.balance;
+    return a.name.localeCompare(b.name, 'tr');
+  });
   }, [customers, posCustomerSearch]);
 
   const modalFilteredSales = useMemo(() => {
@@ -477,7 +483,7 @@ export const POSView: React.FC<POSViewProps> = ({
               type="button"
               onClick={onOpenBackupSettings}
               className="h-11 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 border border-emerald-300/70 dark:border-emerald-700/60 shadow-xs cursor-pointer"
-              title="Google Drive ve Telefona Yedek Al"
+              title="Telefona Yedek Al ve WhatsApp'a Gönder"
             >
               <Cloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
               <span>Yedek Al</span>
@@ -657,9 +663,9 @@ export const POSView: React.FC<POSViewProps> = ({
       </div>
 
       {/* 3. FAVORİLERE EKLENEN ÜRÜN İSİMLERİ */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <label className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
             <span>Favori Ürünler</span>
           </label>
@@ -688,7 +694,7 @@ export const POSView: React.FC<POSViewProps> = ({
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {favoriteProducts.map((prod) => {
               const inCart = cart.find((i) => i.product.id === prod.id);
 
@@ -696,7 +702,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 <div
                   key={prod.id}
                   onClick={() => handleSelectProductForQuantity(prod)}
-                  className={`p-3.5 rounded-2xl border text-left transition-all active:scale-98 flex flex-col justify-between min-h-[88px] relative group cursor-pointer ${
+                  className={`p-2.5 rounded-xl border text-left transition-all active:scale-98 flex flex-col justify-between min-h-[68px] relative group cursor-pointer ${
                     inCart
                       ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
                       : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-700'
@@ -713,19 +719,16 @@ export const POSView: React.FC<POSViewProps> = ({
                   )}
 
                   <div className="pr-1">
-                    <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight">
+                    <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight">
                       {prod.name}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
                       {formatCurrency(prod.sellPrice, settings.currency)}
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
-                        Adet Yaz
-                      </span>
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -870,8 +873,8 @@ export const POSView: React.FC<POSViewProps> = ({
                 <span className="text-[10px] text-slate-400 font-semibold block text-center mb-1">
                   Hızlı Butonlar
                 </span>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {[10, 15, 25, 30, 50].map((num) => (
+                <div className="grid grid-cols-6 gap-1.5">
+                  {[10, 15, 20, 25, 30, 50].map((num) => (
                     <button
                       key={num}
                       type="button"

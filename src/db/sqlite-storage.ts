@@ -127,8 +127,7 @@ CREATE TABLE IF NOT EXISTS settings (
   isBiometricEnabled INTEGER DEFAULT 0,
   autoLockMinutes INTEGER DEFAULT 5,
   theme TEXT DEFAULT 'system',
-  lastBackupDate TEXT,
-  googleDriveSyncEmail TEXT
+  lastBackupDate TEXT
 );
 `.trim();
 
@@ -147,9 +146,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   showStatusBarClock: true,
   lastBackupDate: new Date().toISOString(),
   lastPhoneBackupDate: new Date().toISOString(),
-  lastDriveBackupDate: undefined,
-  googleDriveSyncEmail: '',
-  backupLocationPreference: 'both',
   autoBackupReminder: 'daily',
   autoBackupOnDayEnd: true,
 };
@@ -1072,7 +1068,7 @@ class SQLiteStorageManager {
     // Settings
     const set = this.memoryCache.settings;
     lines.push(
-      `INSERT OR REPLACE INTO settings (id, storeName, storePhone, storeAddress, currency, taxRate, isPinEnabled, pinCode, isBiometricEnabled, autoLockMinutes, theme, lastBackupDate, googleDriveSyncEmail) VALUES ('main', '${set.storeName}', '${set.storePhone}', '${set.storeAddress}', '${set.currency}', ${set.taxRate}, ${set.isPinEnabled ? 1 : 0}, '${set.pinCode}', ${set.isBiometricEnabled ? 1 : 0}, ${set.autoLockMinutes}, '${set.theme}', '${set.lastBackupDate || ''}', '${set.googleDriveSyncEmail || ''}');`
+      `INSERT OR REPLACE INTO settings (id, storeName, storePhone, storeAddress, currency, taxRate, isPinEnabled, pinCode, isBiometricEnabled, autoLockMinutes, theme, lastBackupDate) VALUES ('main', '${set.storeName}', '${set.storePhone}', '${set.storeAddress}', '${set.currency}', ${set.taxRate}, ${set.isPinEnabled ? 1 : 0}, '${set.pinCode}', ${set.isBiometricEnabled ? 1 : 0}, ${set.autoLockMinutes}, '${set.theme}', '${set.lastBackupDate || ''}');`
     );
 
     lines.push('');
