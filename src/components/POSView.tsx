@@ -873,8 +873,8 @@ export const POSView: React.FC<POSViewProps> = ({
                 <span className="text-[10px] text-slate-400 font-semibold block text-center mb-1">
                   Hızlı Butonlar
                 </span>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {[10, 15, 25, 30, 50].map((num) => (
+                <div className="grid grid-cols-6 gap-1.5">
+                  {[10, 15, 20, 25, 30, 50].map((num) => (
                     <button
                       key={num}
                       type="button"
