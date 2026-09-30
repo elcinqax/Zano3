@@ -1,10 +1,11 @@
 import React from 'react';
-import { Bell, Moon, Sun, Lock, Smartphone, Monitor, Cloud } from 'lucide-react';
+import { Bell, Moon, Sun, Lock, Smartphone, Monitor, Cloud, Sparkles } from 'lucide-react';
+import type { ThemeMode } from '../App';
 import { AppNotification } from '../types';
 
 interface TopBarProps {
   storeName: string;
-  isDark: boolean;
+  themeMode: ThemeMode;
   onToggleTheme: () => void;
   onLockApp: () => void;
   isPinEnabled: boolean;
@@ -19,7 +20,7 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({
   storeName,
-  isDark,
+  themeMode,
   onToggleTheme,
   onLockApp,
   isPinEnabled,
@@ -211,10 +212,12 @@ export const TopBar: React.FC<TopBarProps> = ({
             type="button"
             onClick={onToggleTheme}
             className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
-            title={isDark ? 'Açık Mod' : 'Karanlık Mod'}
+            title={themeMode === 'light' ? 'Karanlık Mod' : themeMode === 'dark' ? 'Modern Tema' : 'Açık Mod'}
             aria-label="Tema Değiştir"
           >
-            {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
+            {themeMode === 'light' && <Moon className="w-5 h-5 text-slate-700" />}
+            {themeMode === 'dark' && <Sparkles className="w-5 h-5 text-emerald-400" />}
+            {themeMode === 'modern' && <Sun className="w-5 h-5 text-amber-400" />}
           </button>
 
           {/* Lock App */}

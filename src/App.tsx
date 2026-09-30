@@ -17,6 +17,10 @@ import { NotificationModal } from './components/NotificationModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
 
+export type ThemeMode = 'light' | 'dark' | 'modern';
+const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'modern'];
+const THEME_COLORS: Record<ThemeMode, string> = { light: '#f8fafc', dark: '#0a0f1d', modern: '#0b0a1a' };
+
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -30,15 +34,15 @@ export default function App() {
   // Navigation & View mode - Starts on 1. Satış as requested
   const [activeTab, setActiveTab] = useState<string>('pos');
   const [isMobileFrame, setIsMobileFrame] = useState<boolean>(false);
-  const [isDark, setIsDark] = useState<boolean>(() => {
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
-      return (
-        localStorage.getItem('theme_preference') === 'dark' ||
-        (!localStorage.getItem('theme_preference') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-      );
+      const saved = localStorage.getItem('theme_preference');
+      if (saved === 'light' || saved === 'dark' || saved === 'modern') return saved;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    return false;
+    return 'light';
   });
+  const isDark = themeMode !== 'light';
 
   // Security lock state
   const [isLocked, setIsLocked] = useState<boolean>(false);
@@ -101,22 +105,21 @@ export default function App() {
   // Handle Dark mode class
   useEffect(() => {
     try {
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-        document.body.classList.add('dark');
-        localStorage.setItem('theme_preference', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        document.body.classList.remove('dark');
-        localStorage.setItem('theme_preference', 'light');
-      }
+      const root = document.documentElement;
+      root.classList.toggle('dark', isDark);
+      document.body.classList.toggle('dark', isDark);
+      root.classList.toggle('theme-modern', themeMode === 'modern');
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', THEME_COLORS[themeMode]);
+      localStorage.setItem('theme_preference', themeMode);
     } catch (e) {
       console.warn('Theme preference storage error:', e);
     }
-  }, [isDark]);
+  }, [themeMode, isDark]);
 
   const toggleTheme = () => {
-    setIsDark((prev) => !prev);
+    setThemeMode((prev) => THEME_ORDER[(THEME_ORDER.indexOf(prev) + 1) % THEME_ORDER.length]);
   };
 
   // Cart count for BottomNav badge
@@ -175,7 +178,7 @@ export default function App() {
           {/* Top Bar */}
           <TopBar
             storeName={settings.storeName}
-            isDark={isDark}
+            themeMode={themeMode}
             screenTopPadding={settings.screenTopPadding}
             onToggleTheme={toggleTheme}
             onLockApp={() => setIsLocked(true)}
