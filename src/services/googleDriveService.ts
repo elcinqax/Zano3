@@ -104,6 +104,14 @@ export const signInWithGoogle = async (): Promise<{ user: User; accessToken: str
   } catch (error: any) {
     console.error('Google Sign-in Error:', error);
     const msg = error?.message || String(error);
+    if (error?.code === 'auth/unauthorized-domain' || msg.includes('auth/unauthorized-domain')) {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'bu alan adı';
+      const err = new Error(
+        `"${host}" alan adı Firebase'de yetkili değil. Firebase Console > Authentication > Settings > Authorized domains bölümüne "${host}" ekleyin.`
+      );
+      (err as any).code = 'auth/unauthorized-domain';
+      throw err;
+    }
     if (
       msg.includes('Capacitor') ||
       msg.includes('plugin not available') ||
