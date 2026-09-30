@@ -69,7 +69,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   // Alphabetically sorted customers
   const sortedCustomers = useMemo(() => {
-    return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    return [...customers].sort((a, b) => {
+      const aDebt = a.balance > 0 ? 1 : 0;
+      const bDebt = b.balance > 0 ? 1 : 0;
+      if (aDebt !== bDebt) return bDebt - aDebt;
+      return a.name.localeCompare(b.name, 'tr');
+    });
   }, [customers]);
 
   // Filter customers and sort alphabetically
