@@ -177,7 +177,7 @@ export const shareOrSaveFile = async (content: string, filename: string, mimeTyp
   const blob = new Blob([content], { type: mimeType });
   const file = new File([blob], filename, { type: mimeType });
 
-  // If mobile browser supports Web Share API with files (Android Google Drive share target)
+  // If mobile browser supports Web Share API with files (Android share sheet, e.g. WhatsApp)
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({

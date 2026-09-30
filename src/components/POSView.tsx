@@ -477,7 +477,7 @@ export const POSView: React.FC<POSViewProps> = ({
               type="button"
               onClick={onOpenBackupSettings}
               className="h-11 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 border border-emerald-300/70 dark:border-emerald-700/60 shadow-xs cursor-pointer"
-              title="Google Drive ve Telefona Yedek Al"
+              title="Telefona Yedek Al ve WhatsApp'a Gönder"
             >
               <Cloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
               <span>Yedek Al</span>

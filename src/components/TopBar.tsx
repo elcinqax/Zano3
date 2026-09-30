@@ -163,7 +163,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                 : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border-emerald-300/70 dark:border-emerald-700/60 shadow-xs'
             }`}
-            title="Google Drive ve Telefona Yedek Al"
+            title="Telefona Yedek Al ve WhatsApp'a Gönder"
             aria-label="Yedekleme ve Ayarlar"
           >
             <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110" />
