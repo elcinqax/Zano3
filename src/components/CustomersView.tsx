@@ -176,7 +176,6 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Müşteri adı, telefon veya adres ile ara..."
               className="w-full h-11 pl-10 pr-8 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
-              autoFocus
             />
             {search && (
               <button
