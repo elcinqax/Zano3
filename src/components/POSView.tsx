@@ -129,7 +129,13 @@ export const POSView: React.FC<POSViewProps> = ({
           (c.phone && c.phone.toLowerCase().includes(q))
       );
     }
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    return [...list].sort((a, b) => {
+    const aDebtor = a.balance > 0;
+    const bDebtor = b.balance > 0;
+    if (aDebtor !== bDebtor) return aDebtor ? -1 : 1;
+    if (aDebtor && bDebtor && a.balance !== b.balance) return b.balance - a.balance;
+    return a.name.localeCompare(b.name, 'tr');
+  });
   }, [customers, posCustomerSearch]);
 
   const modalFilteredSales = useMemo(() => {
