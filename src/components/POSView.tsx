@@ -180,6 +180,7 @@ export const POSView: React.FC<POSViewProps> = ({
   // Quantity Input Modal State (Ürün seçerken sayıyı el ile yazma)
   const [quantityModalProduct, setQuantityModalProduct] = useState<Product | null>(null);
   const [modalQuantityInput, setModalQuantityInput] = useState<string>('1');
+  const [modalPriceInput, setModalPriceInput] = useState<string>('');
 
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
@@ -210,6 +211,24 @@ export const POSView: React.FC<POSViewProps> = ({
     () => customers.find((c) => c.id === selectedCustomerId) || null,
     [customers, selectedCustomerId]
   );
+
+  // Özel fiyat sadece Genel Müşteri için geçerli; kayıtlı müşteri seçilince liste fiyatına dönülür
+  const selectCustomer = (id: string) => {
+    setSelectedCustomerId(id);
+    if (id) {
+      setCart((prev) =>
+        prev.map((i) =>
+          i.unitPrice === i.product.sellPrice
+            ? i
+            : {
+                ...i,
+                unitPrice: i.product.sellPrice,
+                total: Number((i.quantity * i.product.sellPrice).toFixed(2)),
+              }
+        )
+      );
+    }
+  };
 
   // Favorite Products list
   const favoriteProducts = useMemo(() => {
@@ -297,7 +316,19 @@ export const POSView: React.FC<POSViewProps> = ({
   const handleSelectProductForQuantity = (product: Product) => {
     const existing = cart.find((i) => i.product.id === product.id);
     setModalQuantityInput(existing ? existing.quantity.toString() : '1');
+    setModalPriceInput((existing ? existing.unitPrice : product.sellPrice).toString());
     setQuantityModalProduct(product);
+  };
+
+  const canEditPrice = !selectedCustomerId;
+
+  const getModalUnitPrice = (product: Product) => {
+    if (canEditPrice) {
+      const parsed = parseFloat(modalPriceInput);
+      return isNaN(parsed) || parsed < 0 ? product.sellPrice : parsed;
+    }
+    const existing = cart.find((i) => i.product.id === product.id);
+    return existing ? existing.unitPrice : product.sellPrice;
   };
 
   // Confirm manual quantity
@@ -306,6 +337,11 @@ export const POSView: React.FC<POSViewProps> = ({
     if (!quantityModalProduct) return;
     const qty = parseFloat(modalQuantityInput);
     if (isNaN(qty) || qty <= 0) return;
+    if (canEditPrice) {
+      const parsedPrice = parseFloat(modalPriceInput);
+      if (isNaN(parsedPrice) || parsedPrice < 0) return;
+    }
+    const unitPrice = Number(getModalUnitPrice(quantityModalProduct).toFixed(2));
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === quantityModalProduct.id);
@@ -315,7 +351,8 @@ export const POSView: React.FC<POSViewProps> = ({
             ? {
                 ...item,
                 quantity: qty,
-                total: Number((qty * item.unitPrice).toFixed(2)),
+                unitPrice,
+                total: Number((qty * unitPrice).toFixed(2)),
               }
             : item
         );
@@ -325,9 +362,9 @@ export const POSView: React.FC<POSViewProps> = ({
           {
             product: quantityModalProduct,
             quantity: qty,
-            unitPrice: quantityModalProduct.sellPrice,
+            unitPrice,
             discount: 0,
-            total: Number((qty * quantityModalProduct.sellPrice).toFixed(2)),
+            total: Number((qty * unitPrice).toFixed(2)),
           },
         ];
       }
@@ -450,6 +487,43 @@ export const POSView: React.FC<POSViewProps> = ({
     resetPosScreen();
   };
 
+  const renderExcessInfo = (excess: number) => {
+    if (!selectedCustomer) {
+      return (
+        <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[11px] text-blue-700 dark:text-blue-300 space-y-0.5">
+          <div>
+            Para Üstü: <strong>{formatCurrency(excess, settings.currency)}</strong>
+          </div>
+          <div className="text-blue-600/80 dark:text-blue-400/80">
+            Fazla ödemeyi hesaba yazmak için kayıtlı bir müşteri seçin.
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-800/60 text-[11px] text-blue-800 dark:text-blue-300 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span>Fazla Ödeme:</span>
+          <strong className="text-sm tabular-nums">{formatCurrency(excess, settings.currency)}</strong>
+        </div>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={applyExcessToAccount}
+            onChange={(e) => setApplyExcessToAccount(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded accent-emerald-600 shrink-0"
+          />
+          <span className="font-semibold leading-snug">
+            {applyExcessToAccount
+              ? `${formatCurrency(excess, settings.currency)} ${selectedCustomer.name} hesabına alacak olarak işlenecek`
+              : 'Para üstü müşteriye nakit verilecek'}
+          </span>
+        </label>
+      </div>
+    );
+  };
+
   const handleCreateCustomer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustName.trim()) return;
@@ -457,7 +531,7 @@ export const POSView: React.FC<POSViewProps> = ({
       name: newCustName.trim(),
       phone: newCustPhone.trim() || undefined,
     });
-    setSelectedCustomerId(created.id);
+    selectCustomer(created.id);
     setNewCustName('');
     setNewCustPhone('');
     setShowAddCustomerModal(false);
@@ -577,7 +651,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setSelectedCustomerId(c.id)}
+                  onClick={() => selectCustomer(c.id)}
                   className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border ${
                     isSelected
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-500/20'
@@ -596,6 +670,18 @@ export const POSView: React.FC<POSViewProps> = ({
                       {formatCurrency(c.balance, settings.currency)}
                     </span>
                   )}
+                  {c.balance < 0 && (
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded font-black ${
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400'
+                      }`}
+                      title="Müşterinin alacağı (avans)"
+                    >
+                      +{formatCurrency(Math.abs(c.balance), settings.currency)}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -609,7 +695,7 @@ export const POSView: React.FC<POSViewProps> = ({
           <div className="relative flex-1">
             <select
               value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              onChange={(e) => selectCustomer(e.target.value)}
               className="w-full h-12 px-3.5 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
             >
               <option value="">Genel Müşteri (Anonim)</option>
@@ -725,9 +811,20 @@ export const POSView: React.FC<POSViewProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                      {formatCurrency(prod.sellPrice, settings.currency)}
-                    </span>
+                    {inCart && inCart.unitPrice !== prod.sellPrice ? (
+                      <span className="flex flex-col leading-tight">
+                        <span className="text-[10px] font-bold text-slate-400 line-through font-mono">
+                          {formatCurrency(prod.sellPrice, settings.currency)}
+                        </span>
+                        <span className="text-sm font-black text-amber-600 dark:text-amber-400 font-mono">
+                          {formatCurrency(inCart.unitPrice, settings.currency)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                        {formatCurrency(prod.sellPrice, settings.currency)}
+                      </span>
+                    )}
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -813,9 +910,48 @@ export const POSView: React.FC<POSViewProps> = ({
                   {quantityModalProduct.name}
                 </h4>
                 <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">
-                  Birim Fiyat: {formatCurrency(quantityModalProduct.sellPrice)} / {quantityModalProduct.unit || 'adet'}
+                  {canEditPrice ? 'Liste Fiyatı' : 'Birim Fiyat'}: {formatCurrency(canEditPrice ? quantityModalProduct.sellPrice : getModalUnitPrice(quantityModalProduct), settings.currency)} / {quantityModalProduct.unit || 'adet'}
                 </div>
               </div>
+
+              {canEditPrice && (
+                <div>
+                  <label
+                    htmlFor="pos-unit-price"
+                    className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block text-center mb-1.5 uppercase tracking-wide"
+                  >
+                    Satış Fiyatı (Genel Müşteri)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="pos-unit-price"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={modalPriceInput}
+                      onChange={(e) => setModalPriceInput(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      className="flex-1 min-w-0 h-12 text-center text-xl font-black text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-amber-400 focus:outline-none focus:ring-4 focus:ring-amber-400/20 tabular-nums"
+                    />
+                    {parseFloat(modalPriceInput) !== quantityModalProduct.sellPrice && (
+                      <button
+                        type="button"
+                        onClick={() => setModalPriceInput(quantityModalProduct.sellPrice.toString())}
+                        className="h-12 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1 border border-slate-200 dark:border-slate-700 shrink-0"
+                        title="Liste fiyatına dön"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Liste</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-center mt-1">
+                    Fiyat sadece bu satış için değişir, ürün kartı etkilenmez.
+                  </p>
+                </div>
+              )}
 
               {/* Büyük El İle Sayı Yazma Girişi */}
               <div>
@@ -897,7 +1033,7 @@ export const POSView: React.FC<POSViewProps> = ({
                   Toplam Tutar:
                 </span>
                 <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
-                  {formatCurrency((parseFloat(modalQuantityInput) || 0) * quantityModalProduct.sellPrice)}
+                  {formatCurrency((parseFloat(modalQuantityInput) || 0) * getModalUnitPrice(quantityModalProduct), settings.currency)}
                 </span>
               </div>
 
@@ -1287,22 +1423,7 @@ export const POSView: React.FC<POSViewProps> = ({
                     const diff = Number((given - totalAmount).toFixed(2));
 
                     if (diff > 0) {
-                      return (
-                        <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[11px] text-blue-700 dark:text-blue-300 flex items-center justify-between">
-                          <span>Para Üstü: <strong>{formatCurrency(diff)}</strong></span>
-                          {selectedCustomer && (
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={applyExcessToAccount}
-                                onChange={(e) => setApplyExcessToAccount(e.target.checked)}
-                                className="rounded text-emerald-600"
-                              />
-                              <span>Hesabına avans yaz</span>
-                            </label>
-                          )}
-                        </div>
-                      );
+                      return renderExcessInfo(diff);
                     } else if (diff < 0) {
                       return (
                         <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-[11px] text-amber-700 dark:text-amber-300 flex items-center justify-between">
@@ -1370,6 +1491,21 @@ export const POSView: React.FC<POSViewProps> = ({
                       Kalanı Havale Yap
                     </button>
                   </div>
+
+                  {(() => {
+                    const sum = (parseFloat(mixedCash) || 0) + (parseFloat(mixedTransfer) || 0);
+                    const diff = Number((sum - totalAmount).toFixed(2));
+                    if (diff > 0) return renderExcessInfo(diff);
+                    if (diff < 0) {
+                      return (
+                        <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-[11px] text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
+                          <span>Eksik Tutar: <strong>{formatCurrency(Math.abs(diff))}</strong></span>
+                          <span>Müşteri borcuna eklenecek</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
 
