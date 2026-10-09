@@ -465,12 +465,16 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                   type="number"
                   step="0.01"
                   min="0.01"
-                  max={paymentCustomer.balance}
                   required
                   value={paymentAmount || ''}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))}
                   className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400"
                 />
+                {paymentAmount > paymentCustomer.balance && (
+                  <p className="mt-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                    Fazla ödeme: {formatCurrency(paymentAmount - paymentCustomer.balance)} müşterinin hesabına alacak olarak eklenecek.
+                  </p>
+                )}
               </div>
 
               <div>

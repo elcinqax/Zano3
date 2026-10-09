@@ -33,7 +33,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
     let extraNote = '';
     if (sale.paymentMethod === 'mixed') {
-      extraNote += `\nTahsilat: Nakit: ${formatCurrency(sale.cashPaid || 0, settings.currency)} + Havale: ${formatCurrency(sale.transferPaid || 0, settings.currency)}`;
+      extraNote += `\nTahsilat: Nakit: ${formatCurrency(sale.cashPaid || 0, settings.currency)}`;
     }
     if (sale.customerBalanceDelta && sale.customerBalanceDelta > 0) {
       extraNote += `\nKalan Borç (Veresiye): +${formatCurrency(sale.customerBalanceDelta, settings.currency)}`;
