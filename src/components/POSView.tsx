@@ -187,7 +187,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashGiven, setCashGiven] = useState<string>('');
   const [mixedCash, setMixedCash] = useState<string>('');
-  const [mixedTransfer, setMixedTransfer] = useState<string>('');
   const [applyExcessToAccount, setApplyExcessToAccount] = useState<boolean>(true);
   const [saleNotes, setSaleNotes] = useState<string>('');
 
@@ -300,7 +299,6 @@ export const POSView: React.FC<POSViewProps> = ({
     setPaymentMethod('cash');
     setCashGiven('');
     setMixedCash('');
-    setMixedTransfer('');
     setSaleNotes('');
     setNewCustName('');
     setNewCustPhone('');
@@ -395,7 +393,7 @@ export const POSView: React.FC<POSViewProps> = ({
     setCashGiven(totalAmount.toString());
     const half = (totalAmount / 2).toFixed(2);
     setMixedCash(half);
-    setMixedTransfer((totalAmount - Number(half)).toFixed(2));
+    setMixedCash(totalAmount.toFixed(2));
     setApplyExcessToAccount(true);
     setSaleNotes('');
     setShowPaymentModal(true);
@@ -409,8 +407,7 @@ export const POSView: React.FC<POSViewProps> = ({
     let paidAmount = 0;
     let changeAmount = 0;
     let cashPaid = 0;
-    let transferPaid = 0;
-    let customerBalanceDelta = 0;
+      let customerBalanceDelta = 0;
 
     if (paymentMethod === 'cash') {
       const given = parseFloat(cashGiven) || 0;
@@ -431,9 +428,8 @@ export const POSView: React.FC<POSViewProps> = ({
       }
     } else if (paymentMethod === 'mixed') {
       cashPaid = parseFloat(mixedCash) || 0;
-      transferPaid = parseFloat(mixedTransfer) || 0;
-      const sum = Number((cashPaid + transferPaid).toFixed(2));
-      paidAmount = sum;
+      paidAmount = cashPaid;
+      const sum = cashPaid;
 
       if (sum < totalAmount) {
         customerBalanceDelta = Number((totalAmount - sum).toFixed(2));
@@ -449,10 +445,8 @@ export const POSView: React.FC<POSViewProps> = ({
       paidAmount = 0;
       changeAmount = 0;
       customerBalanceDelta = totalAmount;
-    } else if (paymentMethod === 'transfer') {
-      paidAmount = totalAmount;
-      changeAmount = 0;
-    }
+  }
+
 
     onCompleteSale({
       customerId: selectedCustomerId || undefined,
@@ -478,7 +472,6 @@ export const POSView: React.FC<POSViewProps> = ({
       paidAmount,
       changeAmount,
       cashPaid: paymentMethod === 'mixed' ? cashPaid : undefined,
-      transferPaid: paymentMethod === 'mixed' ? transferPaid : undefined,
       customerBalanceDelta,
       notes: saleNotes.trim() || undefined,
     });
@@ -1378,12 +1371,11 @@ export const POSView: React.FC<POSViewProps> = ({
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
                   Ödeme Yöntemi
                 </label>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   {[
                     { id: 'cash', label: 'Nakit' },
                     { id: 'mixed', label: 'Karışık' },
                     { id: 'credit', label: 'Veresiye' },
-                    { id: 'transfer', label: 'Havale' },
                   ].map((m) => (
                     <button
                       key={m.id}
@@ -1439,61 +1431,23 @@ export const POSView: React.FC<POSViewProps> = ({
 
               {paymentMethod === 'mixed' && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                        💵 Nakit Alınan (₺)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={mixedCash}
-                        onChange={(e) => setMixedCash(e.target.value)}
-                        className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-bold tabular-nums"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                        🏦 Havale / EFT (₺)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={mixedTransfer}
-                        onChange={(e) => setMixedTransfer(e.target.value)}
-                        className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-bold tabular-nums"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const half = (totalAmount / 2).toFixed(2);
-                        setMixedCash(half);
-                        setMixedTransfer((totalAmount - Number(half)).toFixed(2));
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300"
-                    >
-                      50/50 Eşit Böl
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const cash = parseFloat(mixedCash) || 0;
-                        setMixedTransfer(Math.max(0, totalAmount - cash).toFixed(2));
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300"
-                    >
-                      Kalanı Havale Yap
-                    </button>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                      Nakit Alınan (₺)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={mixedCash}
+                      onChange={(e) => setMixedCash(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-bold tabular-nums"
+                    />
                   </div>
 
                   {(() => {
-                    const sum = (parseFloat(mixedCash) || 0) + (parseFloat(mixedTransfer) || 0);
+                    const sum = parseFloat(mixedCash) || 0;
                     const diff = Number((sum - totalAmount).toFixed(2));
                     if (diff > 0) return renderExcessInfo(diff);
                     if (diff < 0) {
