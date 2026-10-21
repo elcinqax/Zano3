@@ -655,7 +655,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
 
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Telefon Numarası <span className="text-slate-400 font-normal">(İsteğe Bağlı)</span>
+                  Azərbaycan <span className="text-slate-400 font-normal">(İsteğe Bağlı)</span>
                 </label>
                 <input
                   type="tel"
