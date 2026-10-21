@@ -52,7 +52,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const purchaseSummary = useMemo(() => {
     if (customerSales.length === 0) {
-      return { latestQuantity: 0, latestDate: null as string | null, busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0 };
+      return { latestQuantity: 0, latestDate: null as string | null, latestProductNames: [] as string[], busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0 };
     }
 
     const quantityForSale = (sale: Sale) => sale.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -73,6 +73,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     return {
       latestQuantity: quantityForSale(latestSale),
       latestDate: latestSale.createdAt,
+      latestProductNames: [...new Set(latestSale.items.map((item) => item.productName))],
       busiestDate,
       busiestQuantity,
       lastThreeMonthsQuantity,
@@ -484,7 +485,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 <h3 className="font-bold text-base text-slate-900 dark:text-white">Müşteri Geçmişi</h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">{historyCustomer.name} · {customerSales.length} satış</p>
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-                  <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestQuantity} ürün</span>{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
+                  <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
                   <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
                   <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
                 </div>
