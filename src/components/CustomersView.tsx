@@ -47,8 +47,37 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
 
   const customerSales = historyCustomer
-    ? sales.filter((sale) => sale.customerId === historyCustomer.id)
+    ? sales.filter((sale) => sale.customerId === historyCustomer.id && sale.status === 'completed')
     : [];
+
+  const purchaseSummary = useMemo(() => {
+    if (customerSales.length === 0) {
+      return { latestQuantity: 0, latestDate: null as string | null, busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0 };
+    }
+
+    const quantityForSale = (sale: Sale) => sale.items.reduce((sum, item) => sum + item.quantity, 0);
+    const latestSale = [...customerSales].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
+    const today = new Date();
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+    const lastThreeMonthsQuantity = customerSales
+      .filter((sale) => new Date(sale.createdAt) >= threeMonthsAgo)
+      .reduce((sum, sale) => sum + quantityForSale(sale), 0);
+    const byDay = customerSales.reduce<Record<string, number>>((totals, sale) => {
+      const day = new Date(sale.createdAt).toISOString().slice(0, 10);
+      totals[day] = (totals[day] || 0) + quantityForSale(sale);
+      return totals;
+    }, {});
+    const [busiestDate, busiestQuantity] = Object.entries(byDay).sort(([, a], [, b]) => b - a)[0] || [null, 0];
+
+    return {
+      latestQuantity: quantityForSale(latestSale),
+      latestDate: latestSale.createdAt,
+      busiestDate,
+      busiestQuantity,
+      lastThreeMonthsQuantity,
+    };
+  }, [customerSales]);
 
   // Modals
   const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
@@ -454,6 +483,11 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
               <div>
                 <h3 className="font-bold text-base text-slate-900 dark:text-white">Müşteri Geçmişi</h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">{historyCustomer.name} · {customerSales.length} satış</p>
+                <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                  <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestQuantity} ürün</span>{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
+                  <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
+                  <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
+                </div>
               </div>
               <button type="button" onClick={() => setHistoryCustomer(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Geçmişi kapat">
                 <X className="w-5 h-5" />
