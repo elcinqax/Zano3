@@ -219,6 +219,7 @@ export default function App() {
           {activeTab === 'customers' && (
             <CustomersView
               customers={customers}
+              sales={sales}
               settings={settings}
               onAddCustomer={(c) => sqliteStorage.addCustomer(c)}
               onUpdateCustomer={(id, updates) => sqliteStorage.updateCustomer(id, updates)}
