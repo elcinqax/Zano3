@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="sticky bottom-0 z-40 w-full bg-white/85 dark:bg-slate-950/85 backdrop-blur-2xl border-t border-slate-200/70 dark:border-slate-800/70 transition-colors shadow-lg shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
+    <nav className="sticky bottom-0 z-40 w-full bg-[#fffdf5]/94 dark:bg-[#171914]/96 backdrop-blur-2xl border-t border-[#d8d3c4] dark:border-[#34382b] transition-colors shadow-[0_-6px_24px_rgba(30,32,20,0.12)] shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
       <div className="grid grid-cols-6 h-16 items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -70,8 +70,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               className={`relative flex flex-col items-center justify-center min-h-[52px] py-1 transition-all rounded-2xl active:scale-95 ${
                 isActive
                   ? tab.id === 'expenses'
-                    ? 'text-rose-600 dark:text-rose-400 font-extrabold'
-                    : 'text-cyan-700 dark:text-cyan-300 font-extrabold'
+                    ? 'text-[#a16207] dark:text-[#facc15] font-extrabold'
+                    : 'text-[#4d7c0f] dark:text-[#bef264] font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
               aria-label={tab.label}
@@ -81,8 +81,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 className={`relative flex items-center justify-center w-11 sm:w-14 h-8 rounded-2xl transition-all duration-300 ${
                   isActive
                     ? tab.id === 'expenses'
-                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/25 shadow-xs'
-                      : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/25 shadow-xs'
+                      ? 'bg-yellow-400/10 text-[#a16207] dark:text-[#facc15] ring-1 ring-yellow-400/25 shadow-xs'
+                      : 'bg-lime-400/10 text-[#4d7c0f] dark:text-[#bef264] ring-1 ring-lime-400/25 shadow-xs'
                     : 'bg-transparent'
                 }`}
               >
