@@ -19,7 +19,7 @@ import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
 
 export type ThemeMode = 'light' | 'dark' | 'modern';
 const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'modern'];
-const THEME_COLORS: Record<ThemeMode, string> = { light: '#f8fafc', dark: '#0a0f1d', modern: '#0b0a1a' };
+const THEME_COLORS: Record<ThemeMode, string> = { light: '#f8fafc', dark: '#0a0f1d', modern: '#211412' };
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);

@@ -71,7 +71,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 isActive
                   ? tab.id === 'expenses'
                     ? 'text-rose-600 dark:text-rose-400 font-extrabold'
-                    : 'text-emerald-600 dark:text-emerald-400 font-extrabold'
+                    : 'text-orange-600 dark:text-orange-400 font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
               aria-label={tab.label}

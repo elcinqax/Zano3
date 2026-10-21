@@ -58,7 +58,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={() => onTabChange('pos')}
             className="flex items-center gap-3 text-left group transition-transform active:scale-98"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-600/25 ring-1 ring-white/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 via-rose-600 to-orange-700 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-600/25 ring-1 ring-white/20">
               M
             </div>
             <div className="leading-tight">

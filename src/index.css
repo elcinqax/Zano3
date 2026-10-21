@@ -18,43 +18,41 @@ html.dark {
   color-scheme: dark;
 }
 
-/* Modern theme: violet-tinted ink neutrals with an amethyst accent, remapping the slate/emerald palettes app-wide */
+/* Modern theme: editorial night market — warm ink, coral signal, and mint utility colors */
 html.theme-modern {
-  --color-slate-50: oklch(0.985 0.004 285);
-  --color-slate-100: oklch(0.965 0.008 285);
-  --color-slate-200: oklch(0.92 0.014 285);
-  --color-slate-300: oklch(0.86 0.02 285);
-  --color-slate-400: oklch(0.74 0.03 285);
-  --color-slate-500: oklch(0.6 0.035 285);
-  --color-slate-600: oklch(0.47 0.04 285);
-  --color-slate-700: oklch(0.36 0.045 285);
-  --color-slate-800: oklch(0.265 0.045 285);
-  --color-slate-900: oklch(0.2 0.04 285);
-  --color-slate-950: oklch(0.15 0.035 285);
+  --color-slate-50: oklch(0.98 0.012 80);
+  --color-slate-100: oklch(0.945 0.018 78);
+  --color-slate-200: oklch(0.88 0.025 76);
+  --color-slate-300: oklch(0.77 0.035 72);
+  --color-slate-400: oklch(0.64 0.04 68);
+  --color-slate-500: oklch(0.51 0.045 62);
+  --color-slate-600: oklch(0.39 0.05 55);
+  --color-slate-700: oklch(0.3 0.045 48);
+  --color-slate-800: oklch(0.235 0.04 42);
+  --color-slate-900: oklch(0.18 0.035 38);
+  --color-slate-950: oklch(0.12 0.03 35);
 
-  --color-emerald-50: oklch(0.97 0.02 295);
-  --color-emerald-100: oklch(0.94 0.045 295);
-  --color-emerald-200: oklch(0.89 0.08 295);
-  --color-emerald-300: oklch(0.82 0.12 295);
-  --color-emerald-400: oklch(0.74 0.16 295);
-  --color-emerald-500: oklch(0.66 0.2 295);
-  --color-emerald-600: oklch(0.58 0.22 295);
-  --color-emerald-700: oklch(0.5 0.21 295);
-  --color-emerald-800: oklch(0.43 0.18 295);
-  --color-emerald-900: oklch(0.36 0.14 295);
-  --color-emerald-950: oklch(0.27 0.1 295);
+  --color-emerald-50: oklch(0.96 0.035 155);
+  --color-emerald-100: oklch(0.9 0.07 155);
+  --color-emerald-200: oklch(0.82 0.12 155);
+  --color-emerald-300: oklch(0.73 0.16 155);
+  --color-emerald-400: oklch(0.66 0.18 155);
+  --color-emerald-500: oklch(0.58 0.18 155);
+  --color-emerald-600: oklch(0.5 0.16 155);
+  --color-emerald-700: oklch(0.42 0.13 155);
+  --color-emerald-800: oklch(0.35 0.1 155);
+  --color-emerald-900: oklch(0.29 0.075 155);
+  --color-emerald-950: oklch(0.22 0.055 155);
 }
 
 html.theme-modern body {
-  background-color: oklch(0.15 0.035 285);
-  background-image:
-    radial-gradient(60rem 30rem at 100% -10%, oklch(0.58 0.22 295 / 0.18), transparent 60%),
-    radial-gradient(40rem 24rem at -10% 110%, oklch(0.62 0.16 250 / 0.12), transparent 60%);
+  background-color: oklch(0.12 0.03 35);
+  background-image: linear-gradient(135deg, oklch(0.18 0.04 35), oklch(0.11 0.025 25));
   background-attachment: fixed;
 }
 
 html.theme-modern ::selection {
-  background: oklch(0.66 0.2 295 / 0.35);
+  background: oklch(0.7 0.18 35 / 0.45);
   color: white;
 }
 
@@ -111,12 +109,12 @@ html, body {
 }
 
 html.theme-modern .modern-card {
-  background: oklch(0.2 0.04 285 / 0.7);
-  border: 1px solid oklch(0.66 0.2 295 / 0.18);
-  box-shadow: 0 8px 32px -8px oklch(0.58 0.22 295 / 0.25);
+  background: oklch(0.18 0.04 38 / 0.88);
+  border: 1px solid oklch(0.7 0.18 35 / 0.2);
+  box-shadow: 0 12px 34px -14px oklch(0.7 0.18 35 / 0.3);
 }
 
 html.theme-modern ::-webkit-scrollbar-thumb {
-  background: oklch(0.66 0.2 295 / 0.35);
+  background: oklch(0.7 0.18 35 / 0.45);
 }
 
