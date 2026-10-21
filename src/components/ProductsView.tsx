@@ -42,6 +42,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onAdjustStock,
+  onAddToSale,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
 }) => {
