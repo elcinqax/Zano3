@@ -10,6 +10,7 @@ import {
   Layers,
   Check,
   X,
+  Star,
 } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, formatNumber } from '../utils/formatters';
@@ -21,6 +22,7 @@ interface ProductsViewProps {
   onUpdateProduct: (id: string, updates: Partial<Product>) => void;
   onDeleteProduct: (id: string) => void;
   onAdjustStock: (id: string, delta: number) => void;
+  onAddToSale: (product: Product) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
 }
@@ -322,8 +324,17 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                     </button>
                   </div>
 
-                  {/* Edit / Delete */}
+                  {/* Sale, Edit / Delete */}
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onAddToSale(p)}
+                      className="p-2 text-amber-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+                      title="Satış ekranına ekle"
+                      aria-label={`${p.name} ürününü satış ekranına ekle`}
+                    >
+                      <Star className="w-4 h-4" fill="currentColor" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => openEditModal(p)}

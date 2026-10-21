@@ -70,6 +70,8 @@ interface POSViewProps {
   onOpenBackupSettings?: () => void;
   onSelectSaleForReceipt?: (sale: Sale) => void;
   onCancelSale?: (saleId: string) => void;
+  productToAdd?: Product | null;
+  onProductAddedToCart?: () => void;
 }
 
 export const POSView: React.FC<POSViewProps> = ({
@@ -83,6 +85,8 @@ export const POSView: React.FC<POSViewProps> = ({
   onOpenBackupSettings,
   onSelectSaleForReceipt,
   onCancelSale,
+  productToAdd,
+  onProductAddedToCart,
 }) => {
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -268,6 +272,12 @@ export const POSView: React.FC<POSViewProps> = ({
       }
     });
   };
+
+  useEffect(() => {
+    if (!productToAdd) return;
+    addToCart(productToAdd);
+    onProductAddedToCart?.();
+  }, [productToAdd]);
 
   const updateItemQuantity = (productId: string, newQty: number) => {
     if (newQty <= 0) {

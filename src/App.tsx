@@ -53,6 +53,7 @@ export default function App() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
   const [openAddProductTrigger, setOpenAddProductTrigger] = useState<boolean>(false);
   const [openAddCustomerTrigger, setOpenAddCustomerTrigger] = useState<boolean>(false);
+  const [productToAdd, setProductToAdd] = useState<Product | null>(null);
 
   // Live time for top status bar
   const [currentTime, setCurrentTime] = useState<string>(() => {
@@ -210,6 +211,8 @@ export default function App() {
               }}
               onOpenSalesHistory={() => setActiveTab('sales')}
               onOpenBackupSettings={() => setActiveTab('settings')}
+              productToAdd={productToAdd}
+              onProductAddedToCart={() => setProductToAdd(null)}
               onSelectSaleForReceipt={setReceiptSale}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
             />
@@ -240,6 +243,10 @@ export default function App() {
               onUpdateProduct={(id, updates) => sqliteStorage.updateProduct(id, updates)}
               onDeleteProduct={(id) => sqliteStorage.deleteProduct(id)}
               onAdjustStock={(id, delta) => sqliteStorage.adjustStock(id, delta)}
+              onAddToSale={(product) => {
+                setProductToAdd(product);
+                setActiveTab('pos');
+              }}
               isOpenAddModalExternal={openAddProductTrigger}
               onCloseAddModalExternal={() => setOpenAddProductTrigger(false)}
             />
