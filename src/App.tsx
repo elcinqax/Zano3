@@ -19,7 +19,7 @@ import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
 
 export type ThemeMode = 'light' | 'dark';
 const THEME_ORDER: ThemeMode[] = ['light', 'dark'];
-const THEME_COLORS: Record<ThemeMode, string> = { light: '#f1f5f9', dark: '#070d18' };
+const THEME_COLORS: Record<ThemeMode, string> = { light: '#f4f1e8', dark: '#0f110d' };
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -155,7 +155,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-100 dark:bg-[#070d18] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors selection:bg-cyan-500/20 selection:text-cyan-700 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-slate-200/90 dark:bg-[#040811]' : ''}`}>
+    <div className={`min-h-screen bg-[#f4f1e8] dark:bg-[#0f110d] text-[#24261d] dark:text-[#f4f1e8] font-sans antialiased transition-colors selection:bg-lime-300/30 selection:text-lime-900 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-[#e7e2d4] dark:bg-[#090b08]' : ''}`}>
       {/* Lock Screen Overlay if PIN locked */}
       {isLocked && settings.isPinEnabled && (
         <LockScreen
@@ -170,7 +170,7 @@ export default function App() {
       <div
         className={`w-full transition-all duration-300 ${
           isMobileFrame
-            ? 'lg:max-w-[420px] lg:h-[860px] lg:rounded-[48px] lg:border-[8px] lg:border-slate-800 dark:lg:border-slate-800/90 lg:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] lg:overflow-hidden lg:flex lg:flex-col lg:relative lg:ring-1 lg:ring-slate-700/50 bg-white dark:bg-[#0d1424]'
+            ? 'lg:max-w-[420px] lg:h-[860px] lg:rounded-[48px] lg:border-[8px] lg:border-slate-800 dark:lg:border-slate-800/90 lg:shadow-[0_25px_60px_-15px_rgba(30,32,20,0.38)] lg:overflow-hidden lg:flex lg:flex-col lg:relative lg:ring-1 lg:ring-[#34382b] bg-[#fffdf5] dark:bg-[#171914]'
             : 'min-h-screen flex flex-col'
         }`}
       >
