@@ -38,7 +38,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
       if (saved === 'light' || saved === 'dark' || saved === 'modern') return saved;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      return 'modern';
     }
     return 'light';
   });
