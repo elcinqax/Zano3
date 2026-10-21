@@ -786,7 +786,7 @@ export const POSView: React.FC<POSViewProps> = ({
             <div className="p-4 space-y-3 overflow-y-auto">
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" autoFocus value={posCustomerSearch} onChange={(e) => setPosCustomerSearch(e.target.value)} placeholder="İsim veya telefon ara..." className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input type="text" value={posCustomerSearch} onChange={(e) => setPosCustomerSearch(e.target.value)} placeholder="İsim veya telefon ara..." className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <button type="button" onClick={() => { setSelectedCustomerId(''); setPosCustomerSearch(''); setShowCustomerPicker(false); }} className={`w-full p-3 rounded-xl text-left border font-bold text-sm ${!selectedCustomerId ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800'}`}>
                 Genel Müşteri (Anonim)
@@ -897,7 +897,6 @@ export const POSView: React.FC<POSViewProps> = ({
                       inputMode="decimal"
                       step="any"
                       min="0.01"
-                      autoFocus
                       required
                       value={modalQuantityInput}
                       onChange={(e) => setModalQuantityInput(e.target.value)}
