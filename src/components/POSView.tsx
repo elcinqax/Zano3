@@ -212,7 +212,9 @@ export const POSView: React.FC<POSViewProps> = ({
 
   // Favorite Products list
   const favoriteProducts = useMemo(() => {
-    return products.filter((p) => favoriteIds.includes(p.id));
+    return products
+    .filter((p) => favoriteIds.includes(p.id))
+    .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
   }, [products, favoriteIds]);
 
   // Cart operations

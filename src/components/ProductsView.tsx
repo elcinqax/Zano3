@@ -77,7 +77,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   const categories = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => set.add(p.category));
-    return ['all', ...Array.from(set)];
+    return ['all', ...Array.from(set).sort((a, b) => a.localeCompare(b, 'tr'))];
   }, [products]);
 
   // Filter products
@@ -91,7 +91,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
         p.name.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q);
       return matchCat && matchLowStock && matchQuery;
-    });
+    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
   }, [products, selectedCategory, filterLowStockOnly, search]);
 
   // Metrics

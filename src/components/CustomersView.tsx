@@ -73,7 +73,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     return {
       latestQuantity: quantityForSale(latestSale),
       latestDate: latestSale.createdAt,
-      latestProductNames: [...new Set(latestSale.items.map((item) => item.productName))],
+      latestProductNames: [...new Set(latestSale.items.map((item) => item.productName))].sort((a, b) => a.localeCompare(b, 'tr')),
       busiestDate,
       busiestQuantity,
       lastThreeMonthsQuantity,
