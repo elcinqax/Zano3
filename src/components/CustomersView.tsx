@@ -201,7 +201,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
 
     const encoded = encodeURIComponent(message);
     const cleanPhone = customer.phone.replace(/\D/g, '');
-    const finalPhone = cleanPhone.startsWith('90') ? cleanPhone : '90' + cleanPhone;
+    const finalPhone = cleanPhone.startsWith('994') ? cleanPhone : '994' + cleanPhone;
     window.open(`https://wa.me/${finalPhone}?text=${encoded}`, '_blank');
   };
 
@@ -661,7 +661,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                   type="tel"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
-                  placeholder="0532 123 45 67 (İsteğe bağlı)"
+                  placeholder="+994 50 123 45 67 (İsteğe bağlı)"
                   className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>

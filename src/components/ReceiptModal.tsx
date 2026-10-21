@@ -59,7 +59,7 @@ Bizi tercih ettiğiniz için teşekkür ederiz!`;
     const encoded = encodeURIComponent(message);
     const phone = sale.customerPhone?.replace(/\D/g, '') || '';
     if (phone) {
-      window.open(`https://wa.me/${phone.startsWith('90') ? phone : '90' + phone}?text=${encoded}`, '_blank');
+      window.open(`https://wa.me/${phone.startsWith('994') ? phone : '994' + phone}?text=${encoded}`, '_blank');
     } else {
       window.open(`https://wa.me/?text=${encoded}`, '_blank');
     }
