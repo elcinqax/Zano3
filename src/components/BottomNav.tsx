@@ -71,7 +71,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 isActive
                   ? tab.id === 'expenses'
                     ? 'text-rose-600 dark:text-rose-400 font-extrabold'
-                    : 'text-orange-600 dark:text-orange-400 font-extrabold'
+                    : 'text-cyan-700 dark:text-cyan-300 font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
               aria-label={tab.label}
@@ -82,7 +82,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                   isActive
                     ? tab.id === 'expenses'
                       ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/25 shadow-xs'
-                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/25 shadow-xs'
+                      : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/25 shadow-xs'
                     : 'bg-transparent'
                 }`}
               >

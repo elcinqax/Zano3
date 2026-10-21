@@ -12,52 +12,33 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  --app-accent: #0891b2;
+  --app-accent-soft: #ecfeff;
+  --app-surface: #ffffff;
+  --app-canvas: #f1f5f9;
+  --app-border: #dbe4ee;
 }
 
 html.dark {
   color-scheme: dark;
-}
-
-/* Modern theme: editorial night market — warm ink, coral signal, and mint utility colors */
-html.theme-modern {
-  --color-slate-50: oklch(0.98 0.012 80);
-  --color-slate-100: oklch(0.945 0.018 78);
-  --color-slate-200: oklch(0.88 0.025 76);
-  --color-slate-300: oklch(0.77 0.035 72);
-  --color-slate-400: oklch(0.64 0.04 68);
-  --color-slate-500: oklch(0.51 0.045 62);
-  --color-slate-600: oklch(0.39 0.05 55);
-  --color-slate-700: oklch(0.3 0.045 48);
-  --color-slate-800: oklch(0.235 0.04 42);
-  --color-slate-900: oklch(0.18 0.035 38);
-  --color-slate-950: oklch(0.12 0.03 35);
-
-  --color-emerald-50: oklch(0.96 0.035 155);
-  --color-emerald-100: oklch(0.9 0.07 155);
-  --color-emerald-200: oklch(0.82 0.12 155);
-  --color-emerald-300: oklch(0.73 0.16 155);
-  --color-emerald-400: oklch(0.66 0.18 155);
-  --color-emerald-500: oklch(0.58 0.18 155);
-  --color-emerald-600: oklch(0.5 0.16 155);
-  --color-emerald-700: oklch(0.42 0.13 155);
-  --color-emerald-800: oklch(0.35 0.1 155);
-  --color-emerald-900: oklch(0.29 0.075 155);
-  --color-emerald-950: oklch(0.22 0.055 155);
-}
-
-html.theme-modern body {
-  background-color: oklch(0.12 0.03 35);
-  background-image: linear-gradient(135deg, oklch(0.18 0.04 35), oklch(0.11 0.025 25));
-  background-attachment: fixed;
-}
-
-html.theme-modern ::selection {
-  background: oklch(0.7 0.18 35 / 0.45);
-  color: white;
+  --app-accent: #22d3ee;
+  --app-accent-soft: #083344;
+  --app-surface: #111827;
+  --app-canvas: #070d18;
+  --app-border: #243244;
 }
 
 html:not(.dark) {
   color-scheme: light;
+}
+
+body {
+  background: var(--app-canvas);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--app-accent) 28%, transparent);
+  color: inherit;
 }
 
 /* Ensure mobile viewport supports smooth scrolling and safe boundary */
@@ -108,13 +89,4 @@ html, body {
   box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35);
 }
 
-html.theme-modern .modern-card {
-  background: oklch(0.18 0.04 38 / 0.88);
-  border: 1px solid oklch(0.7 0.18 35 / 0.2);
-  box-shadow: 0 12px 34px -14px oklch(0.7 0.18 35 / 0.3);
-}
-
-html.theme-modern ::-webkit-scrollbar-thumb {
-  background: oklch(0.7 0.18 35 / 0.45);
-}
 

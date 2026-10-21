@@ -17,9 +17,9 @@ import { NotificationModal } from './components/NotificationModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
 
-export type ThemeMode = 'light' | 'dark' | 'modern';
-const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'modern'];
-const THEME_COLORS: Record<ThemeMode, string> = { light: '#f8fafc', dark: '#0a0f1d', modern: '#211412' };
+export type ThemeMode = 'light' | 'dark';
+const THEME_ORDER: ThemeMode[] = ['light', 'dark'];
+const THEME_COLORS: Record<ThemeMode, string> = { light: '#f1f5f9', dark: '#070d18' };
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -37,8 +37,8 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
-      if (saved === 'light' || saved === 'dark' || saved === 'modern') return saved;
-      return 'modern';
+      if (saved === 'light' || saved === 'dark') return saved;
+      return 'dark';
     }
     return 'light';
   });
@@ -126,7 +126,6 @@ export default function App() {
       const root = document.documentElement;
       root.classList.toggle('dark', isDark);
       document.body.classList.toggle('dark', isDark);
-      root.classList.toggle('theme-modern', themeMode === 'modern');
       document
         .querySelector('meta[name="theme-color"]')
         ?.setAttribute('content', THEME_COLORS[themeMode]);
@@ -156,7 +155,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors selection:bg-emerald-500/20 selection:text-emerald-500 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-slate-200/90 dark:bg-[#060911]' : ''}`}>
+    <div className={`min-h-screen bg-slate-100 dark:bg-[#070d18] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors selection:bg-cyan-500/20 selection:text-cyan-700 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-slate-200/90 dark:bg-[#040811]' : ''}`}>
       {/* Lock Screen Overlay if PIN locked */}
       {isLocked && settings.isPinEnabled && (
         <LockScreen
