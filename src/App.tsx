@@ -54,6 +54,23 @@ export default function App() {
   const [openAddProductTrigger, setOpenAddProductTrigger] = useState<boolean>(false);
   const [openAddCustomerTrigger, setOpenAddCustomerTrigger] = useState<boolean>(false);
   const [productToAdd, setProductToAdd] = useState<Product | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_favorite_ids');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pos_favorite_ids', JSON.stringify(favoriteIds));
+    } catch {
+      // Local storage may be unavailable in restricted browser contexts.
+    }
+  }, [favoriteIds]);
 
   // Live time for top status bar
   const [currentTime, setCurrentTime] = useState<string>(() => {
@@ -202,6 +219,14 @@ export default function App() {
               customers={customers}
               settings={settings}
               sales={sales}
+              favoriteIds={favoriteIds}
+              onToggleFavorite={(productId) => {
+                setFavoriteIds((current) =>
+                  current.includes(productId)
+                    ? current.filter((id) => id !== productId)
+                    : [...current, productId]
+                );
+              }}
               onCompleteSale={(saleData) => {
                 const created = sqliteStorage.createSale(saleData);
                 setReceiptSale(created);
@@ -243,9 +268,13 @@ export default function App() {
               onUpdateProduct={(id, updates) => sqliteStorage.updateProduct(id, updates)}
               onDeleteProduct={(id) => sqliteStorage.deleteProduct(id)}
               onAdjustStock={(id, delta) => sqliteStorage.adjustStock(id, delta)}
-              onAddToSale={(product) => {
-                setProductToAdd(product);
-                setActiveTab('pos');
+              favoriteIds={favoriteIds}
+              onToggleFavorite={(productId) => {
+                setFavoriteIds((current) =>
+                  current.includes(productId)
+                    ? current.filter((id) => id !== productId)
+                    : [...current, productId]
+                );
               }}
               isOpenAddModalExternal={openAddProductTrigger}
               onCloseAddModalExternal={() => setOpenAddProductTrigger(false)}

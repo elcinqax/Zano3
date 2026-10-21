@@ -72,6 +72,8 @@ interface POSViewProps {
   onCancelSale?: (saleId: string) => void;
   productToAdd?: Product | null;
   onProductAddedToCart?: () => void;
+  favoriteIds: string[];
+  onToggleFavorite: (productId: string) => void;
 }
 
 export const POSView: React.FC<POSViewProps> = ({
@@ -87,6 +89,8 @@ export const POSView: React.FC<POSViewProps> = ({
   onCancelSale,
   productToAdd,
   onProductAddedToCart,
+  favoriteIds,
+  onToggleFavorite,
 }) => {
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -96,19 +100,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const [showAddCustomerModal, setShowAddCustomerModal] = useState<boolean>(false);
   const [newCustName, setNewCustName] = useState<string>('');
   const [newCustPhone, setNewCustPhone] = useState<string>('');
-
-  // Favorites State (Stored in localStorage)
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('pos_favorite_ids');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    // Default to first available products if none saved
-    return products.slice(0, 10).map((p) => p.id);
-  });
 
   const [showManageFavoritesModal, setShowManageFavoritesModal] = useState<boolean>(false);
   const [showSalesHistoryModal, setShowSalesHistoryModal] = useState<boolean>(false);
@@ -194,21 +185,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const [mixedCash, setMixedCash] = useState<string>('');
   const [applyExcessToAccount, setApplyExcessToAccount] = useState<boolean>(true);
   const [saleNotes, setSaleNotes] = useState<string>('');
-
-  // Save favorites to localStorage
-  const saveFavorites = (newIds: string[]) => {
-    setFavoriteIds(newIds);
-    try {
-      localStorage.setItem('pos_favorite_ids', JSON.stringify(newIds));
-    } catch (e) {}
-  };
-
-  const toggleFavorite = (productId: string) => {
-    const next = favoriteIds.includes(productId)
-      ? favoriteIds.filter((id) => id !== productId)
-      : [...favoriteIds, productId];
-    saveFavorites(next);
-  };
 
   // Selected Customer details
   const selectedCustomer = useMemo(
@@ -1016,7 +992,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 return (
                   <div
                     key={p.id}
-                    onClick={() => toggleFavorite(p.id)}
+                    onClick={() => onToggleFavorite(p.id) }
                     className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl cursor-pointer transition-colors"
                   >
                     <div>

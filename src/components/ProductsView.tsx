@@ -22,7 +22,8 @@ interface ProductsViewProps {
   onUpdateProduct: (id: string, updates: Partial<Product>) => void;
   onDeleteProduct: (id: string) => void;
   onAdjustStock: (id: string, delta: number) => void;
-  onAddToSale: (product: Product) => void;
+  favoriteIds: string[];
+  onToggleFavorite: (productId: string) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
 }
@@ -42,7 +43,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onAdjustStock,
-  onAddToSale,
+  favoriteIds,
+  onToggleFavorite,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
 }) => {
@@ -329,12 +331,17 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => onAddToSale(p)}
-                      className="p-2 text-amber-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
-                      title="Satış ekranına ekle"
-                      aria-label={`${p.name} ürününü satış ekranına ekle`}
+                      onClick={() => onToggleFavorite(p.id)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        favoriteIds.includes(p.id)
+                          ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/30'
+                          : 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30'
+                      }`}
+                      title={favoriteIds.includes(p.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                      aria-label={`${p.name} ürününü ${favoriteIds.includes(p.id) ? 'favorilerden çıkar' : 'favorilere ekle'}`}
+                      aria-pressed={favoriteIds.includes(p.id)}
                     >
-                      <Star className="w-4 h-4" fill="currentColor" />
+                      <Star className="w-4 h-4" fill={favoriteIds.includes(p.id) ? 'currentColor' : 'none'} />
                     </button>
                     <button
                       type="button"
