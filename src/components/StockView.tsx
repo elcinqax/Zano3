@@ -50,7 +50,7 @@ export const StockView: React.FC<StockViewProps> = ({
     products.forEach((p) => {
       if (p.category) set.add(p.category);
     });
-    return Array.from(set);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'tr'));
   }, [products]);
 
   // Overall Stock Analytics
@@ -105,7 +105,7 @@ export const StockView: React.FC<StockViewProps> = ({
         if (sortBy === 'stock_desc') return b.stock - a.stock;
         if (sortBy === 'name') return a.name.localeCompare(b.name, 'tr');
         if (sortBy === 'value') return b.stock * b.buyPrice - a.stock * a.buyPrice;
-        return 0;
+        return a.name.localeCompare(b.name, 'tr');
       });
   }, [products, search, categoryFilter, statusFilter, sortBy]);
 

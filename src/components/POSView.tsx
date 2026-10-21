@@ -70,6 +70,10 @@ interface POSViewProps {
   onOpenBackupSettings?: () => void;
   onSelectSaleForReceipt?: (sale: Sale) => void;
   onCancelSale?: (saleId: string) => void;
+  productToAdd?: Product | null;
+  onProductAddedToCart?: () => void;
+  favoriteIds: string[];
+  onToggleFavorite: (productId: string) => void;
 }
 
 export const POSView: React.FC<POSViewProps> = ({
@@ -83,6 +87,10 @@ export const POSView: React.FC<POSViewProps> = ({
   onOpenBackupSettings,
   onSelectSaleForReceipt,
   onCancelSale,
+  productToAdd,
+  onProductAddedToCart,
+  favoriteIds,
+  onToggleFavorite,
 }) => {
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -92,19 +100,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const [showAddCustomerModal, setShowAddCustomerModal] = useState<boolean>(false);
   const [newCustName, setNewCustName] = useState<string>('');
   const [newCustPhone, setNewCustPhone] = useState<string>('');
-
-  // Favorites State (Stored in localStorage)
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('pos_favorite_ids');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    // Default to first available products if none saved
-    return products.slice(0, 10).map((p) => p.id);
-  });
 
   const [showManageFavoritesModal, setShowManageFavoritesModal] = useState<boolean>(false);
   const [showSalesHistoryModal, setShowSalesHistoryModal] = useState<boolean>(false);
@@ -119,6 +114,7 @@ export const POSView: React.FC<POSViewProps> = ({
   });
 
   const [posCustomerSearch, setPosCustomerSearch] = useState<string>('');
+  const [showCustomerPicker, setShowCustomerPicker] = useState<boolean>(false);
   const filteredPosCustomers = useMemo(() => {
     let list = customers;
     if (posCustomerSearch.trim()) {
@@ -129,13 +125,9 @@ export const POSView: React.FC<POSViewProps> = ({
           (c.phone && c.phone.toLowerCase().includes(q))
       );
     }
-    return [...list].sort((a, b) => {
-    const aDebtor = a.balance > 0;
-    const bDebtor = b.balance > 0;
-    if (aDebtor !== bDebtor) return aDebtor ? -1 : 1;
-    if (aDebtor && bDebtor && a.balance !== b.balance) return b.balance - a.balance;
-    return a.name.localeCompare(b.name, 'tr');
-  });
+    return [...list].sort((a, b) =>
+      a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' })
+    );
   }, [customers, posCustomerSearch]);
 
   const modalFilteredSales = useMemo(() => {
@@ -190,21 +182,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const [applyExcessToAccount, setApplyExcessToAccount] = useState<boolean>(true);
   const [saleNotes, setSaleNotes] = useState<string>('');
 
-  // Save favorites to localStorage
-  const saveFavorites = (newIds: string[]) => {
-    setFavoriteIds(newIds);
-    try {
-      localStorage.setItem('pos_favorite_ids', JSON.stringify(newIds));
-    } catch (e) {}
-  };
-
-  const toggleFavorite = (productId: string) => {
-    const next = favoriteIds.includes(productId)
-      ? favoriteIds.filter((id) => id !== productId)
-      : [...favoriteIds, productId];
-    saveFavorites(next);
-  };
-
   // Selected Customer details
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) || null,
@@ -231,7 +208,9 @@ export const POSView: React.FC<POSViewProps> = ({
 
   // Favorite Products list
   const favoriteProducts = useMemo(() => {
-    return products.filter((p) => favoriteIds.includes(p.id));
+    return products
+    .filter((p) => favoriteIds.includes(p.id))
+    .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
   }, [products, favoriteIds]);
 
   // Cart operations
@@ -267,6 +246,12 @@ export const POSView: React.FC<POSViewProps> = ({
       }
     });
   };
+
+  useEffect(() => {
+    if (!productToAdd) return;
+    addToCart(productToAdd);
+    onProductAddedToCart?.();
+  }, [productToAdd]);
 
   const updateItemQuantity = (productId: string, newQty: number) => {
     if (newQty <= 0) {
@@ -594,127 +579,19 @@ export const POSView: React.FC<POSViewProps> = ({
           </button>
         </div>
 
-        {/* Müşteri Arama (En Üstte) */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={posCustomerSearch}
-            onChange={(e) => setPosCustomerSearch(e.target.value)}
-            placeholder="Müşteri ara (isim veya telefon ile)..."
-            className="w-full h-11 pl-10 pr-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          {posCustomerSearch && (
-            <button
-              type="button"
-              onClick={() => setPosCustomerSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold px-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Müşteri İsimleri (Arama Alanının Hemen Altında) */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-bold px-0.5">
-            <span>Müşteri İsimleri:</span>
-            {filteredPosCustomers.length > 0 && (
-              <span>{filteredPosCustomers.length} müşteri</span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCustomerId('');
-                setPosCustomerSearch('');
-              }}
-              className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-                !selectedCustomerId
-                  ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
-                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              Genel Müşteri
-            </button>
-            {filteredPosCustomers.map((c) => {
-              const isSelected = selectedCustomerId === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => selectCustomer(c.id)}
-                  className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border ${
-                    isSelected
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-500/20'
-                      : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:text-emerald-600'
-                  }`}
-                >
-                  <span>{c.name}</span>
-                  {c.balance > 0 && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded font-black ${
-                        isSelected
-                          ? 'bg-white/20 text-white'
-                          : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400'
-                      }`}
-                    >
-                      {formatCurrency(c.balance, settings.currency)}
-                    </span>
-                  )}
-                  {c.balance < 0 && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded font-black ${
-                        isSelected
-                          ? 'bg-white/20 text-white'
-                          : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400'
-                      }`}
-                      title="Müşterinin alacağı (avans)"
-                    >
-                      +{formatCurrency(Math.abs(c.balance), settings.currency)}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            {filteredPosCustomers.length === 0 && (
-              <span className="text-xs text-slate-400 italic py-1.5 px-2">Eşleşen müşteri bulunamadı</span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => selectCustomer(e.target.value)}
-              className="w-full h-12 px-3.5 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
-            >
-              <option value="">Genel Müşteri (Anonim)</option>
-              {filteredPosCustomers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ''} - {c.balance > 0 ? `Borç: ${formatCurrency(c.balance, settings.currency)}` : c.balance < 0 ? `Alacak: ${formatCurrency(Math.abs(c.balance), settings.currency)}` : 'Borçsuz'}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4.5 h-4.5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
-
-          {selectedCustomerId && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCustomerId('');
-                setPosCustomerSearch('');
-              }}
-              className="h-12 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-bold transition-colors"
-              title="Genel Müşteriye Dön"
-            >
-              Sıfırla
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowCustomerPicker(true)}
+          className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-left flex items-center justify-between gap-3 hover:border-emerald-500 transition-colors"
+        >
+          <span className="min-w-0">
+            <span className="block text-[11px] uppercase tracking-wide font-black text-slate-400">Seçili müşteri</span>
+            <span className="block truncate text-sm font-extrabold text-slate-900 dark:text-white">
+              {selectedCustomer?.name ?? 'Genel Müşteri (Anonim)'}
+            </span>
+          </span>
+          <ChevronDown className="w-5 h-5 shrink-0 text-emerald-600" />
+        </button>
 
         {/* Selected Customer Status Chip */}
         {selectedCustomer && (
@@ -877,6 +754,39 @@ export const POSView: React.FC<POSViewProps> = ({
         </button>
       </div>
 
+      {/* MODAL: SATIŞ İÇİN MÜŞTERİ SEÇ */}
+      {showCustomerPicker && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full max-w-md max-h-[88vh] flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">Müşteri seç</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Satışı kimin hesabına işlemek istediğinizi seçin.</p>
+              </div>
+              <button type="button" onClick={() => setShowCustomerPicker(false)} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Müşteri seçimini kapat">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3 overflow-y-auto">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input type="text" value={posCustomerSearch} onChange={(e) => setPosCustomerSearch(e.target.value)} placeholder="İsim veya telefon ara..." className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
+              <button type="button" onClick={() => { setSelectedCustomerId(''); setPosCustomerSearch(''); setShowCustomerPicker(false); }} className={`w-full p-3 rounded-xl text-left border font-bold text-sm ${!selectedCustomerId ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800'}`}>
+                Genel Müşteri (Anonim)
+              </button>
+              {filteredPosCustomers.map((c) => (
+                <button key={c.id} type="button" onClick={() => { selectCustomer(c.id); setPosCustomerSearch(''); setShowCustomerPicker(false); }} className={`w-full p-3 rounded-xl text-left border flex items-center justify-between gap-3 ${selectedCustomerId === c.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-emerald-500'}`}>
+                  <span className="min-w-0"><span className="block font-bold truncate">{c.name}</span>{c.phone && <span className="block text-xs opacity-70 mt-0.5">{c.phone}</span>}</span>
+                  <span className="shrink-0 text-xs font-black">{c.balance > 0 ? `Borç: ${formatCurrency(c.balance, settings.currency)}` : c.balance < 0 ? `Alacak: ${formatCurrency(Math.abs(c.balance), settings.currency)}` : 'Borçsuz'}</span>
+                </button>
+              ))}
+              {filteredPosCustomers.length === 0 && <p className="text-center text-sm text-slate-400 py-6">Eşleşen müşteri bulunamadı</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 0: ÜRÜN SEÇERKEN SAYI / ADET EL İLE YAZMA */}
       {quantityModalProduct && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -971,7 +881,6 @@ export const POSView: React.FC<POSViewProps> = ({
                       inputMode="decimal"
                       step="any"
                       min="0.01"
-                      autoFocus
                       required
                       value={modalQuantityInput}
                       onChange={(e) => setModalQuantityInput(e.target.value)}
@@ -1081,7 +990,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 return (
                   <div
                     key={p.id}
-                    onClick={() => toggleFavorite(p.id)}
+                    onClick={() => onToggleFavorite(p.id) }
                     className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl cursor-pointer transition-colors"
                   >
                     <div>

@@ -217,7 +217,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         map.set(key, existing);
       });
 
-    return Array.from(map.values()).sort((a, b) => b.totalQuantity - a.totalQuantity);
+    return Array.from(map.values()).sort((a, b) => a.customerName.localeCompare(b.customerName, 'tr'));
   }, [filteredSales]);
 
   const dateFilterButtons: { id: DateFilterType; label: string; count?: number }[] = [

@@ -17,9 +17,9 @@ import { NotificationModal } from './components/NotificationModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
 
-export type ThemeMode = 'light' | 'dark' | 'modern';
-const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'modern'];
-const THEME_COLORS: Record<ThemeMode, string> = { light: '#f8fafc', dark: '#0a0f1d', modern: '#0b0a1a' };
+export type ThemeMode = 'light' | 'dark';
+const THEME_ORDER: ThemeMode[] = ['light', 'dark'];
+const THEME_COLORS: Record<ThemeMode, string> = { light: '#f1f5f9', dark: '#070d18' };
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -37,8 +37,8 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
-      if (saved === 'light' || saved === 'dark' || saved === 'modern') return saved;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      if (saved === 'light' || saved === 'dark') return saved;
+      return 'dark';
     }
     return 'light';
   });
@@ -53,6 +53,24 @@ export default function App() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
   const [openAddProductTrigger, setOpenAddProductTrigger] = useState<boolean>(false);
   const [openAddCustomerTrigger, setOpenAddCustomerTrigger] = useState<boolean>(false);
+  const [productToAdd, setProductToAdd] = useState<Product | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_favorite_ids');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pos_favorite_ids', JSON.stringify(favoriteIds));
+    } catch {
+      // Local storage may be unavailable in restricted browser contexts.
+    }
+  }, [favoriteIds]);
 
   // Live time for top status bar
   const [currentTime, setCurrentTime] = useState<string>(() => {
@@ -108,7 +126,6 @@ export default function App() {
       const root = document.documentElement;
       root.classList.toggle('dark', isDark);
       document.body.classList.toggle('dark', isDark);
-      root.classList.toggle('theme-modern', themeMode === 'modern');
       document
         .querySelector('meta[name="theme-color"]')
         ?.setAttribute('content', THEME_COLORS[themeMode]);
@@ -138,7 +155,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors selection:bg-emerald-500/20 selection:text-emerald-500 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-slate-200/90 dark:bg-[#060911]' : ''}`}>
+    <div className={`min-h-screen bg-slate-100 dark:bg-[#070d18] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors selection:bg-cyan-500/20 selection:text-cyan-700 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-slate-200/90 dark:bg-[#040811]' : ''}`}>
       {/* Lock Screen Overlay if PIN locked */}
       {isLocked && settings.isPinEnabled && (
         <LockScreen
@@ -201,6 +218,14 @@ export default function App() {
               customers={customers}
               settings={settings}
               sales={sales}
+              favoriteIds={favoriteIds}
+              onToggleFavorite={(productId) => {
+                setFavoriteIds((current) =>
+                  current.includes(productId)
+                    ? current.filter((id) => id !== productId)
+                    : [...current, productId]
+                );
+              }}
               onCompleteSale={(saleData) => {
                 const created = sqliteStorage.createSale(saleData);
                 setReceiptSale(created);
@@ -210,6 +235,8 @@ export default function App() {
               }}
               onOpenSalesHistory={() => setActiveTab('sales')}
               onOpenBackupSettings={() => setActiveTab('settings')}
+              productToAdd={productToAdd}
+              onProductAddedToCart={() => setProductToAdd(null)}
               onSelectSaleForReceipt={setReceiptSale}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
             />
@@ -219,6 +246,7 @@ export default function App() {
           {activeTab === 'customers' && (
             <CustomersView
               customers={customers}
+              sales={sales}
               settings={settings}
               onAddCustomer={(c) => sqliteStorage.addCustomer(c)}
               onUpdateCustomer={(id, updates) => sqliteStorage.updateCustomer(id, updates)}
@@ -239,6 +267,14 @@ export default function App() {
               onUpdateProduct={(id, updates) => sqliteStorage.updateProduct(id, updates)}
               onDeleteProduct={(id) => sqliteStorage.deleteProduct(id)}
               onAdjustStock={(id, delta) => sqliteStorage.adjustStock(id, delta)}
+              favoriteIds={favoriteIds}
+              onToggleFavorite={(productId) => {
+                setFavoriteIds((current) =>
+                  current.includes(productId)
+                    ? current.filter((id) => id !== productId)
+                    : [...current, productId]
+                );
+              }}
               isOpenAddModalExternal={openAddProductTrigger}
               onCloseAddModalExternal={() => setOpenAddProductTrigger(false)}
             />

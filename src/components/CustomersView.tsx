@@ -15,12 +15,13 @@ import {
   CreditCard,
   Wallet,
 } from 'lucide-react';
-import { Customer, AppSettings } from '../types';
+import { Customer, Sale, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { exportCustomersToCSV } from '../utils/export-utils';
 
 interface CustomersViewProps {
   customers: Customer[];
+  sales: Sale[];
   settings: AppSettings;
   onAddCustomer: (customer: Omit<Customer, 'id' | 'balance' | 'totalPurchases' | 'createdAt' | 'updatedAt'>) => void;
   onUpdateCustomer: (id: string, updates: Partial<Customer>) => void;
@@ -32,6 +33,7 @@ interface CustomersViewProps {
 
 export const CustomersView: React.FC<CustomersViewProps> = ({
   customers,
+  sales,
   settings,
   onAddCustomer,
   onUpdateCustomer,
@@ -42,6 +44,41 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
+  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+
+  const customerSales = historyCustomer
+    ? sales.filter((sale) => sale.customerId === historyCustomer.id && sale.status === 'completed')
+    : [];
+
+  const purchaseSummary = useMemo(() => {
+    if (customerSales.length === 0) {
+      return { latestQuantity: 0, latestDate: null as string | null, latestProductNames: [] as string[], busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0 };
+    }
+
+    const quantityForSale = (sale: Sale) => sale.items.reduce((sum, item) => sum + item.quantity, 0);
+    const latestSale = [...customerSales].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
+    const today = new Date();
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+    const lastThreeMonthsQuantity = customerSales
+      .filter((sale) => new Date(sale.createdAt) >= threeMonthsAgo)
+      .reduce((sum, sale) => sum + quantityForSale(sale), 0);
+    const byDay = customerSales.reduce<Record<string, number>>((totals, sale) => {
+      const day = new Date(sale.createdAt).toISOString().slice(0, 10);
+      totals[day] = (totals[day] || 0) + quantityForSale(sale);
+      return totals;
+    }, {});
+    const [busiestDate, busiestQuantity] = Object.entries(byDay).sort(([, a], [, b]) => b - a)[0] || [null, 0];
+
+    return {
+      latestQuantity: quantityForSale(latestSale),
+      latestDate: latestSale.createdAt,
+      latestProductNames: [...new Set(latestSale.items.map((item) => item.productName))].sort((a, b) => a.localeCompare(b, 'tr')),
+      busiestDate,
+      busiestQuantity,
+      lastThreeMonthsQuantity,
+    };
+  }, [customerSales]);
 
   // Modals
   const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
@@ -311,9 +348,14 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 {/* Info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setHistoryCustomer(c)}
+                      className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
+                      title="Müşteri geçmişini görüntüle"
+                    >
                       {c.name}
-                    </span>
+                    </button>
                     {c.balance > 0 ? (
                       <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded">
                         Borçlu: {formatCurrency(c.balance)}
@@ -433,6 +475,49 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
           </span>
         </div>
       </div>
+
+      {/* Customer History Modal */}
+      {historyCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">Müşteri Geçmişi</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">{historyCustomer.name} · {customerSales.length} satış</p>
+                <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                  <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
+                  <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
+                  <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setHistoryCustomer(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Geçmişi kapat">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[65vh] space-y-2">
+              {customerSales.length === 0 ? (
+                <div className="py-10 text-center text-xs text-slate-400">Bu müşteriye ait satış geçmişi bulunamadı.</div>
+              ) : (
+                customerSales.map((sale) => (
+                  <div key={sale.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">#{sale.invoiceNo}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{formatDate(sale.createdAt)}</p>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(sale.total)}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 line-clamp-2">
+                      {sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}
+                    </p>
+                    {sale.status === 'cancelled' && <span className="inline-block mt-2 text-[10px] font-bold text-rose-600">İptal edildi</span>}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment / Tahsilat Modal */}
       {paymentCustomer && (
