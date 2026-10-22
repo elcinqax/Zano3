@@ -21,26 +21,6 @@ export type ThemeMode = 'light' | 'dark';
 const THEME_ORDER: ThemeMode[] = ['light', 'dark'];
 const THEME_COLORS: Record<ThemeMode, string> = { light: '#f4f1e8', dark: '#0f110d' };
 
-const normalizeAzerbaijanPhone = (phone?: string) => {
-  const digits = (phone || '').replace(/\\D/g, '');
-  if (!digits) return '';
-  if (digits.startsWith('994')) return digits;
-  if (digits.startsWith('0')) return `994${digits.slice(1)}`;
-  return `994${digits}`;
-};
-
-const openSaleWhatsAppMessage = (sale: Sale) => {
-  const phone = normalizeAzerbaijanPhone(sale.customerPhone);
-  if (!phone || !sale.customerId) return;
-
-  const isDebtSale = (sale.customerBalanceDelta || 0) > 0;
-  const message = isDebtSale
-    ? `Salam ${sale.customerName},\\n\\nSatışınız qeydə alındı. Borcunuz: ${sale.customerBalanceDelta?.toFixed(2)} ${sale.total ? 'AZN' : 'AZN'}.\\nÜmumi məbləğ: ${sale.total.toFixed(2)} AZN.\\n\\nTəşəkkür edirik.`
-    : `Salam ${sale.customerName},\\n\\nÖdənişiniz üçün təşəkkür edirik. Satış məbləği: ${sale.total.toFixed(2)} AZN.\\n\\nYenidən gözləyirik.`;
-
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-};
-
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -248,8 +228,8 @@ export default function App() {
               }}
               onCompleteSale={(saleData) => {
                 const created = sqliteStorage.createSale(saleData);
-                setReceiptSale(created);
-                openSaleWhatsAppMessage(created);
+  setReceiptSale(created);
+
               }}
               onQuickAddCustomer={(custData) => {
                 return sqliteStorage.addCustomer(custData);

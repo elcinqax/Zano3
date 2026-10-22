@@ -33,28 +33,32 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
     let extraNote = '';
     if (sale.paymentMethod === 'mixed') {
-      extraNote += `\nTahsilat: Nakit: ${formatCurrency(sale.cashPaid || 0, settings.currency)}`;
+      extraNote += `\nNağd ödəniş: ${formatCurrency(sale.cashPaid || 0, settings.currency)}`;
     }
     if (sale.customerBalanceDelta && sale.customerBalanceDelta > 0) {
-      extraNote += `\nKalan Borç (Veresiye): +${formatCurrency(sale.customerBalanceDelta, settings.currency)}`;
+      extraNote += `\nQalan borc: ${formatCurrency(sale.customerBalanceDelta, settings.currency)}`;
     } else if (sale.customerBalanceDelta && sale.customerBalanceDelta < 0) {
-      extraNote += `\nHesaba Avans Aktarılan: ${formatCurrency(Math.abs(sale.customerBalanceDelta), settings.currency)}`;
+      extraNote += `\nHesaba əlavə olunan məbləğ: ${formatCurrency(Math.abs(sale.customerBalanceDelta), settings.currency)}`;
     }
+
+    const closingMessage = sale.customerBalanceDelta && sale.customerBalanceDelta > 0
+      ? `Qalan borcunuz: ${formatCurrency(sale.customerBalanceDelta, settings.currency)}. Zəhmət olmasa borcunuzu vaxtında ödəyin.`
+      : 'Ödənişiniz üçün təşəkkür edirik. Sizi yenidən görməkdən məmnun olarıq!';
 
     const message = `*${settings.storeName || 'Almalı Təndiri'}*
 ${settings.storeAddress || 'Qax rayon Almalı kəndi, Almalı Təndiri'}
 Tel: ${settings.storePhone || '+994 70 749 99 91'}
-Fatura No: ${sale.invoiceNo}
-Tarih: ${formatDateTime(sale.createdAt)}
-Müşteri: ${sale.customerName}
+Qəbz №: ${sale.invoiceNo}
+Tarix: ${formatDateTime(sale.createdAt)}
+Müştəri: ${sale.customerName}
 ------------------------
 ${itemsText}
 ------------------------
-Ara Toplam: ${formatCurrency(sale.subtotal, settings.currency)}
-${sale.discount > 0 ? `İndirim: -${formatCurrency(sale.discount, settings.currency)}\n` : ''}*Genel Toplam: ${formatCurrency(sale.total, settings.currency)}*
-Ödeme: ${paymentLabels[sale.paymentMethod]}${extraNote}
-${sale.paymentMethod === 'cash' && sale.changeAmount > 0 ? `Para Üstü: ${formatCurrency(sale.changeAmount, settings.currency)}\n` : ''}
-Bizi tercih ettiğiniz için teşekkür ederiz!`;
+Ara cəm: ${formatCurrency(sale.subtotal, settings.currency)}
+${sale.discount > 0 ? `Endirim: -${formatCurrency(sale.discount, settings.currency)}\n` : ''}*Ümumi məbləğ: ${formatCurrency(sale.total, settings.currency)}*
+Ödəniş: ${paymentLabels[sale.paymentMethod]}${extraNote}
+${sale.paymentMethod === 'cash' && sale.changeAmount > 0 ? `Qaytarılan pul: ${formatCurrency(sale.changeAmount, settings.currency)}\n` : ''}
+${closingMessage}`;
 
     const encoded = encodeURIComponent(message);
     const phone = sale.customerPhone?.replace(/\D/g, '') || '';
