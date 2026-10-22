@@ -228,7 +228,8 @@ export default function App() {
               }}
               onCompleteSale={(saleData) => {
                 const created = sqliteStorage.createSale(saleData);
-                setReceiptSale(created);
+  setReceiptSale(created);
+
               }}
               onQuickAddCustomer={(custData) => {
                 return sqliteStorage.addCustomer(custData);
