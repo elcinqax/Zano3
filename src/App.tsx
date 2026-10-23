@@ -17,9 +17,11 @@ import { NotificationModal } from './components/NotificationModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
 
-export type ThemeMode = 'light' | 'dark';
-const THEME_ORDER: ThemeMode[] = ['light', 'dark'];
-const THEME_COLORS: Record<ThemeMode, string> = { light: '#f4f1e8', dark: '#0f110d' };
+export type ThemeMode = 'light' | 'dark' | 'ocean' | 'plum' | 'forest' | 'sand';
+const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'ocean', 'plum', 'forest', 'sand'];
+const THEME_COLORS: Record<ThemeMode, string> = {
+  light: '#f4f1e8', dark: '#0f110d', ocean: '#071a2d', plum: '#1b1027', forest: '#0c1c18', sand: '#2a2117',
+};
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -38,7 +40,7 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
-      if (saved === 'light' || saved === 'dark') return saved;
+      if (saved && THEME_ORDER.includes(saved as ThemeMode)) return saved as ThemeMode;
       return 'dark';
     }
     return 'light';
@@ -128,6 +130,7 @@ export default function App() {
     try {
       const root = document.documentElement;
       root.classList.toggle('dark', isDark);
+      root.dataset.theme = themeMode;
       document.body.classList.toggle('dark', isDark);
       document
         .querySelector('meta[name="theme-color"]')
@@ -158,7 +161,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-[#f4f1e8] dark:bg-[#0f110d] text-[#24261d] dark:text-[#f4f1e8] font-sans antialiased transition-colors selection:bg-lime-300/30 selection:text-lime-900 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-[#e7e2d4] dark:bg-[#090b08]' : ''}`}>
+    <div className={`min-h-screen bg-[var(--app-canvas)] text-[#24261d] dark:text-[#f4f1e8] font-sans antialiased transition-colors selection:bg-lime-300/30 selection:text-lime-900 ${isMobileFrame ? 'lg:py-8 lg:px-4 flex items-center justify-center bg-[var(--app-canvas)]' : ''}`}>
       {/* Lock Screen Overlay if PIN locked */}
       {isLocked && settings.isPinEnabled && (
         <LockScreen
@@ -178,7 +181,7 @@ export default function App() {
         }`}
       >
         {/* Sticky Top Header Container (Prevents TopBar from overlapping status bar icons or clock) */}
-        <div className="sticky top-0 z-30 w-full shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="sticky top-0 z-30 w-full shrink-0">
           {/* Android Simulated Status Bar (Visible ONLY in Desktop Mobile Frame preview) */}
           {isMobileFrame && (
             <div className="hidden lg:flex h-7 bg-slate-900 text-slate-200 px-6 items-center justify-between text-[11px] font-semibold border-b border-slate-800 shrink-0 select-none">
@@ -201,11 +204,10 @@ export default function App() {
             themeMode={themeMode}
             screenTopPadding={settings.screenTopPadding}
             onToggleTheme={toggleTheme}
+            onSelectTheme={setThemeMode}
             onLockApp={() => setIsLocked(true)}
             isPinEnabled={settings.isPinEnabled}
-            notifications={notifications}
-            onOpenNotifications={() => setIsNotificationsOpen(true)}
-            isMobileFrame={isMobileFrame}
+  isMobileFrame={isMobileFrame}
             onToggleMobileFrame={() => setIsMobileFrame(!isMobileFrame)}
             activeTab={activeTab}
             onTabChange={setActiveTab}

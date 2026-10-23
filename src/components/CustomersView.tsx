@@ -199,13 +199,17 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id);
     const rows = [
-      ...customerSalesForReport.map((sale) => `<tr><td>${formatDate(sale.createdAt)}</td><td>Veresiye satış</td><td>${formatCurrency(sale.total)}</td><td>${sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</td></tr>`),
+      ...customerSalesForReport.map((sale) => `<tr><td>${formatDate(sale.createdAt)}</td><td>${sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</td><td>${formatCurrency(sale.total)}</td><td>${sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</td></tr>`),
       ...customerPaymentsForReport.map((payment) => `<tr><td>${formatDate(payment.createdAt)}</td><td>Tahsilat (${payment.paymentMethod})</td><td>-${formatCurrency(payment.amount)}</td><td>${payment.notes || 'Ödeme alındı'}</td></tr>`),
     ].join('');
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    printWindow.document.write(`<!doctype html><html><head><title>${customer.name} - Müşteri Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h1{font-size:22px}p{color:#526078}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eaf2ff}.sale{color:#b45309}.payment{color:#047857}@media print{button{display:none}}</style></head><body><h1>${customer.name} - Müşteri Geçmişi</h1><p>Bakiye: ${formatCurrency(customer.balance)} · Rapor tarihi: ${formatDate(new Date().toISOString())}</p><table><thead><tr><th>Gün</th><th>İşlem</th><th>Tutar</th><th>Açıklama</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table><script>window.onload=function(){window.print()}</script></body></html>`);
+    const reportHtml = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${customer.name} - Müşteri Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h1{font-size:22px}p{color:#526078}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eaf2ff}.sale{color:#b45309}.payment{color:#047857}@media print{button{display:none}}</style></head><body><h1>${customer.name} - Müşteri Geçmişi</h1><p>Bakiye: ${formatCurrency(customer.balance)} · Rapor tarihi: ${formatDate(new Date().toISOString())}</p><table><thead><tr><th>Gün</th><th>İşlem</th><th>Tutar</th><th>Açıklama</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table></body></html>`;
+    printWindow.document.open();
+    printWindow.document.write(reportHtml);
     printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 500);
   };
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
@@ -521,8 +525,8 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 [...customerSales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...payments.filter((payment) => payment.customerId === historyCustomer.id).map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
                   .sort((a, b) => +new Date(b.date) - +new Date(a.date))
                   .map((entry) => entry.type === 'sale' ? (
-                    <div key={entry.record.id} className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 p-3">
-                      <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">Veresiye satış</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className="text-sm font-bold text-amber-700 dark:text-amber-300">{formatCurrency(entry.record.total)}</span></div>
+                    <div key={entry.record.id} className={`rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
+                      <div className="flex items-start justify-between gap-3"><div><p className={`text-[10px] font-bold uppercase ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{entry.record.paymentMethod === 'credit' ? 'Veresiye satış' : entry.record.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className={`text-sm font-bold ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{formatCurrency(entry.record.total)}</span></div>
                       <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</p>
                     </div>
                   ) : (
