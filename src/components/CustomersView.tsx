@@ -232,7 +232,18 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       pdf.setDrawColor(216, 222, 233);
       pdf.line(14, y - 4, 196, y - 4);
     });
-    pdf.save(`${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '')}-musteri-raporu.pdf`);
+    const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
+    const pdfBlob = pdf.output('blob');
+    const downloadUrl = URL.createObjectURL(pdfBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = fileName;
+    downloadLink.rel = 'noopener';
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   };
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
