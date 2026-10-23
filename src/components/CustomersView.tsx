@@ -202,10 +202,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       ...customerSalesForReport.map((sale) => `<tr><td>${formatDate(sale.createdAt)}</td><td>Veresiye satış</td><td>${formatCurrency(sale.total)}</td><td>${sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</td></tr>`),
       ...customerPaymentsForReport.map((payment) => `<tr><td>${formatDate(payment.createdAt)}</td><td>Tahsilat (${payment.paymentMethod})</td><td>-${formatCurrency(payment.amount)}</td><td>${payment.notes || 'Ödeme alındı'}</td></tr>`),
     ].join('');
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    printWindow.document.write(`<!doctype html><html><head><title>${customer.name} - Müşteri Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h1{font-size:22px}p{color:#526078}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eaf2ff}.sale{color:#b45309}.payment{color:#047857}@media print{button{display:none}}</style></head><body><h1>${customer.name} - Müşteri Geçmişi</h1><p>Bakiye: ${formatCurrency(customer.balance)} · Rapor tarihi: ${formatDate(new Date().toISOString())}</p><table><thead><tr><th>Gün</th><th>İşlem</th><th>Tutar</th><th>Açıklama</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table><script>window.onload=function(){window.print()}</script></body></html>`);
+    const reportHtml = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${customer.name} - Müşteri Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h1{font-size:22px}p{color:#526078}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eaf2ff}.sale{color:#b45309}.payment{color:#047857}@media print{button{display:none}}</style></head><body><h1>${customer.name} - Müşteri Geçmişi</h1><p>Bakiye: ${formatCurrency(customer.balance)} · Rapor tarihi: ${formatDate(new Date().toISOString())}</p><table><thead><tr><th>Gün</th><th>İşlem</th><th>Tutar</th><th>Açıklama</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table></body></html>`;
+    printWindow.document.open();
+    printWindow.document.write(reportHtml);
     printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 500);
   };
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
