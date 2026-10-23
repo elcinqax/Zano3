@@ -178,7 +178,7 @@ export default function App() {
         }`}
       >
         {/* Sticky Top Header Container (Prevents TopBar from overlapping status bar icons or clock) */}
-        <div className="sticky top-0 z-30 w-full shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="sticky top-0 z-30 w-full shrink-0">
           {/* Android Simulated Status Bar (Visible ONLY in Desktop Mobile Frame preview) */}
           {isMobileFrame && (
             <div className="hidden lg:flex h-7 bg-slate-900 text-slate-200 px-6 items-center justify-between text-[11px] font-semibold border-b border-slate-800 shrink-0 select-none">
