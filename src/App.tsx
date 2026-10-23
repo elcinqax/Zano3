@@ -26,6 +26,7 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [payments, setPayments] = useState<import('./types').CustomerPayment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -92,6 +93,7 @@ export default function App() {
       setCustomers(sqliteStorage.getCustomers());
       setProducts(sqliteStorage.getProducts());
       setSales(sqliteStorage.getSales());
+      setPayments(sqliteStorage.getCustomerPayments());
       setExpenses(sqliteStorage.getExpenses());
       setExpenseItems(sqliteStorage.getExpenseItems());
       setNotifications(sqliteStorage.getNotifications());
@@ -111,6 +113,7 @@ export default function App() {
       setCustomers(sqliteStorage.getCustomers());
       setProducts(sqliteStorage.getProducts());
       setSales(sqliteStorage.getSales());
+      setPayments(sqliteStorage.getCustomerPayments());
       setExpenses(sqliteStorage.getExpenses());
       setExpenseItems(sqliteStorage.getExpenseItems());
       setNotifications(sqliteStorage.getNotifications());
@@ -175,7 +178,7 @@ export default function App() {
         }`}
       >
         {/* Sticky Top Header Container (Prevents TopBar from overlapping status bar icons or clock) */}
-        <div className="sticky top-0 z-30 w-full shrink-0">
+        <div className="sticky top-0 z-30 w-full shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           {/* Android Simulated Status Bar (Visible ONLY in Desktop Mobile Frame preview) */}
           {isMobileFrame && (
             <div className="hidden lg:flex h-7 bg-slate-900 text-slate-200 px-6 items-center justify-between text-[11px] font-semibold border-b border-slate-800 shrink-0 select-none">
@@ -248,6 +251,7 @@ export default function App() {
             <CustomersView
               customers={customers}
               sales={sales}
+              payments={payments}
               settings={settings}
               onAddCustomer={(c) => sqliteStorage.addCustomer(c)}
               onUpdateCustomer={(id, updates) => sqliteStorage.updateCustomer(id, updates)}

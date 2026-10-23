@@ -15,13 +15,14 @@ import {
   CreditCard,
   Wallet,
 } from 'lucide-react';
-import { Customer, Sale, AppSettings } from '../types';
+import { Customer, Sale, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { exportCustomersToCSV } from '../utils/export-utils';
 
 interface CustomersViewProps {
   customers: Customer[];
   sales: Sale[];
+  payments: CustomerPayment[];
   settings: AppSettings;
   onAddCustomer: (customer: Omit<Customer, 'id' | 'balance' | 'totalPurchases' | 'createdAt' | 'updatedAt'>) => void;
   onUpdateCustomer: (id: string, updates: Partial<Customer>) => void;
@@ -34,6 +35,7 @@ interface CustomersViewProps {
 export const CustomersView: React.FC<CustomersViewProps> = ({
   customers,
   sales,
+  payments,
   settings,
   onAddCustomer,
   onUpdateCustomer,
@@ -191,6 +193,19 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     if (!paymentCustomer || paymentAmount <= 0) return;
     onAddPayment(paymentCustomer.id, paymentAmount, paymentMethod, paymentNotes);
     setPaymentCustomer(null);
+  };
+
+  const handleExportCustomerPdf = (customer: Customer) => {
+    const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
+    const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id);
+    const rows = [
+      ...customerSalesForReport.map((sale) => `<tr><td>${formatDate(sale.createdAt)}</td><td>Veresiye satış</td><td>${formatCurrency(sale.total)}</td><td>${sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</td></tr>`),
+      ...customerPaymentsForReport.map((payment) => `<tr><td>${formatDate(payment.createdAt)}</td><td>Tahsilat (${payment.paymentMethod})</td><td>-${formatCurrency(payment.amount)}</td><td>${payment.notes || 'Ödeme alındı'}</td></tr>`),
+    ].join('');
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) return;
+    printWindow.document.write(`<!doctype html><html><head><title>${customer.name} - Müşteri Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h1{font-size:22px}p{color:#526078}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eaf2ff}.sale{color:#b45309}.payment{color:#047857}@media print{button{display:none}}</style></head><body><h1>${customer.name} - Müşteri Geçmişi</h1><p>Bakiye: ${formatCurrency(customer.balance)} · Rapor tarihi: ${formatDate(new Date().toISOString())}</p><table><thead><tr><th>Gün</th><th>İşlem</th><th>Tutar</th><th>Açıklama</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table><script>window.onload=function(){window.print()}</script></body></html>`);
+    printWindow.document.close();
   };
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
@@ -483,7 +498,12 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
             <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="font-bold text-base text-slate-900 dark:text-white">Müşteri Geçmişi</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">{historyCustomer.name} · {customerSales.length} satış</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-[11px] text-slate-500">{historyCustomer.name} · {customerSales.length} satış</p>
+                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700" title="PDF olarak gönder">
+                    <Download className="w-3 h-3" /> PDF
+                  </button>
+                </div>
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
                   <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
                   <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
@@ -495,24 +515,19 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[65vh] space-y-2">
-              {customerSales.length === 0 ? (
-                <div className="py-10 text-center text-xs text-slate-400">Bu müşteriye ait satış geçmişi bulunamadı.</div>
+              {customerSales.length === 0 && payments.filter((payment) => payment.customerId === historyCustomer.id).length === 0 ? (
+                <div className="py-10 text-center text-xs text-slate-400">Bu müşteriye ait işlem geçmişi bulunamadı.</div>
               ) : (
-                customerSales.map((sale) => (
-                  <div key={sale.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white">#{sale.invoiceNo}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{formatDate(sale.createdAt)}</p>
-                      </div>
-                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(sale.total)}</span>
+                [...customerSales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...payments.filter((payment) => payment.customerId === historyCustomer.id).map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
+                  .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+                  .map((entry) => entry.type === 'sale' ? (
+                    <div key={entry.record.id} className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 p-3">
+                      <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">Veresiye satış</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className="text-sm font-bold text-amber-700 dark:text-amber-300">{formatCurrency(entry.record.total)}</span></div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</p>
                     </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 line-clamp-2">
-                      {sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}
-                    </p>
-                    {sale.status === 'cancelled' && <span className="inline-block mt-2 text-[10px] font-bold text-rose-600">İptal edildi</span>}
-                  </div>
-                ))
+                  ) : (
+                    <div key={entry.record.id} className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">Tahsilat</p><p className="text-xs font-bold text-slate-900 dark:text-white">{formatDate(entry.record.createdAt)}</p><p className="text-[11px] text-slate-500">{entry.record.notes || 'Ödeme alındı'}</p></div><span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">-{formatCurrency(entry.record.amount)}</span></div></div>
+                  ))
               )}
             </div>
           </div>
