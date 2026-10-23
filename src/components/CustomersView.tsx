@@ -18,6 +18,7 @@ import {
 import { Customer, Sale, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { exportCustomersToCSV } from '../utils/export-utils';
+import { jsPDF } from 'jspdf';
 
 interface CustomersViewProps {
   customers: Customer[];
@@ -198,18 +199,40 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const handleExportCustomerPdf = (customer: Customer) => {
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id);
-    const rows = [
-      ...customerSalesForReport.map((sale) => `<tr><td>${formatDate(sale.createdAt)}</td><td>${sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</td><td>${formatCurrency(sale.total)}</td><td>${sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</td></tr>`),
-      ...customerPaymentsForReport.map((payment) => `<tr><td>${formatDate(payment.createdAt)}</td><td>Tahsilat (${payment.paymentMethod})</td><td>-${formatCurrency(payment.amount)}</td><td>${payment.notes || 'Ödeme alındı'}</td></tr>`),
-    ].join('');
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    const reportHtml = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${customer.name} - Müşteri Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h1{font-size:22px}p{color:#526078}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eaf2ff}.sale{color:#b45309}.payment{color:#047857}@media print{button{display:none}}</style></head><body><h1>${customer.name} - Müşteri Geçmişi</h1><p>Bakiye: ${formatCurrency(customer.balance)} · Rapor tarihi: ${formatDate(new Date().toISOString())}</p><table><thead><tr><th>Gün</th><th>İşlem</th><th>Tutar</th><th>Açıklama</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table></body></html>`;
-    printWindow.document.open();
-    printWindow.document.write(reportHtml);
-    printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => printWindow.print(), 500);
+    const events = [
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş', amount: formatCurrency(sale.total), detail: sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ') })),
+      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod})`, amount: `-${formatCurrency(payment.amount)}`, detail: payment.notes || 'Ödeme alındı' })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    let y = 18;
+    pdf.setFontSize(18);
+    pdf.text(`${customer.name} - Müşteri Geçmişi`, 14, y);
+    y += 9;
+    pdf.setFontSize(10);
+    pdf.text(`Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`, 14, y);
+    y += 10;
+    pdf.setFillColor(234, 242, 255);
+    pdf.rect(14, y - 5, 182, 8, 'F');
+    pdf.setFontSize(9);
+    pdf.text('Tarih', 16, y);
+    pdf.text('İşlem', 43, y);
+    pdf.text('Tutar', 92, y);
+    pdf.text('Açıklama', 125, y);
+    y += 8;
+    events.forEach((event) => {
+      const lines = pdf.splitTextToSize(event.detail, 66);
+      if (y + Math.max(lines.length * 4, 8) > 280) { pdf.addPage(); y = 18; }
+      pdf.setFontSize(8);
+      pdf.text(formatDate(event.date), 16, y);
+      pdf.text(event.type, 43, y);
+      pdf.text(event.amount, 92, y);
+      pdf.text(lines, 125, y);
+      y += Math.max(lines.length * 4, 8);
+      pdf.setDrawColor(216, 222, 233);
+      pdf.line(14, y - 4, 196, y - 4);
+    });
+    pdf.save(`${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '')}-musteri-raporu.pdf`);
   };
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
