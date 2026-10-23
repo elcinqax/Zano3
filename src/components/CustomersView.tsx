@@ -196,6 +196,16 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     setPaymentCustomer(null);
   };
 
+  const pdfSafeText = (value: string) => value
+    .replace(/[əƏ]/g, 'e')
+    .replace(/[ıİ]/g, 'i')
+    .replace(/[şŞ]/g, 's')
+    .replace(/[ğĞ]/g, 'g')
+    .replace(/[çÇ]/g, 'c')
+    .replace(/[öÖ]/g, 'o')
+    .replace(/[üÜ]/g, 'u')
+    .replace(/[₼₺]/g, 'AZN');
+
   const handleExportCustomerPdf = (customer: Customer) => {
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id);
@@ -207,32 +217,53 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
     let y = 18;
     pdf.setFontSize(18);
-    pdf.text(`${customer.name} - Müşteri Geçmişi`, 14, y);
+    pdf.text(pdfSafeText(`${customer.name} - Müşteri Geçmişi`), 14, y);
     y += 9;
     pdf.setFontSize(10);
-    pdf.text(`Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`, 14, y);
+    pdf.text(pdfSafeText(`Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`), 14, y);
     y += 10;
     pdf.setFillColor(234, 242, 255);
     pdf.rect(14, y - 5, 182, 8, 'F');
     pdf.setFontSize(9);
-    pdf.text('Tarih', 16, y);
-    pdf.text('İşlem', 43, y);
-    pdf.text('Tutar', 92, y);
-    pdf.text('Açıklama', 125, y);
+    pdf.text(pdfSafeText('Tarih'), 16, y);
+    pdf.text(pdfSafeText('İşlem'), 43, y);
+    pdf.text(pdfSafeText('Tutar'), 92, y);
+    pdf.text(pdfSafeText('Açıklama'), 125, y);
     y += 8;
     events.forEach((event) => {
       const lines = pdf.splitTextToSize(event.detail, 66);
       if (y + Math.max(lines.length * 4, 8) > 280) { pdf.addPage(); y = 18; }
-      pdf.setFontSize(8);
-      pdf.text(formatDate(event.date), 16, y);
-      pdf.text(event.type, 43, y);
-      pdf.text(event.amount, 92, y);
-      pdf.text(lines, 125, y);
-      y += Math.max(lines.length * 4, 8);
-      pdf.setDrawColor(216, 222, 233);
+    const rowHeight = Math.max(lines.length * 4, 8);
+    const rowColor = event.type.startsWith('Veresiye')
+      ? [254, 243, 199]
+      : event.type.startsWith('Nakit')
+        ? [219, 234, 254]
+        : [220, 252, 231];
+    pdf.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
+    pdf.roundedRect(14, y - 5, 182, rowHeight, 1.5, 1.5, 'F');
+    pdf.setFontSize(8);
+    pdf.setTextColor(31, 41, 55);
+    pdf.text(pdfSafeText(formatDate(event.date)), 16, y);
+    pdf.text(pdfSafeText(event.type), 43, y);
+    pdf.text(pdfSafeText(event.amount), 92, y);
+    pdf.text(pdfSafeText(lines.join(' ')), 125, y);
+    y += rowHeight;
+    pdf.setTextColor(23, 32, 51);
+    pdf.setDrawColor(216, 222, 233);
       pdf.line(14, y - 4, 196, y - 4);
     });
-    pdf.save(`${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '')}-musteri-raporu.pdf`);
+    const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
+    const pdfBlob = pdf.output('blob');
+    const downloadUrl = URL.createObjectURL(pdfBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = fileName;
+    downloadLink.rel = 'noopener';
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   };
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
