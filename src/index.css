@@ -7,6 +7,13 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+html[data-theme="light"] { --theme-font: "Plus Jakarta Sans", system-ui, sans-serif; --theme-heading: 700; }
+html[data-theme="dark"] { --theme-font: "DM Sans", system-ui, sans-serif; --theme-heading: 700; }
+html[data-theme="ocean"] { --theme-font: "Space Grotesk", system-ui, sans-serif; --theme-heading: 600; }
+html[data-theme="plum"] { --theme-font: "Outfit", system-ui, sans-serif; --theme-heading: 600; }
+html[data-theme="forest"] { --theme-font: "Manrope", system-ui, sans-serif; --theme-heading: 700; }
+html[data-theme="sand"] { --theme-font: "Nunito Sans", system-ui, sans-serif; --theme-heading: 700; }
+
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -46,8 +53,17 @@ body {
 /* Ensure mobile viewport supports smooth scrolling and safe boundary */
 html, body {
   overscroll-behavior-y: none;
-  font-family: var(--font-sans);
+  font-family: var(--theme-font, var(--font-sans));
+  letter-spacing: -0.01em;
 }
+
+html[data-theme="ocean"] body { letter-spacing: 0.01em; }
+html[data-theme="plum"] body { letter-spacing: 0.015em; }
+html[data-theme="sand"] body { letter-spacing: 0.005em; }
+html[data-theme="ocean"] h1, html[data-theme="ocean"] h2, html[data-theme="ocean"] h3,
+html[data-theme="plum"] h1, html[data-theme="plum"] h2, html[data-theme="plum"] h3,
+html[data-theme="forest"] h1, html[data-theme="forest"] h2, html[data-theme="forest"] h3,
+html[data-theme="sand"] h1, html[data-theme="sand"] h2, html[data-theme="sand"] h3 { font-weight: var(--theme-heading); }
 
 /* Custom sleek scrollbar for webkit */
 ::-webkit-scrollbar {
@@ -85,10 +101,24 @@ html, body {
 }
 
 .dark .modern-card {
-  background: rgba(16, 26, 43, 0.9);
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(36, 54, 83, 0.8);
-  box-shadow: 0 4px 24px -2px rgba(2, 8, 23, 0.55);
+  border: 1px solid var(--app-border);
+  box-shadow: 0 4px 24px -2px color-mix(in srgb, var(--app-accent) 18%, transparent);
 }
+
+/* Theme-specific overrides keep the existing component utility classes visually distinct. */
+html[data-theme="ocean"] .bg-slate-950 { background-color: #101a2b !important; }
+html[data-theme="plum"] .bg-slate-950 { background-color: #241533 !important; }
+html[data-theme="forest"] .bg-slate-950 { background-color: #10261d !important; }
+html[data-theme="sand"] .bg-slate-950 { background-color: #302318 !important; }
+html[data-theme="ocean"] .border-slate-800 { border-color: #243653 !important; }
+html[data-theme="plum"] .border-slate-800 { border-color: #53316b !important; }
+html[data-theme="forest"] .border-slate-800 { border-color: #28533d !important; }
+html[data-theme="sand"] .border-slate-800 { border-color: #68482b !important; }
+html[data-theme="ocean"] .text-emerald-400 { color: #67e8f9 !important; }
+html[data-theme="plum"] .text-emerald-400 { color: #e9a8ff !important; }
+html[data-theme="forest"] .text-emerald-400 { color: #86efac !important; }
+html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 
 
