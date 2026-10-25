@@ -42,6 +42,8 @@ import {
   shareOrSaveFile,
 } from '../utils/export-utils';
 import { formatDateTime } from '../utils/formatters';
+import type { ThemeMode } from '../App';
+import { AppLanguage, LANGUAGE_OPTIONS } from '../i18n';
 
 const normalizeWhatsappNumber = (raw: string) => raw.replace(/\D/g, '').replace(/^00/, '');
 
@@ -54,6 +56,11 @@ interface BackupSecurityViewProps {
   onRestoreBackup: (dump: DatabaseDump) => void;
   onResetToSampleData: () => void;
   onResetAllReports?: () => void;
+  onNavigateTab?: (tab: string) => void;
+  themeMode: ThemeMode;
+  onSelectTheme: (theme: ThemeMode) => void;
+  language: AppLanguage;
+  onSelectLanguage: (language: AppLanguage) => void;
 }
 
 export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
@@ -65,6 +72,11 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   onRestoreBackup,
   onResetToSampleData,
   onResetAllReports,
+  onNavigateTab,
+  themeMode,
+  onSelectTheme,
+  language,
+  onSelectLanguage,
 }) => {
   // Store profile
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -80,6 +92,8 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   const [pinCode, setPinCode] = useState(settings.pinCode);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(settings.isBiometricEnabled);
   const [showSqlViewer, setShowSqlViewer] = useState(false);
+  const [showThemes, setShowThemes] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Backup Settings State
@@ -281,10 +295,39 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
             <Cloud className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             <span>Yedekleme & Sistem Ayarları</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
-          </p>
-        </div>
+  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+  Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
+  </p>
+  </div>
+  <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+    <button type="button" onClick={() => setShowLanguages((open) => !open)} className="flex w-full items-center justify-between text-left">
+      <span><span className="block text-sm font-black text-indigo-800 dark:text-indigo-200">Diller</span><span className="mt-1 block text-[11px] text-indigo-700/80 dark:text-indigo-300/70">Program dilini seçin</span></span>
+      <span className="text-xs font-bold text-indigo-600">{showLanguages ? 'Kapat' : 'Aç'}</span>
+    </button>
+    {showLanguages && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{LANGUAGE_OPTIONS.map((option) => <button key={option.id} type="button" onClick={() => onSelectLanguage(option.id)} className={`rounded-xl border px-3 py-2 text-left text-xs font-bold ${language === option.id ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 dark:border-indigo-800 dark:bg-slate-800 dark:text-indigo-200'}`}><span className="block">{option.nativeLabel}</span><span className="mt-0.5 block text-[10px] font-medium opacity-75">{option.label}</span></button>)}</div>}
+  </div>
+
+  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60">
+    <button type="button" onClick={() => setShowThemes((open) => !open)} className="flex w-full items-center justify-between text-left">
+      <span><span className="block text-sm font-black text-slate-800 dark:text-slate-100">Temalar</span><span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">Görünüm temasını buradan seçin</span></span>
+      <span className="text-xs font-bold text-emerald-600">{showThemes ? 'Kapat' : 'Aç'}</span>
+    </button>
+    {showThemes && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{[
+      { id: 'light' as ThemeMode, label: 'Açıq', color: '#f4f1e8' }, { id: 'dark' as ThemeMode, label: 'Gecə', color: '#0f110d' }, { id: 'ocean' as ThemeMode, label: 'Okean', color: '#67e8f9' }, { id: 'plum' as ThemeMode, label: 'Gavalı', color: '#e9a8ff' }, { id: 'forest' as ThemeMode, label: 'Meşə', color: '#86efac' }, { id: 'sand' as ThemeMode, label: 'Qum', color: '#fbbf77' },
+    ].map((option) => <button key={option.id} type="button" onClick={() => onSelectTheme(option.id)} className={`flex items-center gap-2 rounded-xl border px-2 py-2 text-left text-[11px] font-bold ${themeMode === option.id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}><span className="h-4 w-4 rounded-full" style={{ backgroundColor: option.color }} />{option.label}</button>)} </div>}
+  </div>
+  {onNavigateTab && (
+    <div className="mt-5 grid grid-cols-2 gap-3">
+      <button type="button" onClick={() => onNavigateTab('expenses')} className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40">
+        <span className="block text-sm font-black text-rose-700 dark:text-rose-300">Giderler</span>
+        <span className="mt-1 block text-[11px] text-rose-600/80 dark:text-rose-300/70">Gider kayıtları ve gider raporları</span>
+      </button>
+      <button type="button" onClick={() => onNavigateTab('reports')} className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/20 dark:hover:bg-sky-950/40">
+        <span className="block text-sm font-black text-sky-700 dark:text-sky-300">Raporlar</span>
+        <span className="mt-1 block text-[11px] text-sky-600/80 dark:text-sky-300/70">Satış ve işletme raporları</span>
+      </button>
+    </div>
+  )}
 
         {/* Big One-Click Backup Button */}
         <button
@@ -329,8 +372,13 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
         </div>
       )}
 
-      {/* Grid: 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Settings operations as collapsible cards */}
+      <div className="space-y-3">
+        <details className="group rounded-3xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-black text-slate-900 marker:hidden dark:text-slate-100">
+            <span className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-emerald-600" />Yedekleme İşlemleri</span><span className="text-xs text-slate-400 transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="grid grid-cols-1 gap-6 border-t border-slate-100 p-4 dark:border-slate-800 lg:grid-cols-2">
         {/* Left Column: Backup Solutions */}
         <div className="space-y-6">
           {/* Card 2: Telefona Yedek Alma (Phone & Local Storage) */}
@@ -719,6 +767,8 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+        </details>
       </div>
 
     </div>

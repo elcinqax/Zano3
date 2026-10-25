@@ -7,6 +7,7 @@ import {
   MessageSquare,
   DollarSign,
   Download,
+  Eye,
   Clock,
   ArrowDownLeft,
   Edit2,
@@ -14,9 +15,11 @@ import {
   X,
   CreditCard,
   Wallet,
+  ChevronDown,
 } from 'lucide-react';
 import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { AppLanguage, translateText } from '../i18n';
 import { exportCustomersToCSV } from '../utils/export-utils';
 import { jsPDF } from 'jspdf';
 
@@ -31,8 +34,10 @@ interface CustomersViewProps {
   onAddPayment: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
   onUpdateSale: (id: string, updates: Partial<Sale>) => void;
   onDeleteSale: (id: string) => void;
+  onSelectSaleForReceipt: (sale: Sale) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
+  language: AppLanguage;
 }
 
 export const CustomersView: React.FC<CustomersViewProps> = ({
@@ -46,11 +51,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   onAddPayment,
   onUpdateSale,
   onDeleteSale,
+  onSelectSaleForReceipt,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
+  language,
 }) => {
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
+  const [customerListOpen, setCustomerListOpen] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -71,6 +79,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const formatMonth = (month: string) => new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T12:00:00`));
   const filteredHistorySales = selectedHistoryMonth ? customerSales.filter((sale) => sale.createdAt.slice(0, 7) === selectedHistoryMonth) : customerSales;
   const filteredHistoryPayments = historyCustomer ? payments.filter((payment) => payment.customerId === historyCustomer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth)) : [];
+  const selectedPeriodProductTotals = Object.entries(filteredHistorySales.reduce<Record<string, number>>((totals, sale) => {
+    sale.items.forEach((item) => { totals[item.productName] = (totals[item.productName] || 0) + item.quantity; });
+    return totals;
+  }, {})).sort(([, a], [, b]) => b - a);
+  const selectedPeriodLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Tüm dönem';
 
   const startEditingSale = (sale: Sale) => {
     setEditingSale(sale);
@@ -235,65 +248,119 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     setPaymentCustomer(null);
   };
 
-  const pdfSafeText = (value: string) => value
-    .replace(/[əƏ]/g, 'e')
-    .replace(/[ıİ]/g, 'i')
-    .replace(/[şŞ]/g, 's')
-    .replace(/[ğĞ]/g, 'g')
-    .replace(/[çÇ]/g, 'c')
-    .replace(/[öÖ]/g, 'o')
-    .replace(/[üÜ]/g, 'u')
-    .replace(/[₼₺]/g, 'AZN');
+  const pdfTitleCase = (value: string) => value.replace(/(^|[\s/()_-])[a-zçğıöşü]/gi, (match) => match.toUpperCase());
+  const pdfSafeText = (value: string) => pdfTitleCase(translateText(value, language));
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+    return window.btoa(binary);
+  };
 
-  const handleExportCustomerPdf = (customer: Customer) => {
-    const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
-    const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id);
+  const handleExportCustomerPdf = async (customer: Customer, preview = false) => {
+    const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Bütün Dövr';
+    const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
+    const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş', amount: formatCurrency(sale.total), detail: sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ') })),
-      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod})`, amount: `-${formatCurrency(payment.amount)}`, detail: payment.notes || 'Ödeme alındı' })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisy�� Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Ödəniş (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödəniş alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const fontResponse = await fetch('/fonts/DejaVuSans.ttf');
+    if (!fontResponse.ok) throw new Error('PDF font could not be loaded');
+    const fontBase64 = arrayBufferToBase64(await fontResponse.arrayBuffer());
+    pdf.addFileToVFS('DejaVuSans.ttf', fontBase64);
+    pdf.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    pdf.setFont('DejaVuSans', 'normal');
     let y = 18;
     pdf.setFontSize(18);
-    pdf.text(pdfSafeText(`${customer.name} - Müşteri Geçmişi`), 14, y);
+    pdf.text(pdfSafeText(`${customer.name} - Müştəri Tarixçəsi`), 14, y);
     y += 9;
     pdf.setFontSize(10);
-    pdf.text(pdfSafeText(`Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`), 14, y);
-    y += 10;
-    pdf.setFillColor(234, 242, 255);
-    pdf.rect(14, y - 5, 182, 8, 'F');
+    pdf.text(pdfSafeText(`${monthLabel} | Qalıq: ${formatCurrency(customer.balance)} | Hesabat Tarixi: ${formatDate(new Date().toISOString())}`), 14, y);
+    y += 6;
+    const salesTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.total, 0);
+    const paymentsTotal = customerPaymentsForReport.reduce((sum, payment) => sum + payment.amount, 0);
+    const quantityTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.items.reduce((itemTotal, item) => itemTotal + item.quantity, 0), 0);
     pdf.setFontSize(9);
-    pdf.text(pdfSafeText('Tarih'), 16, y);
-    pdf.text(pdfSafeText('İşlem'), 43, y);
-    pdf.text(pdfSafeText('Tutar'), 92, y);
-    pdf.text(pdfSafeText('Açıklama'), 125, y);
+    pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)} | Ümumi Ödəniş: ${formatCurrency(paymentsTotal)} | Əməliyyat Sayı: ${events.length}`), 14, y);
+    y += 10;
+    const tableLeft = 14;
+    const tableRight = 196;
+    const tableTop = y - 5;
+    const columnX = [14, 42, 78, 110, 170, 196];
+    pdf.setFillColor(234, 242, 255);
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.8);
+    pdf.rect(tableLeft, tableTop, tableRight - tableLeft, 8, 'FD');
+    pdf.setLineWidth(0.35);
+    columnX.slice(1, -1).forEach((x) => pdf.line(x, tableTop, x, tableTop + 8));
+    pdf.setFontSize(9);
+    pdf.text(pdfSafeText('Tarix'), 16, y + 1);
+    pdf.text(pdfSafeText('Əməliyyat'), 44, y + 1);
+    pdf.text(pdfSafeText('Məbləğ'), 80, y + 1);
+    pdf.text(pdfSafeText('Məhsul/Açıqlama'), 112, y + 1);
+    pdf.text(pdfSafeText('Say'), 174, y + 1);
     y += 8;
     events.forEach((event) => {
-      const lines = pdf.splitTextToSize(event.detail, 66);
-      if (y + Math.max(lines.length * 4, 8) > 280) { pdf.addPage(); y = 18; }
-    const rowHeight = Math.max(lines.length * 4, 8);
-    const rowColor = event.type.startsWith('Veresiye')
-      ? [254, 243, 199]
-      : event.type.startsWith('Nakit')
-        ? [219, 234, 254]
-        : [220, 252, 231];
-    pdf.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
-    pdf.roundedRect(14, y - 5, 182, rowHeight, 1.5, 1.5, 'F');
-    pdf.setFontSize(8);
-    pdf.setTextColor(31, 41, 55);
-    pdf.text(pdfSafeText(formatDate(event.date)), 16, y);
-    pdf.text(pdfSafeText(event.type), 43, y);
-    pdf.text(pdfSafeText(event.amount), 92, y);
-    pdf.text(pdfSafeText(lines.join(' ')), 125, y);
-    y += rowHeight;
-    pdf.setTextColor(23, 32, 51);
-    pdf.setDrawColor(216, 222, 233);
-      pdf.line(14, y - 4, 196, y - 4);
+      const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 24);
+      const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 32);
+      const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 28);
+      const productLines = pdf.splitTextToSize(pdfSafeText(event.product), 56);
+      const quantityLines = [String(event.quantity)];
+      const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, productLines.length, quantityLines.length, 1);
+      const rowHeight = Math.max(10, lineCount * 4 + 5);
+      if (y + rowHeight > 280) { pdf.addPage(); y = 18; }
+      const rowTop = y - 5;
+      const rowColor = event.type.startsWith('Nisyə')
+        ? [254, 243, 199]
+        : event.type.startsWith('Nağd')
+          ? [219, 234, 254]
+          : [220, 252, 231];
+      pdf.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.8);
+      pdf.rect(tableLeft, rowTop, tableRight - tableLeft, rowHeight, 'FD');
+      pdf.setLineWidth(0.35);
+      columnX.slice(1, -1).forEach((x) => pdf.line(x, rowTop, x, rowTop + rowHeight));
+      pdf.setFontSize(8);
+      pdf.setTextColor(31, 41, 55);
+      const textY = rowTop + 5;
+      pdf.text(dateLines, 16, textY);
+      pdf.text(typeLines, 44, textY);
+      pdf.text(amountLines, 80, textY);
+      pdf.text(productLines, 112, textY);
+      pdf.text(quantityLines, 174, textY);
+      y += rowHeight;
     });
-    const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.8);
+    pdf.line(tableLeft, tableTop, tableLeft, y - 1);
+    pdf.line(tableRight, tableTop, tableRight, y - 1);
+    pdf.line(tableLeft, y - 1, tableRight, y - 1);
+
+    if (y > 255) { pdf.addPage(); y = 18; } else { y += 10; }
+    pdf.setFillColor(241, 245, 249);
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.8);
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 24, 'FD');
+    pdf.setFontSize(9);
+    pdf.text(pdfSafeText('ÜMUMİ'), 17, y);
+    pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)}`), 17, y + 7);
+    pdf.text(pdfSafeText(`Ümumi Ödəniş: ${formatCurrency(paymentsTotal)}`), 105, y + 7);
+    pdf.text(pdfSafeText(`Toplam Adet: ${quantityTotal}`), 17, y + 15);
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.8);
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 24, 'D');
+    pdf.line(104, y - 5, 104, y + 13);
+    const fileName = `${customer.name.replace(/[^a-z0-9ğ��şöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
+    if (preview) {
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     const downloadLink = document.createElement('a');
     downloadLink.href = downloadUrl;
     downloadLink.download = fileName;
@@ -307,9 +374,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
     if (!customer.phone) return;
-    const message = `Sayın ${customer.name},
-${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${formatCurrency(customer.balance)}'dir.
-Ödemenizi bekler, hayırlı işler dileriz.`;
+  const message = `Hörmətli ${customer.name},
+  ${settings.storeName} üzrə cari açıq hesab (nisyə) qalığınız ${formatCurrency(customer.balance)} təşkil edir.
+  Ödənişinizi gözləyir, sizə uğurlar arzulayırıq.`;
 
     const encoded = encodeURIComponent(message);
     const cleanPhone = customer.phone.replace(/\D/g, '');
@@ -426,8 +493,14 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
         </div>
       </div>
 
-      {/* Customers List (Arama alanının ve müşteri isimlerinin hemen altında) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+      <button type="button" onClick={() => setCustomerListOpen((open) => !open)} aria-expanded={customerListOpen} className="flex w-full items-center justify-between border-b border-slate-200 px-1 py-3 text-left dark:border-slate-800">
+        <span><span className="block text-sm font-black text-slate-900 dark:text-slate-100">Müşteri Listesi</span><span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">{filteredCustomers.length} müşteri</span></span><span className="flex items-center gap-2 text-xs font-bold text-emerald-600"><span>{customerListOpen ? 'Kapat' : 'Aç'}</span><ChevronDown className={`h-4 w-4 transition-transform ${customerListOpen ? 'rotate-180' : ''}`} /></span>
+      </button>
+
+      {/* Customers List */}
+      {customerListOpen ? (
+      <div className="mt-3 overflow-hidden border-b border-slate-200 pb-4 dark:border-slate-800">
+      <div className="overflow-hidden">
         <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -462,7 +535,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setHistoryCustomer(c)}
+                      onClick={() => { setHistoryCustomer(c); setSelectedHistoryMonth(null); }}
                       className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
                       title="Müşteri geçmişini görüntüle"
                     >
@@ -587,6 +660,8 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
           </span>
         </div>
       </div>
+      </div>
+      ) : null}
 
       {/* Customer History Modal */}
       {historyCustomer && (
@@ -597,18 +672,21 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 <h3 className="font-bold text-base text-slate-900 dark:text-white">Müşteri Geçmişi</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-[11px] text-slate-500">{historyCustomer.name} · {customerSales.length} satış</p>
-                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700" title="PDF olarak gönder">
-                    <Download className="w-3 h-3" /> PDF
+                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700" title="PDF indir">
+                    <Download className="w-3 h-3" /> PDF indir
+                  </button>
+                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer, true)} className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-sky-700" title="PDF görüntüle ve paylaş">
+                    <Eye className="w-3 h-3" /> PDF görüntüle
                   </button>
                 </div>
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
                   <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
                   <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
   <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
-  {purchaseSummary.allProductTotals.length > 0 && (
-    <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Tüm dönem toplamı</p>
-      <div className="space-y-1">{purchaseSummary.allProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet</span></p>)}</div>
+{selectedPeriodProductTotals.length > 0 && (
+  <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">{selectedPeriodLabel} Toplamı</p>
+  <div className="space-y-1">{selectedPeriodProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet</span></p>)}</div>
     </div>
   )}
   </div>
@@ -628,9 +706,9 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 [...filteredHistorySales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...filteredHistoryPayments.map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
                   .sort((a, b) => +new Date(b.date) - +new Date(a.date))
                   .map((entry) => entry.type === 'sale' ? (
-                    <div key={entry.record.id} className={`rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
+                    <div key={entry.record.id} role="button" tabIndex={0} onClick={() => onSelectSaleForReceipt(entry.record)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelectSaleForReceipt(entry.record); }} className={`cursor-pointer rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
                       <div className="flex items-start justify-between gap-3"><div><p className={`text-[10px] font-bold uppercase ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{entry.record.paymentMethod === 'credit' ? 'Veresiye satış' : entry.record.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className={`text-sm font-bold ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{formatCurrency(entry.record.total)}</span></div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => startEditingSale(entry.record)} className="inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button><button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(entry.record.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-100/80 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"><Trash2 className="h-3 w-3" /> Fişi kaldır</button></div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); startEditingSale(entry.record); }} className="inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button><button type="button" onClick={(event) => { event.stopPropagation(); if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(entry.record.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-100/80 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"><Trash2 className="h-3 w-3" /> Fişi kaldır</button></div>
                     </div>
                   ) : (
                     <div key={entry.record.id} className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">Tahsilat</p><p className="text-xs font-bold text-slate-900 dark:text-white">{formatDate(entry.record.createdAt)}</p><p className="text-[11px] text-slate-500">{entry.record.notes || 'Ödeme alındı'}</p></div><span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">-{formatCurrency(entry.record.amount)}</span></div></div>

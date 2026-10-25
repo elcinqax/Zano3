@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Users, Package, Boxes, BarChart3, TrendingDown } from 'lucide-react';
+import { ShoppingCart, Users, Package, Boxes, Settings } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -42,20 +42,15 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       icon: Boxes,
     },
     {
-      id: 'expenses',
-      label: 'Giderler',
-      icon: TrendingDown,
-    },
-    {
-      id: 'reports',
-      label: 'Raporlar',
-      icon: BarChart3,
+      id: 'settings',
+      label: 'Ayarlar',
+      icon: Settings,
     },
   ];
 
   return (
     <nav className="sticky bottom-0 z-40 w-full bg-[#fffdf5]/94 dark:bg-[#171914]/96 backdrop-blur-2xl border-t border-[#d8d3c4] dark:border-[#34382b] transition-colors shadow-[0_-6px_24px_rgba(30,32,20,0.12)] shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="grid grid-cols-6 h-16 items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
+      <div className="grid grid-cols-5 h-16 items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =

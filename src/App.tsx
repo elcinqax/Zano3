@@ -16,6 +16,7 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { NotificationModal } from './components/NotificationModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WifiOff, ShieldCheck, BatteryCharging, Signal } from 'lucide-react';
+import { AppLanguage, translateDocument } from './i18n';
 
 export type ThemeMode = 'light' | 'dark' | 'ocean' | 'plum' | 'forest' | 'sand';
 const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'ocean', 'plum', 'forest', 'sand'];
@@ -37,6 +38,10 @@ export default function App() {
   // Navigation & View mode - Starts on 1. Satış as requested
   const [activeTab, setActiveTab] = useState<string>('pos');
   const [isMobileFrame, setIsMobileFrame] = useState<boolean>(false);
+  const [language, setLanguage] = useState<AppLanguage>(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('app_language') : null;
+    return saved === 'az' || saved === 'en' || saved === 'ru' ? saved : 'tr';
+  });
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
@@ -125,6 +130,14 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('app_language', language);
+    translateDocument(language);
+    const observer = new MutationObserver(() => translateDocument(language));
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [language]);
+
   // Handle Dark mode class
   useEffect(() => {
     try {
@@ -201,10 +214,8 @@ export default function App() {
           {/* Top Bar */}
           <TopBar
             storeName={settings.storeName}
-            themeMode={themeMode}
-            screenTopPadding={settings.screenTopPadding}
-            onToggleTheme={toggleTheme}
-            onSelectTheme={setThemeMode}
+              screenTopPadding={settings.screenTopPadding}
+
             onLockApp={() => setIsLocked(true)}
             isPinEnabled={settings.isPinEnabled}
   isMobileFrame={isMobileFrame}
@@ -241,7 +252,6 @@ export default function App() {
               }}
               onAddPayment={(customerId, amount, paymentMethod, notes) => sqliteStorage.addCustomerPayment(customerId, amount, paymentMethod, notes)}
               onOpenSalesHistory={() => setActiveTab('sales')}
-              onOpenBackupSettings={() => setActiveTab('settings')}
               productToAdd={productToAdd}
               onProductAddedToCart={() => setProductToAdd(null)}
               onSelectSaleForReceipt={setReceiptSale}
@@ -264,8 +274,10 @@ export default function App() {
               }
               onUpdateSale={(id, updates) => sqliteStorage.updateSale(id, updates)}
               onDeleteSale={(id) => sqliteStorage.deleteSale(id)}
+              onSelectSaleForReceipt={setReceiptSale}
               isOpenAddModalExternal={openAddCustomerTrigger}
               onCloseAddModalExternal={() => setOpenAddCustomerTrigger(false)}
+              language={language}
             />
           )}
 
@@ -367,6 +379,11 @@ export default function App() {
               onRestoreBackup={(dump) => sqliteStorage.importDump(dump)}
               onResetToSampleData={() => sqliteStorage.resetToSampleData()}
               onResetAllReports={() => sqliteStorage.resetAllReports()}
+              onNavigateTab={setActiveTab}
+              themeMode={themeMode}
+              onSelectTheme={setThemeMode}
+              language={language}
+              onSelectLanguage={setLanguage}
             />
           )}
         </main>

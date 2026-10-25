@@ -27,7 +27,6 @@ import {
   BarChart3,
   ShoppingBag,
   XCircle,
-  Cloud,
 } from 'lucide-react';
 import { Product, Customer, CartItem, PaymentMethod, AppSettings, Sale } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -68,7 +67,6 @@ interface POSViewProps {
   onQuickAddCustomer: (customerData: { name: string; phone?: string; address?: string }) => Customer;
   onAddPayment?: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
   onOpenSalesHistory?: () => void;
-  onOpenBackupSettings?: () => void;
   onSelectSaleForReceipt?: (sale: Sale) => void;
   onCancelSale?: (saleId: string) => void;
   productToAdd?: Product | null;
@@ -86,7 +84,6 @@ export const POSView: React.FC<POSViewProps> = ({
   onQuickAddCustomer,
   onAddPayment,
   onOpenSalesHistory,
-  onOpenBackupSettings,
   onSelectSaleForReceipt,
   onCancelSale,
   productToAdd,
@@ -547,18 +544,6 @@ export const POSView: React.FC<POSViewProps> = ({
 
         {/* Üst Köşede İşlem Butonları */}
         <div className="flex items-center gap-2">
-          {onOpenBackupSettings && (
-            <button
-              type="button"
-              onClick={onOpenBackupSettings}
-              className="h-11 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 border border-emerald-300/70 dark:border-emerald-700/60 shadow-xs cursor-pointer"
-              title="Telefona Yedek Al ve WhatsApp'a Gönder"
-            >
-              <Cloud className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Yedek Al</span>
-            </button>
-          )}
-
           {/* Satış Geçmişi Tuşu */}
           <button
             type="button"
