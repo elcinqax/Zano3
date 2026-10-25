@@ -57,6 +57,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
+  const [customerListOpen, setCustomerListOpen] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -489,7 +490,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
         </div>
       </div>
 
-      {/* Customers List (Arama alanının ve müşteri isimlerinin hemen altında) */}
+      <button type="button" onClick={() => setCustomerListOpen(true)} className="flex w-full items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left shadow-sm transition-colors hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40">
+        <span><span className="block text-sm font-black text-emerald-800 dark:text-emerald-200">Müşteri Listesi</span><span className="mt-1 block text-[11px] text-emerald-700/80 dark:text-emerald-300/70">{filteredCustomers.length} müşteri görüntülemek için açın</span></span><span className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Listeyi Aç</span>
+      </button>
+
+      {/* Customers List */}
+      {customerListOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm">
+      <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800"><div><p className="text-sm font-black text-slate-900 dark:text-white">Müşteri Listesi</p><p className="text-[11px] text-slate-500">{filteredCustomers.length} kayıt</p></div><button type="button" onClick={() => setCustomerListOpen(false)} className="rounded-lg p-2 text-slate-400" aria-label="Müşteri listesini kapat"><X className="h-5 w-5" /></button></div>
+      <div className="max-h-[calc(88vh-65px)] overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2">
@@ -650,6 +659,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
           </span>
         </div>
       </div>
+      </div>
+      </div>
+      </div>}
 
       {/* Customer History Modal */}
       {historyCustomer && (
