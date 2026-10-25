@@ -239,17 +239,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   };
 
   const pdfTitleCase = (value: string) => value.replace(/(^|[\s/()_-])[a-zçğıöşü]/gi, (match) => match.toUpperCase());
-  const pdfSafeText = (value: string) => pdfTitleCase(value)
-    .replace(/[əƏ]/g, 'e')
-    .replace(/[ıİ]/g, 'i')
-    .replace(/[şŞ]/g, 's')
-    .replace(/[ğĞ]/g, 'g')
-    .replace(/[çÇ]/g, 'c')
-    .replace(/[öÖ]/g, 'o')
-    .replace(/[üÜ]/g, 'u')
-    .replace(/[₼₺]/g, 'AZN');
+  const pdfSafeText = (value: string) => pdfTitleCase(value);
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+    return window.btoa(binary);
+  };
 
-  const handleExportCustomerPdf = (customer: Customer, preview = false) => {
+  const handleExportCustomerPdf = async (customer: Customer, preview = false) => {
     const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Bütün Dövr';
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
@@ -259,6 +257,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const fontResponse = await fetch('/fonts/DejaVuSans.ttf');
+    if (!fontResponse.ok) throw new Error('PDF font could not be loaded');
+    const fontBase64 = arrayBufferToBase64(await fontResponse.arrayBuffer());
+    pdf.addFileToVFS('DejaVuSans.ttf', fontBase64);
+    pdf.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    pdf.setFont('DejaVuSans', 'normal');
     let y = 18;
     pdf.setFontSize(18);
     pdf.text(pdfSafeText(`${customer.name} - Müştəri Tarixçəsi`), 14, y);
