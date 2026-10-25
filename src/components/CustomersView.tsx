@@ -291,10 +291,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 20);
       const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 30);
       const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 25);
-      const subtotalLines = pdf.splitTextToSize(pdfSafeText(event.subtotal), 25);
       const productLines = pdf.splitTextToSize(pdfSafeText(event.product), 54);
       const quantityLines = [String(event.quantity)];
-      const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, subtotalLines.length, productLines.length, quantityLines.length, 1);
+      const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, productLines.length, quantityLines.length, 1);
       const rowHeight = Math.max(10, lineCount * 4 + 5);
       if (y + rowHeight > 280) { pdf.addPage(); y = 18; }
       const rowTop = y - 5;
@@ -315,7 +314,6 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       pdf.text(dateLines, 16, textY);
       pdf.text(typeLines, 44, textY);
       pdf.text(amountLines, 80, textY);
-      pdf.text(subtotalLines, 80, textY + 4);
       pdf.text(productLines, 112, textY);
       pdf.text(quantityLines, 174, textY);
       y += rowHeight;
