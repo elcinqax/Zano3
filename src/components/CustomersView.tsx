@@ -7,6 +7,7 @@ import {
   MessageSquare,
   DollarSign,
   Download,
+  Eye,
   Clock,
   ArrowDownLeft,
   Edit2,
@@ -247,7 +248,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     .replace(/[üÜ]/g, 'u')
     .replace(/[₼₺]/g, 'AZN');
 
-  const handleExportCustomerPdf = (customer: Customer) => {
+  const handleExportCustomerPdf = (customer: Customer, preview = false) => {
     const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Tüm dönem';
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
@@ -304,6 +305,10 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
+    if (preview) {
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     const downloadLink = document.createElement('a');
     downloadLink.href = downloadUrl;
     downloadLink.download = fileName;
@@ -607,8 +612,11 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 <h3 className="font-bold text-base text-slate-900 dark:text-white">Müşteri Geçmişi</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-[11px] text-slate-500">{historyCustomer.name} · {customerSales.length} satış</p>
-                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700" title="PDF olarak gönder">
-                    <Download className="w-3 h-3" /> PDF
+                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700" title="PDF indir">
+                    <Download className="w-3 h-3" /> PDF indir
+                  </button>
+                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer, true)} className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-sky-700" title="PDF görüntüle ve paylaş">
+                    <Eye className="w-3 h-3" /> PDF görüntüle
                   </button>
                 </div>
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
