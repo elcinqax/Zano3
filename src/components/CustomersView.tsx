@@ -375,8 +375,16 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
         }
         return;
       }
-      URL.revokeObjectURL(downloadUrl);
-      window.alert('Bu tarayıcı dosya paylaşımını desteklemiyor. Lütfen Chrome veya Safari ile deneyin.');
+      const fallbackLink = document.createElement('a');
+      fallbackLink.href = downloadUrl;
+      fallbackLink.download = fileName;
+      fallbackLink.rel = 'noopener';
+      fallbackLink.style.display = 'none';
+      document.body.appendChild(fallbackLink);
+      fallbackLink.click();
+      fallbackLink.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
+      window.alert('Bu ortam dosya paylaşımını desteklemiyor. PDF indirildi; Dosyalar uygulamasından açabilirsiniz.');
       return;
     }
     const downloadLink = document.createElement('a');
