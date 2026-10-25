@@ -283,7 +283,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setFontSize(9);
     pdf.text(pdfSafeText('Tarih'), 16, y + 1);
     pdf.text(pdfSafeText('İşlem'), 44, y + 1);
-    pdf.text(pdfSafeText('Tutar / Alttoplam'), 80, y + 1);
+    pdf.text(pdfSafeText('Tutar'), 80, y + 1);
     pdf.text(pdfSafeText('Ürün / Açıklama'), 112, y + 1);
     pdf.text(pdfSafeText('Adet'), 174, y + 1);
     y += 8;
@@ -291,7 +291,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 20);
       const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 30);
       const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 25);
-      const subtotalLines = pdf.splitTextToSize(pdfSafeText(`Alttoplam: ${event.subtotal}`), 25);
+      const subtotalLines = pdf.splitTextToSize(pdfSafeText(event.subtotal), 25);
       const productLines = pdf.splitTextToSize(pdfSafeText(event.product), 54);
       const quantityLines = [String(event.quantity)];
       const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, subtotalLines.length, productLines.length, quantityLines.length, 1);
@@ -340,7 +340,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setFontSize(9);
     pdf.text(pdfSafeText(`Ürün aldığı gün sayısı: ${purchaseDays} gün`), 17, y);
     pdf.text(pdfSafeText(`Toplam ürün adedi: ${totalQuantity} adet`), 17, y + 5);
-    pdf.text(pdfSafeText(`Toplam alttoplam: ${formatCurrency(totalSubtotal)}`), 105, y);
+    pdf.text(pdfSafeText(formatCurrency(totalSubtotal)), 105, y);
     pdf.text(pdfSafeText(`Toplam satış: ${formatCurrency(salesTotal)}`), 105, y + 5);
     pdf.text(pdfSafeText(`Toplam tahsilat: ${formatCurrency(paymentsTotal)}`), 105, y + 10);
     pdf.setDrawColor(0, 0, 0);
