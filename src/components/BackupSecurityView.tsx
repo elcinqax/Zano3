@@ -42,6 +42,7 @@ import {
   shareOrSaveFile,
 } from '../utils/export-utils';
 import { formatDateTime } from '../utils/formatters';
+import type { ThemeMode } from '../App';
 
 const normalizeWhatsappNumber = (raw: string) => raw.replace(/\D/g, '').replace(/^00/, '');
 
@@ -55,6 +56,8 @@ interface BackupSecurityViewProps {
   onResetToSampleData: () => void;
   onResetAllReports?: () => void;
   onNavigateTab?: (tab: string) => void;
+  themeMode: ThemeMode;
+  onSelectTheme: (theme: ThemeMode) => void;
 }
 
 export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
@@ -67,6 +70,8 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   onResetToSampleData,
   onResetAllReports,
   onNavigateTab,
+  themeMode,
+  onSelectTheme,
 }) => {
   // Store profile
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -82,6 +87,7 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   const [pinCode, setPinCode] = useState(settings.pinCode);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(settings.isBiometricEnabled);
   const [showSqlViewer, setShowSqlViewer] = useState(false);
+  const [showThemes, setShowThemes] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Backup Settings State
@@ -286,6 +292,15 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
   Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
   </p>
+  </div>
+  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60">
+    <button type="button" onClick={() => setShowThemes((open) => !open)} className="flex w-full items-center justify-between text-left">
+      <span><span className="block text-sm font-black text-slate-800 dark:text-slate-100">Temalar</span><span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">Görünüm temasını buradan seçin</span></span>
+      <span className="text-xs font-bold text-emerald-600">{showThemes ? 'Kapat' : 'Aç'}</span>
+    </button>
+    {showThemes && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{[
+      { id: 'light' as ThemeMode, label: 'Açıq', color: '#f4f1e8' }, { id: 'dark' as ThemeMode, label: 'Gecə', color: '#0f110d' }, { id: 'ocean' as ThemeMode, label: 'Okean', color: '#67e8f9' }, { id: 'plum' as ThemeMode, label: 'Gavalı', color: '#e9a8ff' }, { id: 'forest' as ThemeMode, label: 'Meşə', color: '#86efac' }, { id: 'sand' as ThemeMode, label: 'Qum', color: '#fbbf77' },
+    ].map((option) => <button key={option.id} type="button" onClick={() => onSelectTheme(option.id)} className={`flex items-center gap-2 rounded-xl border px-2 py-2 text-left text-[11px] font-bold ${themeMode === option.id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}><span className="h-4 w-4 rounded-full" style={{ backgroundColor: option.color }} />{option.label}</button>)} </div>}
   </div>
   {onNavigateTab && (
     <div className="mt-5 grid grid-cols-2 gap-3">

@@ -201,10 +201,8 @@ export default function App() {
           {/* Top Bar */}
           <TopBar
             storeName={settings.storeName}
-            themeMode={themeMode}
-            screenTopPadding={settings.screenTopPadding}
-            onToggleTheme={toggleTheme}
-            onSelectTheme={setThemeMode}
+              screenTopPadding={settings.screenTopPadding}
+
             onLockApp={() => setIsLocked(true)}
             isPinEnabled={settings.isPinEnabled}
   isMobileFrame={isMobileFrame}
@@ -368,6 +366,8 @@ export default function App() {
               onResetToSampleData={() => sqliteStorage.resetToSampleData()}
               onResetAllReports={() => sqliteStorage.resetAllReports()}
               onNavigateTab={setActiveTab}
+              themeMode={themeMode}
+              onSelectTheme={setThemeMode}
             />
           )}
         </main>
