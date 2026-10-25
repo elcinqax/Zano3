@@ -660,6 +660,15 @@ class SQLiteStorageManager {
     return [...this.memoryCache.sales];
   }
 
+  public updateSale(id: string, updates: Pick<Sale, 'notes'>): Sale | null {
+    const index = this.memoryCache.sales.findIndex((sale) => sale.id === id);
+    if (index === -1) return null;
+    this.memoryCache.sales[index] = { ...this.memoryCache.sales[index], notes: updates.notes?.trim() || undefined };
+    this.persistAll();
+    this.notify();
+    return this.memoryCache.sales[index];
+  }
+
   public createSale(
     saleData: Omit<Sale, 'id' | 'invoiceNo' | 'status' | 'createdAt' | 'items'> & {
       items: (Omit<SaleItem, 'id' | 'saleId'> & { id?: string; saleId?: string })[];

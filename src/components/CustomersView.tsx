@@ -48,10 +48,23 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+  const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string | null>(null);
 
   const customerSales = historyCustomer
     ? sales.filter((sale) => sale.customerId === historyCustomer.id && sale.status === 'completed')
     : [];
+
+  const historyMonths = useMemo(() => {
+    if (!historyCustomer) return [] as string[];
+    return Array.from(new Set([
+      ...customerSales.map((sale) => sale.createdAt.slice(0, 7)),
+      ...payments.filter((payment) => payment.customerId === historyCustomer.id).map((payment) => payment.createdAt.slice(0, 7)),
+    ])).sort((a, b) => b.localeCompare(a));
+  }, [historyCustomer, customerSales, payments]);
+
+  const formatMonth = (month: string) => new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T12:00:00`));
+  const filteredHistorySales = selectedHistoryMonth ? customerSales.filter((sale) => sale.createdAt.slice(0, 7) === selectedHistoryMonth) : customerSales;
+  const filteredHistoryPayments = historyCustomer ? payments.filter((payment) => payment.customerId === historyCustomer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth)) : [];
 
   const purchaseSummary = useMemo(() => {
     if (customerSales.length === 0) {
@@ -573,10 +586,14 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[65vh] space-y-2">
-              {customerSales.length === 0 && payments.filter((payment) => payment.customerId === historyCustomer.id).length === 0 ? (
-                <div className="py-10 text-center text-xs text-slate-400">Bu müşteriye ait işlem geçmişi bulunamadı.</div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                <button type="button" onClick={() => setSelectedHistoryMonth(null)} className={`shrink-0 rounded-lg px-3 py-2 text-[10px] font-bold ${selectedHistoryMonth === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>Tümü</button>
+                {historyMonths.map((month) => <button key={month} type="button" onClick={() => setSelectedHistoryMonth(month)} className={`shrink-0 rounded-lg px-3 py-2 text-[10px] font-bold capitalize ${selectedHistoryMonth === month ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{formatMonth(month)}</button>)}
+              </div>
+              {filteredHistorySales.length === 0 && filteredHistoryPayments.length === 0 ? (
+                <div className="py-10 text-center text-xs text-slate-400">Bu ay için işlem geçmişi bulunamadı.</div>
               ) : (
-                [...customerSales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...payments.filter((payment) => payment.customerId === historyCustomer.id).map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
+                [...filteredHistorySales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...filteredHistoryPayments.map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
                   .sort((a, b) => +new Date(b.date) - +new Date(a.date))
                   .map((entry) => entry.type === 'sale' ? (
                     <div key={entry.record.id} className={`rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
