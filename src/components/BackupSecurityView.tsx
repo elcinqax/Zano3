@@ -358,8 +358,13 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
         </div>
       )}
 
-      {/* Grid: 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Settings operations as collapsible cards */}
+      <div className="space-y-3">
+        <details className="group rounded-3xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-black text-slate-900 marker:hidden dark:text-slate-100">
+            <span className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-emerald-600" />Yedekleme İşlemleri</span><span className="text-xs text-slate-400 transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="grid grid-cols-1 gap-6 border-t border-slate-100 p-4 dark:border-slate-800 lg:grid-cols-2">
         {/* Left Column: Backup Solutions */}
         <div className="space-y-6">
           {/* Card 2: Telefona Yedek Alma (Phone & Local Storage) */}
@@ -748,6 +753,8 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+        </details>
       </div>
 
     </div>
