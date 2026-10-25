@@ -90,7 +90,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const purchaseSummary = useMemo(() => {
     if (customerSales.length === 0) {
-      return { latestQuantity: 0, latestDate: null as string | null, latestProductNames: [] as string[], busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0 };
+      return { latestQuantity: 0, latestDate: null as string | null, latestProductNames: [] as string[], busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0, recentProductTotals: [] as Array<[string, number]>, allProductTotals: [] as Array<[string, number]> };
     }
 
     const quantityForSale = (sale: Sale) => sale.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -98,9 +98,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const today = new Date();
     const threeMonthsAgo = new Date(today);
     threeMonthsAgo.setMonth(today.getMonth() - 3);
-    const lastThreeMonthsQuantity = customerSales
-      .filter((sale) => new Date(sale.createdAt) >= threeMonthsAgo)
-      .reduce((sum, sale) => sum + quantityForSale(sale), 0);
+    const recentSales = customerSales.filter((sale) => new Date(sale.createdAt) >= threeMonthsAgo);
+    const lastThreeMonthsQuantity = recentSales.reduce((sum, sale) => sum + quantityForSale(sale), 0);
+    const totalsByProduct = (sourceSales: Sale[]) => Object.entries(sourceSales.reduce<Record<string, number>>((totals, sale) => {
+      sale.items.forEach((item) => { totals[item.productName] = (totals[item.productName] || 0) + item.quantity; });
+      return totals;
+    }, {})).sort(([, a], [, b]) => b - a);
     const byDay = customerSales.reduce<Record<string, number>>((totals, sale) => {
       const day = new Date(sale.createdAt).toISOString().slice(0, 10);
       totals[day] = (totals[day] || 0) + quantityForSale(sale);
@@ -115,6 +118,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       busiestDate,
       busiestQuantity,
       lastThreeMonthsQuantity,
+      recentProductTotals: totalsByProduct(recentSales),
+      allProductTotals: totalsByProduct(customerSales),
     };
   }, [customerSales]);
 
@@ -600,8 +605,16 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
                   <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
                   <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
-                  <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
-                </div>
+  <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
+  {purchaseSummary.recentProductTotals.length > 0 && (
+    <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Son 3 ay ürünleri</p>
+      <div className="space-y-1">{purchaseSummary.recentProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px]"><span>{product}</span><span className="font-bold">{quantity} adet</span></p>)}</div>
+      <p className="mb-1 mt-3 border-t border-emerald-200 pt-2 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:border-emerald-900/40 dark:text-slate-300">Tüm dönem toplamı</p>
+      <div className="space-y-1">{purchaseSummary.allProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet</span></p>)}</div>
+    </div>
+  )}
+  </div>
               </div>
               <button type="button" onClick={() => setHistoryCustomer(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Geçmişi kapat">
                 <X className="w-5 h-5" />
