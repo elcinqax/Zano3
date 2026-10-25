@@ -238,7 +238,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     setPaymentCustomer(null);
   };
 
-  const pdfSafeText = (value: string) => value
+  const pdfTitleCase = (value: string) => value.replace(/(^|[\s/()_-])[a-zçğıöşü]/gi, (match) => match.toUpperCase());
+  const pdfSafeText = (value: string) => pdfTitleCase(value)
     .replace(/[əƏ]/g, 'e')
     .replace(/[ıİ]/g, 'i')
     .replace(/[şŞ]/g, 's')
@@ -253,8 +254,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
-      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödeme alındı', quantity: '-' })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye Satış' : sale.paymentMethod === 'cash' ? 'Nakit Satış' : 'Qarışık Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödeme alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -268,7 +269,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const salesTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.total, 0);
     const paymentsTotal = customerPaymentsForReport.reduce((sum, payment) => sum + payment.amount, 0);
     pdf.setFontSize(9);
-    pdf.text(pdfSafeText(`Toplam satış: ${formatCurrency(salesTotal)} | Toplam tahsilat: ${formatCurrency(paymentsTotal)} | İşlem sayısı: ${events.length}`), 14, y);
+    pdf.text(pdfSafeText(`Toplam Satış: ${formatCurrency(salesTotal)} | Toplam Tahsilat: ${formatCurrency(paymentsTotal)} | İşlem Sayısı: ${events.length}`), 14, y);
     y += 10;
     const tableLeft = 14;
     const tableRight = 196;
@@ -324,10 +325,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.line(tableRight, tableTop, tableRight, y - 1);
     pdf.line(tableLeft, y - 1, tableRight, y - 1);
 
-    const purchaseDays = new Set(customerSalesForReport.map((sale) => sale.createdAt.slice(0, 10))).size;
-    const totalQuantity = customerSalesForReport.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
-    const totalSubtotal = customerSalesForReport.reduce((sum, sale) => sum + sale.subtotal, 0);
-    if (y > 245) { pdf.addPage(); y = 18; } else { y += 10; }
+    if (y > 255) { pdf.addPage(); y = 18; } else { y += 10; }
     pdf.setFillColor(241, 245, 249);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
@@ -336,15 +334,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.text(pdfSafeText('TOPLAM'), 17, y);
     y += 9;
     pdf.setFontSize(9);
-    pdf.text(pdfSafeText(`Ürün aldığı gün sayısı: ${purchaseDays} gün`), 17, y);
-    pdf.text(pdfSafeText(`Toplam ürün adedi: ${totalQuantity} adet`), 17, y + 5);
-    pdf.text(pdfSafeText(formatCurrency(totalSubtotal)), 105, y);
-    pdf.text(pdfSafeText(`Toplam satış: ${formatCurrency(salesTotal)}`), 105, y + 5);
-    pdf.text(pdfSafeText(`Toplam tahsilat: ${formatCurrency(paymentsTotal)}`), 105, y + 10);
+    pdf.text(pdfSafeText(`Toplam Satış: ${formatCurrency(salesTotal)}`), 17, y);
+    pdf.text(pdfSafeText(`Toplam Tahsilat: ${formatCurrency(paymentsTotal)}`), 105, y);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
-    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 18, 'D');
-    pdf.line(104, y - 5, 104, y + 13);
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 8, 'D');
+    pdf.line(104, y - 5, 104, y + 3);
     const fileName = `${customer.name.replace(/[^a-z0-9ğ��şöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
