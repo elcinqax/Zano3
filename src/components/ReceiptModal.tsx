@@ -7,7 +7,7 @@ interface ReceiptModalProps {
   sale: Sale;
   settings: AppSettings;
   onClose: () => void;
-  onUpdateSale?: (updates: Pick<Sale, 'notes'>) => void;
+  onUpdateSale?: (updates: Partial<Pick<Sale, 'notes' | 'items' | 'subtotal' | 'discount' | 'taxAmount' | 'total' | 'profit'>>) => void;
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({

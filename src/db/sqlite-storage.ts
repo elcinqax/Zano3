@@ -660,10 +660,10 @@ class SQLiteStorageManager {
     return [...this.memoryCache.sales];
   }
 
-  public updateSale(id: string, updates: Pick<Sale, 'notes'>): Sale | null {
+  public updateSale(id: string, updates: Partial<Pick<Sale, 'notes' | 'items' | 'subtotal' | 'discount' | 'taxAmount' | 'total' | 'profit'>>): Sale | null {
     const index = this.memoryCache.sales.findIndex((sale) => sale.id === id);
     if (index === -1) return null;
-    this.memoryCache.sales[index] = { ...this.memoryCache.sales[index], notes: updates.notes?.trim() || undefined };
+    this.memoryCache.sales[index] = { ...this.memoryCache.sales[index], ...updates, notes: updates.notes === undefined ? this.memoryCache.sales[index].notes : updates.notes.trim() || undefined };
     this.persistAll();
     this.notify();
     return this.memoryCache.sales[index];
