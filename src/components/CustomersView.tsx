@@ -31,6 +31,7 @@ interface CustomersViewProps {
   onAddPayment: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
   onUpdateSale: (id: string, updates: Partial<Sale>) => void;
   onDeleteSale: (id: string) => void;
+  onSelectSaleForReceipt: (sale: Sale) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
 }
@@ -46,6 +47,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   onAddPayment,
   onUpdateSale,
   onDeleteSale,
+  onSelectSaleForReceipt,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
 }) => {
@@ -246,8 +248,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     .replace(/[₼₺]/g, 'AZN');
 
   const handleExportCustomerPdf = (customer: Customer) => {
-    const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
-    const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id);
+    const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Tüm dönem';
+    const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
+    const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
       ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş', amount: formatCurrency(sale.total), detail: sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ') })),
       ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod})`, amount: `-${formatCurrency(payment.amount)}`, detail: payment.notes || 'Ödeme alındı' })),
@@ -259,10 +262,17 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.text(pdfSafeText(`${customer.name} - Müşteri Geçmişi`), 14, y);
     y += 9;
     pdf.setFontSize(10);
-    pdf.text(pdfSafeText(`Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`), 14, y);
+    pdf.text(pdfSafeText(`${monthLabel} | Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`), 14, y);
+    y += 6;
+    const salesTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.total, 0);
+    const paymentsTotal = customerPaymentsForReport.reduce((sum, payment) => sum + payment.amount, 0);
+    pdf.setFontSize(9);
+    pdf.text(pdfSafeText(`Toplam satış: ${formatCurrency(salesTotal)} | Toplam tahsilat: ${formatCurrency(paymentsTotal)} | İşlem sayısı: ${events.length}`), 14, y);
     y += 10;
     pdf.setFillColor(234, 242, 255);
-    pdf.rect(14, y - 5, 182, 8, 'F');
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.35);
+    pdf.rect(14, y - 5, 182, 8, 'FD');
     pdf.setFontSize(9);
     pdf.text(pdfSafeText('Tarih'), 16, y);
     pdf.text(pdfSafeText('İşlem'), 43, y);
@@ -288,8 +298,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.text(pdfSafeText(lines.join(' ')), 125, y);
     y += rowHeight;
     pdf.setTextColor(23, 32, 51);
-    pdf.setDrawColor(216, 222, 233);
-      pdf.line(14, y - 4, 196, y - 4);
+    pdf.setDrawColor(0, 0, 0);
+      pdf.rect(14, y - rowHeight - 1, 182, rowHeight, 'D');
     });
     const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
@@ -462,7 +472,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setHistoryCustomer(c)}
+                      onClick={() => { setHistoryCustomer(c); setSelectedHistoryMonth(null); }}
                       className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
                       title="Müşteri geçmişini görüntüle"
                     >
@@ -628,9 +638,9 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 [...filteredHistorySales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...filteredHistoryPayments.map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
                   .sort((a, b) => +new Date(b.date) - +new Date(a.date))
                   .map((entry) => entry.type === 'sale' ? (
-                    <div key={entry.record.id} className={`rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
+                    <div key={entry.record.id} role="button" tabIndex={0} onClick={() => onSelectSaleForReceipt(entry.record)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelectSaleForReceipt(entry.record); }} className={`cursor-pointer rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
                       <div className="flex items-start justify-between gap-3"><div><p className={`text-[10px] font-bold uppercase ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{entry.record.paymentMethod === 'credit' ? 'Veresiye satış' : entry.record.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className={`text-sm font-bold ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{formatCurrency(entry.record.total)}</span></div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => startEditingSale(entry.record)} className="inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button><button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(entry.record.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-100/80 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"><Trash2 className="h-3 w-3" /> Fişi kaldır</button></div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); startEditingSale(entry.record); }} className="inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button><button type="button" onClick={(event) => { event.stopPropagation(); if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(entry.record.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-100/80 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"><Trash2 className="h-3 w-3" /> Fişi kaldır</button></div>
                     </div>
                   ) : (
                     <div key={entry.record.id} className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">Tahsilat</p><p className="text-xs font-bold text-slate-900 dark:text-white">{formatDate(entry.record.createdAt)}</p><p className="text-[11px] text-slate-500">{entry.record.notes || 'Ödeme alındı'}</p></div><span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">-{formatCurrency(entry.record.amount)}</span></div></div>

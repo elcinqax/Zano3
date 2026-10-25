@@ -264,6 +264,7 @@ export default function App() {
               }
               onUpdateSale={(id, updates) => sqliteStorage.updateSale(id, updates)}
               onDeleteSale={(id) => sqliteStorage.deleteSale(id)}
+              onSelectSaleForReceipt={setReceiptSale}
               isOpenAddModalExternal={openAddCustomerTrigger}
               onCloseAddModalExternal={() => setOpenAddCustomerTrigger(false)}
             />
