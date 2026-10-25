@@ -359,6 +359,13 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const downloadUrl = URL.createObjectURL(pdfBlob);
     if (preview) {
       const shareFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      const nativeShare = (window as Window & { AndroidShare?: { sharePdf: (pdf: string, name: string) => void } }).AndroidShare;
+      if (nativeShare) {
+        const reader = new FileReader();
+        reader.onload = () => nativeShare.sharePdf(String(reader.result).split(',')[1] ?? '', fileName);
+        reader.readAsDataURL(pdfBlob);
+        return;
+      }
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({
@@ -375,8 +382,16 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
         }
         return;
       }
-      URL.revokeObjectURL(downloadUrl);
-      window.alert('Bu tarayıcı dosya paylaşımını desteklemiyor. Lütfen Chrome veya Safari ile deneyin.');
+      const fallbackLink = document.createElement('a');
+      fallbackLink.href = downloadUrl;
+      fallbackLink.download = fileName;
+      fallbackLink.rel = 'noopener';
+      fallbackLink.style.display = 'none';
+      document.body.appendChild(fallbackLink);
+      fallbackLink.click();
+      fallbackLink.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
+      window.alert('Bu ortam dosya paylaşımını desteklemiyor. PDF indirildi; Dosyalar uygulamasından açabilirsiniz.');
       return;
     }
     const downloadLink = document.createElement('a');
