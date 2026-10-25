@@ -201,6 +201,7 @@ export const POSView: React.FC<POSViewProps> = ({
     onAddPayment(selectedCustomer.id, amount, collectionMethod, collectionNote.trim() || undefined);
     setCollectionAmount('');
     setCollectionNote('');
+    setSelectedCustomerId('');
   };
 
   const selectCustomer = (id: string) => {
