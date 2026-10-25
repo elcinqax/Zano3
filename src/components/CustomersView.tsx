@@ -281,28 +281,33 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.text(pdfSafeText('Açıklama'), 125, y);
     y += 8;
     events.forEach((event) => {
-      const lines = pdf.splitTextToSize(event.detail, 66);
-      if (y + Math.max(lines.length * 4, 8) > 280) { pdf.addPage(); y = 18; }
-    const rowHeight = Math.max(lines.length * 4, 8);
-    const rowColor = event.type.startsWith('Veresiye')
-      ? [254, 243, 199]
-      : event.type.startsWith('Nakit')
-        ? [219, 234, 254]
-        : [220, 252, 231];
-    pdf.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
-    pdf.roundedRect(14, y - 5, 182, rowHeight, 1.5, 1.5, 'F');
-    pdf.setFontSize(8);
-    pdf.setTextColor(31, 41, 55);
-    pdf.text(pdfSafeText(formatDate(event.date)), 16, y);
-    pdf.text(pdfSafeText(event.type), 43, y);
-    pdf.text(pdfSafeText(event.amount), 92, y);
-    pdf.text(pdfSafeText(lines.join(' ')), 125, y);
-    y += rowHeight;
-    pdf.setTextColor(23, 32, 51);
-    pdf.setDrawColor(0, 0, 0);
-      pdf.rect(14, y - rowHeight - 1, 182, rowHeight, 'D');
+      const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 24);
+      const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 44);
+      const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 29);
+      const detailLines = pdf.splitTextToSize(pdfSafeText(event.detail), 66);
+      const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, detailLines.length, 1);
+      const rowHeight = Math.max(10, lineCount * 4 + 5);
+      if (y + rowHeight > 280) { pdf.addPage(); y = 18; }
+      const rowTop = y - 5;
+      const rowColor = event.type.startsWith('Veresiye')
+        ? [254, 243, 199]
+        : event.type.startsWith('Nakit')
+          ? [219, 234, 254]
+          : [220, 252, 231];
+      pdf.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.25);
+      pdf.rect(14, rowTop, 182, rowHeight, 'FD');
+      pdf.setFontSize(8);
+      pdf.setTextColor(31, 41, 55);
+      const textY = rowTop + 5;
+      pdf.text(dateLines, 16, textY);
+      pdf.text(typeLines, 43, textY);
+      pdf.text(amountLines, 92, textY);
+      pdf.text(detailLines, 125, textY);
+      y += rowHeight;
     });
-    const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
+    const fileName = `${customer.name.replace(/[^a-z0-9ğ��şöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
     if (preview) {
