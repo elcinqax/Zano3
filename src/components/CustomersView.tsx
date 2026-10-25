@@ -15,6 +15,7 @@ import {
   X,
   CreditCard,
   Wallet,
+  ChevronDown,
 } from 'lucide-react';
 import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -261,7 +262,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisyə Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisy�� Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
       ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Ödəniş (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödəniş alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -490,16 +491,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
         </div>
       </div>
 
-      <button type="button" onClick={() => setCustomerListOpen(true)} className="flex w-full items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left shadow-sm transition-colors hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40">
-        <span><span className="block text-sm font-black text-emerald-800 dark:text-emerald-200">Müşteri Listesi</span><span className="mt-1 block text-[11px] text-emerald-700/80 dark:text-emerald-300/70">{filteredCustomers.length} müşteri görüntülemek için açın</span></span><span className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Listeyi Aç</span>
+      <button type="button" onClick={() => setCustomerListOpen((open) => !open)} aria-expanded={customerListOpen} className="flex w-full items-center justify-between border-b border-slate-200 px-1 py-3 text-left dark:border-slate-800">
+        <span><span className="block text-sm font-black text-slate-900 dark:text-slate-100">Müşteri Listesi</span><span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">{filteredCustomers.length} müşteri</span></span><span className="flex items-center gap-2 text-xs font-bold text-emerald-600"><span>{customerListOpen ? 'Kapat' : 'Aç'}</span><ChevronDown className={`h-4 w-4 transition-transform ${customerListOpen ? 'rotate-180' : ''}`} /></span>
       </button>
 
       {/* Customers List */}
-      {customerListOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm">
-      <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800"><div><p className="text-sm font-black text-slate-900 dark:text-white">Müşteri Listesi</p><p className="text-[11px] text-slate-500">{filteredCustomers.length} kayıt</p></div><button type="button" onClick={() => setCustomerListOpen(false)} className="rounded-lg p-2 text-slate-400" aria-label="Müşteri listesini kapat"><X className="h-5 w-5" /></button></div>
-      <div className="max-h-[calc(88vh-65px)] overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+      {customerListOpen ? (
+      <div className="mt-3 overflow-hidden border-b border-slate-200 pb-4 dark:border-slate-800">
+      <div className="overflow-hidden">
         <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -660,8 +659,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
         </div>
       </div>
       </div>
-      </div>
-      </div>}
+      ) : null}
 
       {/* Customer History Modal */}
       {historyCustomer && (
