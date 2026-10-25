@@ -511,16 +511,16 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
 
                 {/* Actions */}
                 <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
-                  {/* Collect Debt / Tahsilat Button */}
-                  {hasDebt && (
+                  {/* Collection / customer balance settlement */}
+                  {c.balance !== 0 && (
                     <button
                       type="button"
                       onClick={() => handleOpenPayment(c)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors"
-                      title="Tahsilat Al"
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors ${hasDebt ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                      title={hasDebt ? 'Tahsilat Al' : 'Müşteriye Ödeme Yap'}
                     >
                       <ArrowDownLeft className="w-3.5 h-3.5" />
-                      <span>Tahsilat Al</span>
+                      <span>{hasDebt ? 'Tahsilat Al' : 'Tahsilat Al'}</span>
                     </button>
                   )}
 

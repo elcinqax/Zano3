@@ -66,6 +66,7 @@ interface POSViewProps {
     notes?: string;
   }) => void;
   onQuickAddCustomer: (customerData: { name: string; phone?: string; address?: string }) => Customer;
+  onAddPayment?: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
   onOpenSalesHistory?: () => void;
   onOpenBackupSettings?: () => void;
   onSelectSaleForReceipt?: (sale: Sale) => void;
@@ -83,6 +84,7 @@ export const POSView: React.FC<POSViewProps> = ({
   sales = [],
   onCompleteSale,
   onQuickAddCustomer,
+  onAddPayment,
   onOpenSalesHistory,
   onOpenBackupSettings,
   onSelectSaleForReceipt,
@@ -181,6 +183,9 @@ export const POSView: React.FC<POSViewProps> = ({
   const [mixedCash, setMixedCash] = useState<string>('');
   const [applyExcessToAccount, setApplyExcessToAccount] = useState<boolean>(true);
   const [saleNotes, setSaleNotes] = useState<string>('');
+  const [collectionAmount, setCollectionAmount] = useState<string>('');
+  const [collectionMethod, setCollectionMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+  const [collectionNote, setCollectionNote] = useState<string>('');
 
   // Selected Customer details
   const selectedCustomer = useMemo(
@@ -189,6 +194,16 @@ export const POSView: React.FC<POSViewProps> = ({
   );
 
   // Özel fiyat sadece Genel Müşteri için geçerli; kayıtlı müşteri seçilince liste fiyatına dönülür
+  const submitCollection = () => {
+    if (!selectedCustomer || !onAddPayment) return;
+    const amount = Number(collectionAmount);
+    if (!Number.isFinite(amount) || amount === 0) return;
+    onAddPayment(selectedCustomer.id, amount, collectionMethod, collectionNote.trim() || undefined);
+    setCollectionAmount('');
+    setCollectionNote('');
+    setSelectedCustomerId('');
+  };
+
   const selectCustomer = (id: string) => {
     setSelectedCustomerId(id);
     if (id) {
@@ -616,6 +631,14 @@ export const POSView: React.FC<POSViewProps> = ({
                 ? `Alacak / Avans: ${formatCurrency(Math.abs(selectedCustomer.balance), settings.currency)}`
                 : 'Borçsuz'}
             </span>
+          </div>
+        )}
+        {selectedCustomer && selectedCustomer.balance > 0 && onAddPayment && (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+            <div className="mb-2 flex items-center justify-between"><div><p className="text-xs font-black text-amber-800 dark:text-amber-200">Tahsilat al</p><p className="text-[11px] text-amber-700 dark:text-amber-300">Mevcut borç: {formatCurrency(selectedCustomer.balance, settings.currency)}</p></div><Wallet className="h-4 w-4 text-amber-600" /></div>
+            <div className="grid grid-cols-[1fr_auto] gap-2"><input type="number" step="0.01" value={collectionAmount} onChange={(event) => setCollectionAmount(event.target.value)} placeholder="Tutar" aria-label="Tahsilat tutarı" className="h-10 rounded-lg border border-amber-200 bg-white px-3 text-sm dark:border-amber-800 dark:bg-slate-900" /><select value={collectionMethod} onChange={(event) => setCollectionMethod(event.target.value as 'cash' | 'card' | 'transfer')} aria-label="Tahsilat yöntemi" className="h-10 rounded-lg border border-amber-200 bg-white px-2 text-xs dark:border-amber-800 dark:bg-slate-900"><option value="cash">Nakit</option><option value="card">Kart</option><option value="transfer">Havale</option></select></div>
+            <input type="text" value={collectionNote} onChange={(event) => setCollectionNote(event.target.value)} placeholder="Not (isteğe bağlı)" className="mt-2 h-9 w-full rounded-lg border border-amber-200 bg-white px-3 text-xs dark:border-amber-800 dark:bg-slate-900" />
+            <button type="button" onClick={submitCollection} disabled={!collectionAmount || Number(collectionAmount) === 0} className="mt-2 h-10 w-full rounded-lg bg-amber-600 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Tahsilatı kaydet</button>
           </div>
         )}
       </div>
