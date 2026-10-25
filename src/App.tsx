@@ -350,6 +350,8 @@ export default function App() {
               settings={settings}
               onSelectSaleForReceipt={setReceiptSale}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
+              onUpdateSale={(id, updates) => sqliteStorage.updateSale(id, updates)}
+              onDeleteSale={(id) => sqliteStorage.deleteSale(id)}
               onBackToPOS={() => setActiveTab('pos')}
             />
           )}
