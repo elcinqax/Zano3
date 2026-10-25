@@ -250,26 +250,26 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     .replace(/[₼₺]/g, 'AZN');
 
   const handleExportCustomerPdf = (customer: Customer, preview = false) => {
-    const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Tüm dönem';
+    const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Bütün Dövr';
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye Satış' : sale.paymentMethod === 'cash' ? 'Nakit Satış' : 'Qarışık Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
-      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödeme alındı', quantity: '-' })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisyə Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Ödəniş (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödəniş alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
     let y = 18;
     pdf.setFontSize(18);
-    pdf.text(pdfSafeText(`${customer.name} - Müşteri Geçmişi`), 14, y);
+    pdf.text(pdfSafeText(`${customer.name} - Müştəri Tarixçəsi`), 14, y);
     y += 9;
     pdf.setFontSize(10);
-    pdf.text(pdfSafeText(`${monthLabel} | Bakiye: ${formatCurrency(customer.balance)} | Rapor tarihi: ${formatDate(new Date().toISOString())}`), 14, y);
+    pdf.text(pdfSafeText(`${monthLabel} | Qalıq: ${formatCurrency(customer.balance)} | Hesabat Tarixi: ${formatDate(new Date().toISOString())}`), 14, y);
     y += 6;
     const salesTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.total, 0);
     const paymentsTotal = customerPaymentsForReport.reduce((sum, payment) => sum + payment.amount, 0);
     pdf.setFontSize(9);
-    pdf.text(pdfSafeText(`Toplam Satış: ${formatCurrency(salesTotal)} | Toplam Tahsilat: ${formatCurrency(paymentsTotal)} | İşlem Sayısı: ${events.length}`), 14, y);
+    pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)} | Ümumi Ödəniş: ${formatCurrency(paymentsTotal)} | Əməliyyat Sayı: ${events.length}`), 14, y);
     y += 10;
     const tableLeft = 14;
     const tableRight = 196;
@@ -282,11 +282,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setLineWidth(0.35);
     columnX.slice(1, -1).forEach((x) => pdf.line(x, tableTop, x, tableTop + 8));
     pdf.setFontSize(9);
-    pdf.text(pdfSafeText('Tarih'), 16, y + 1);
-    pdf.text(pdfSafeText('İşlem'), 44, y + 1);
-    pdf.text(pdfSafeText('Tutar'), 80, y + 1);
-    pdf.text(pdfSafeText('Ürün / Açıklama'), 112, y + 1);
-    pdf.text(pdfSafeText('Adet'), 174, y + 1);
+    pdf.text(pdfSafeText('Tarix'), 16, y + 1);
+    pdf.text(pdfSafeText('Əməliyyat'), 44, y + 1);
+    pdf.text(pdfSafeText('Məbləğ'), 80, y + 1);
+    pdf.text(pdfSafeText('Məhsul / Açıqlama'), 112, y + 1);
+    pdf.text(pdfSafeText('Say'), 174, y + 1);
     y += 8;
     events.forEach((event) => {
       const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 20);
@@ -331,11 +331,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setLineWidth(0.8);
     pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 8, 'FD');
     pdf.setFontSize(10);
-    pdf.text(pdfSafeText('TOPLAM'), 17, y);
-    y += 9;
-    pdf.setFontSize(9);
-    pdf.text(pdfSafeText(`Toplam Satış: ${formatCurrency(salesTotal)}`), 17, y);
-    pdf.text(pdfSafeText(`Toplam Tahsilat: ${formatCurrency(paymentsTotal)}`), 105, y);
+pdf.text(pdfSafeText('ÜMUMİ'), 17, y);
+pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)}`), 17, y);
+pdf.text(pdfSafeText(`Ümumi Ödəniş: ${formatCurrency(paymentsTotal)}`), 105, y);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
     pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 8, 'D');
@@ -360,9 +358,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const handleSendWhatsAppReminder = (customer: Customer) => {
     if (!customer.phone) return;
-    const message = `Sayın ${customer.name},
-${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${formatCurrency(customer.balance)}'dir.
-Ödemenizi bekler, hayırlı işler dileriz.`;
+  const message = `Hörmətli ${customer.name},
+  ${settings.storeName} üzrə cari açıq hesab (nisyə) qalığınız ${formatCurrency(customer.balance)} təşkil edir.
+  Ödənişinizi gözləyir, sizə uğurlar arzulayırıq.`;
 
     const encoded = encodeURIComponent(message);
     const cleanPhone = customer.phone.replace(/\D/g, '');
