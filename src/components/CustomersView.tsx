@@ -372,12 +372,10 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
         }
         return;
       }
-      const mobileDownloadLink = document.createElement('a');
-      mobileDownloadLink.href = downloadUrl;
-      mobileDownloadLink.download = fileName;
-      mobileDownloadLink.rel = 'noopener';
-      mobileDownloadLink.click();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      // Without Web Share support, navigate to the blob URL without a download
+      // attribute so the browser's built-in PDF viewer can handle the file.
+      window.location.assign(downloadUrl);
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
       return;
     }
     const downloadLink = document.createElement('a');
