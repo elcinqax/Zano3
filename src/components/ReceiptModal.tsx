@@ -7,13 +7,17 @@ interface ReceiptModalProps {
   sale: Sale;
   settings: AppSettings;
   onClose: () => void;
+  onUpdateSale?: (updates: Partial<Pick<Sale, 'notes' | 'items' | 'subtotal' | 'discount' | 'taxAmount' | 'total' | 'profit'>>) => void;
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   sale,
   settings,
   onClose,
+  onUpdateSale,
 }) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedNotes, setEditedNotes] = React.useState(sale.notes || '');
   const paymentLabels: Record<string, string> = {
     cash: 'Nakit',
     mixed: 'Karışık Ödeme',
@@ -230,6 +234,14 @@ ${closingMessage}`;
             )}
           </div>
 
+          {isEditing ? (
+            <div className="pt-3 space-y-2">
+              <label className="text-[10px] font-bold text-slate-500">Fiş notunu düzenle</label>
+              <textarea value={editedNotes} onChange={(event) => setEditedNotes(event.target.value)} className="w-full min-h-16 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-xs" />
+              <button type="button" onClick={() => { onUpdateSale?.({ notes: editedNotes }); setIsEditing(false); }} className="w-full h-9 rounded-lg bg-emerald-600 text-white text-xs font-bold">Değişiklikleri kaydet</button>
+            </div>
+          ) : null}
+
           <div className="pt-4 text-center text-[10px] text-slate-400">
             <p className="font-semibold text-slate-600 dark:text-slate-300">{settings.storeName || 'Almalı Təndiri'}</p>
             <p className="mt-0.5">Mali değeri yoktur · Bilgi fişidir</p>
@@ -238,6 +250,7 @@ ${closingMessage}`;
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-900">
+          <button type="button" onClick={() => setIsEditing((open) => !open)} className="h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold">Düzenle</button>
           <button
             type="button"
             onClick={handleShareWhatsApp}

@@ -406,10 +406,12 @@ export const POSView: React.FC<POSViewProps> = ({
           changeAmount = excess;
         }
       } else {
-        paidAmount = given;
+        // Negative input means the customer receives money from the store; the
+        // sale amount plus that requested amount becomes customer debt.
+        paidAmount = Math.max(0, given);
         changeAmount = 0;
         const unpaid = Number((totalAmount - given).toFixed(2));
-        customerBalanceDelta = unpaid; // added to debt
+        customerBalanceDelta = unpaid;
       }
     } else if (paymentMethod === 'mixed') {
       cashPaid = parseFloat(mixedCash) || 0;
@@ -1306,14 +1308,14 @@ export const POSView: React.FC<POSViewProps> = ({
               {paymentMethod === 'cash' && (
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                    Alınan Nakit (₺)
+                    Alınan Nakit / Verilen Tutar (₺)
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    min="0"
-                    required
-                    value={cashGiven}
+                  min="-999999"
+                  required
+                  value={cashGiven}
                     onChange={(e) => setCashGiven(e.target.value)}
                     className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-base font-black tabular-nums text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
@@ -1329,7 +1331,7 @@ export const POSView: React.FC<POSViewProps> = ({
                       return (
                         <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-[11px] text-amber-700 dark:text-amber-300 flex items-center justify-between">
                           <span>Eksik Tutar: <strong>{formatCurrency(Math.abs(diff))}</strong></span>
-                          <span>Müşteri borcuna eklenecek</span>
+                          <span>{given < 0 ? 'Satış + verilen tutar borca eklenecek' : 'Müşteri borcuna eklenecek'}</span>
                         </div>
                       );
                     }

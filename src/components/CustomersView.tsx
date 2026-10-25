@@ -15,7 +15,7 @@ import {
   CreditCard,
   Wallet,
 } from 'lucide-react';
-import { Customer, Sale, CustomerPayment, AppSettings } from '../types';
+import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { exportCustomersToCSV } from '../utils/export-utils';
 import { jsPDF } from 'jspdf';
@@ -29,6 +29,8 @@ interface CustomersViewProps {
   onUpdateCustomer: (id: string, updates: Partial<Customer>) => void;
   onDeleteCustomer: (id: string) => void;
   onAddPayment: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
+  onUpdateSale: (id: string, updates: Partial<Sale>) => void;
+  onDeleteSale: (id: string) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
 }
@@ -42,20 +44,53 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   onUpdateCustomer,
   onDeleteCustomer,
   onAddPayment,
+  onUpdateSale,
+  onDeleteSale,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
 }) => {
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+  const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string | null>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [editingItems, setEditingItems] = useState<SaleItem[]>([]);
 
   const customerSales = historyCustomer
     ? sales.filter((sale) => sale.customerId === historyCustomer.id && sale.status === 'completed')
     : [];
 
+  const historyMonths = useMemo(() => {
+    if (!historyCustomer) return [] as string[];
+    return Array.from(new Set([
+      ...customerSales.map((sale) => sale.createdAt.slice(0, 7)),
+      ...payments.filter((payment) => payment.customerId === historyCustomer.id).map((payment) => payment.createdAt.slice(0, 7)),
+    ])).sort((a, b) => b.localeCompare(a));
+  }, [historyCustomer, customerSales, payments]);
+
+  const formatMonth = (month: string) => new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T12:00:00`));
+  const filteredHistorySales = selectedHistoryMonth ? customerSales.filter((sale) => sale.createdAt.slice(0, 7) === selectedHistoryMonth) : customerSales;
+  const filteredHistoryPayments = historyCustomer ? payments.filter((payment) => payment.customerId === historyCustomer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth)) : [];
+
+  const startEditingSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setEditingItems(sale.items.map((item) => ({ ...item })));
+  };
+
+  const saveEditedSale = () => {
+    if (!editingSale || editingItems.some((item) => item.quantity <= 0 || item.unitPrice < 0)) return;
+    const subtotal = editingItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const total = Math.max(0, subtotal - editingSale.discount + editingSale.taxAmount);
+    onUpdateSale(editingSale.id, {
+      items: editingItems.map((item) => ({ ...item, total: item.quantity * item.unitPrice })),
+      subtotal, total, profit: total - editingItems.reduce((sum, item) => sum + item.quantity * item.buyPrice, 0),
+    });
+    setEditingSale(null);
+  };
+
   const purchaseSummary = useMemo(() => {
     if (customerSales.length === 0) {
-      return { latestQuantity: 0, latestDate: null as string | null, latestProductNames: [] as string[], busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0 };
+      return { latestQuantity: 0, latestDate: null as string | null, latestProductNames: [] as string[], busiestDate: null as string | null, busiestQuantity: 0, lastThreeMonthsQuantity: 0, allProductTotals: [] as Array<[string, number]> };
     }
 
     const quantityForSale = (sale: Sale) => sale.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -63,9 +98,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const today = new Date();
     const threeMonthsAgo = new Date(today);
     threeMonthsAgo.setMonth(today.getMonth() - 3);
-    const lastThreeMonthsQuantity = customerSales
-      .filter((sale) => new Date(sale.createdAt) >= threeMonthsAgo)
-      .reduce((sum, sale) => sum + quantityForSale(sale), 0);
+    const recentSales = customerSales.filter((sale) => new Date(sale.createdAt) >= threeMonthsAgo);
+    const lastThreeMonthsQuantity = recentSales.reduce((sum, sale) => sum + quantityForSale(sale), 0);
+    const totalsByProduct = (sourceSales: Sale[]) => Object.entries(sourceSales.reduce<Record<string, number>>((totals, sale) => {
+      sale.items.forEach((item) => { totals[item.productName] = (totals[item.productName] || 0) + item.quantity; });
+      return totals;
+    }, {})).sort(([, a], [, b]) => b - a);
     const byDay = customerSales.reduce<Record<string, number>>((totals, sale) => {
       const day = new Date(sale.createdAt).toISOString().slice(0, 10);
       totals[day] = (totals[day] || 0) + quantityForSale(sale);
@@ -80,6 +118,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       busiestDate,
       busiestQuantity,
       lastThreeMonthsQuantity,
+      allProductTotals: totalsByProduct(customerSales),
     };
   }, [customerSales]);
 
@@ -191,7 +230,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const handleConfirmPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentCustomer || paymentAmount <= 0) return;
+    if (!paymentCustomer || paymentAmount === 0) return;
     onAddPayment(paymentCustomer.id, paymentAmount, paymentMethod, paymentNotes);
     setPaymentCustomer(null);
   };
@@ -565,29 +604,51 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
                   <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
                   <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
-                  <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
-                </div>
+  <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
+  {purchaseSummary.allProductTotals.length > 0 && (
+    <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Tüm dönem toplamı</p>
+      <div className="space-y-1">{purchaseSummary.allProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet</span></p>)}</div>
+    </div>
+  )}
+  </div>
               </div>
               <button type="button" onClick={() => setHistoryCustomer(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Geçmişi kapat">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[65vh] space-y-2">
-              {customerSales.length === 0 && payments.filter((payment) => payment.customerId === historyCustomer.id).length === 0 ? (
-                <div className="py-10 text-center text-xs text-slate-400">Bu müşteriye ait işlem geçmişi bulunamadı.</div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                <button type="button" onClick={() => setSelectedHistoryMonth(null)} className={`shrink-0 rounded-lg px-3 py-2 text-[10px] font-bold ${selectedHistoryMonth === null ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>Tümü</button>
+                {historyMonths.map((month) => <button key={month} type="button" onClick={() => setSelectedHistoryMonth(month)} className={`shrink-0 rounded-lg px-3 py-2 text-[10px] font-bold capitalize ${selectedHistoryMonth === month ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{formatMonth(month)}</button>)}
+              </div>
+              {filteredHistorySales.length === 0 && filteredHistoryPayments.length === 0 ? (
+                <div className="py-10 text-center text-xs text-slate-400">Bu ay için işlem geçmişi bulunamadı.</div>
               ) : (
-                [...customerSales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...payments.filter((payment) => payment.customerId === historyCustomer.id).map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
+                [...filteredHistorySales.map((sale) => ({ type: 'sale' as const, date: sale.createdAt, record: sale })), ...filteredHistoryPayments.map((payment) => ({ type: 'payment' as const, date: payment.createdAt, record: payment }))]
                   .sort((a, b) => +new Date(b.date) - +new Date(a.date))
                   .map((entry) => entry.type === 'sale' ? (
                     <div key={entry.record.id} className={`rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
                       <div className="flex items-start justify-between gap-3"><div><p className={`text-[10px] font-bold uppercase ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{entry.record.paymentMethod === 'credit' ? 'Veresiye satış' : entry.record.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className={`text-sm font-bold ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{formatCurrency(entry.record.total)}</span></div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity}`).join(', ')}</p>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => startEditingSale(entry.record)} className="inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button><button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(entry.record.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-100/80 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"><Trash2 className="h-3 w-3" /> Fişi kaldır</button></div>
                     </div>
                   ) : (
                     <div key={entry.record.id} className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">Tahsilat</p><p className="text-xs font-bold text-slate-900 dark:text-white">{formatDate(entry.record.createdAt)}</p><p className="text-[11px] text-slate-500">{entry.record.notes || 'Ödeme alındı'}</p></div><span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">-{formatCurrency(entry.record.amount)}</span></div></div>
                   ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {editingSale && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between"><div><h3 className="font-bold text-slate-900 dark:text-white">Eski fişi düzenle</h3><p className="text-[11px] text-slate-500">Fiş #{editingSale.invoiceNo}</p></div><button type="button" onClick={() => setEditingSale(null)} className="rounded-lg p-2 text-slate-400"><X className="h-4 w-4" /></button></div>
+            <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+              {editingItems.map((item, index) => <div key={item.id} className="grid grid-cols-[1fr_72px_88px] items-center gap-2 rounded-xl bg-slate-50 p-2 dark:bg-slate-800"><span className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">{item.productName}</span><input aria-label={`${item.productName} miktar`} type="number" min="0.01" step="0.01" value={item.quantity} onChange={(event) => setEditingItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, quantity: Number(event.target.value) } : current))} className="h-9 rounded-lg border bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-900" /><input aria-label={`${item.productName} fiyat`} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(event) => setEditingItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, unitPrice: Number(event.target.value) } : current))} className="h-9 rounded-lg border bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-900" /></div>)}
+            </div>
+            <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setEditingSale(null)} className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500">Vazgeç</button><button type="button" onClick={saveEditedSale} className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white">Kaydet</button></div>
           </div>
         </div>
       )}
@@ -617,22 +678,26 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
             <form onSubmit={handleConfirmPayment} className="space-y-3.5">
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Tahsil Edilen Tutar (₺) *
+                  Tahsil Edilen / Verilen Tutar (₺) *
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  min="0.01"
+                  min="-999999"
                   required
                   value={paymentAmount || ''}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))}
                   className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400"
                 />
-                {paymentAmount > paymentCustomer.balance && (
+                {paymentAmount < 0 ? (
+                  <p className="mt-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    Verilen tutar: satış kaydı olarak müşterinin borcuna {formatCurrency(Math.abs(paymentAmount))} eklenecek.
+                  </p>
+                ) : paymentAmount > paymentCustomer.balance ? (
                   <p className="mt-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                     Fazla ödeme: {formatCurrency(paymentAmount - paymentCustomer.balance)} müşterinin hesabına alacak olarak eklenecek.
                   </p>
-                )}
+                ) : null}
               </div>
 
               <div>

@@ -17,6 +17,8 @@ import {
   Package,
   Users,
   TrendingUp,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { Sale, Customer, Product, AppSettings } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -31,6 +33,8 @@ interface SalesHistoryViewProps {
   settings: AppSettings;
   onSelectSaleForReceipt: (sale: Sale) => void;
   onCancelSale: (saleId: string) => void;
+  onUpdateSale: (id: string, updates: Partial<Sale>) => void;
+  onDeleteSale: (id: string) => void;
   onBackToPOS?: () => void;
 }
 
@@ -41,12 +45,34 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   settings,
   onSelectSaleForReceipt,
   onCancelSale,
+  onUpdateSale,
+  onDeleteSale,
   onBackToPOS,
 }) => {
   const [search, setSearch] = useState('');
   const [methodFilter, setMethodFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
   const [viewMode, setViewMode] = useState<'invoices' | 'customers'>('invoices');
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [editingItems, setEditingItems] = useState<Sale['items']>([]);
+
+  const startEditingSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setEditingItems(sale.items.map((item) => ({ ...item })));
+  };
+
+  const saveEditedSale = () => {
+    if (!editingSale || editingItems.some((item) => item.quantity <= 0 || item.unitPrice < 0)) return;
+    const subtotal = editingItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const total = Math.max(0, subtotal - editingSale.discount + editingSale.taxAmount);
+    onUpdateSale(editingSale.id, {
+      items: editingItems.map((item) => ({ ...item, total: item.quantity * item.unitPrice })),
+      subtotal,
+      total,
+      profit: total - editingItems.reduce((sum, item) => sum + item.quantity * item.buyPrice, 0),
+    });
+    setEditingSale(null);
+  };
 
   // Tarih Filtresi: Bugün, Dün, Son 7 Gün, Son 30 Gün, Son 1 Yıl, Özel Aralık, Tümü
   const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
@@ -504,6 +530,8 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => startEditingSale(sale)} className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi düzenle"><Edit2 className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(sale.id); }} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi kaldır"><Trash2 className="w-4 h-4" /></button>
                       <button
                         type="button"
                         onClick={() => onSelectSaleForReceipt(sale)}
@@ -616,6 +644,18 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {editingSale && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between"><div><h3 className="font-bold text-slate-900 dark:text-white">Eski fişi düzenle</h3><p className="text-[11px] text-slate-500">Fiş #{editingSale.invoiceNo}</p></div><button type="button" onClick={() => setEditingSale(null)} className="rounded-lg p-2 text-slate-400"><span className="sr-only">Kapat</span>×</button></div>
+            <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+              {editingItems.map((item, index) => <div key={item.id} className="grid grid-cols-[1fr_72px_88px] items-center gap-2 rounded-xl bg-slate-50 p-2 dark:bg-slate-800"><span className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">{item.productName}</span><input aria-label={`${item.productName} miktar`} type="number" min="0.01" step="0.01" value={item.quantity} onChange={(event) => setEditingItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, quantity: Number(event.target.value) } : current))} className="h-9 rounded-lg border bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-900" /><input aria-label={`${item.productName} fiyat`} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(event) => setEditingItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, unitPrice: Number(event.target.value) } : current))} className="h-9 rounded-lg border bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-900" /></div>)}
+            </div>
+            <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setEditingSale(null)} className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500">Vazgeç</button><button type="button" onClick={saveEditedSale} className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white">Kaydet</button></div>
+          </div>
         </div>
       )}
     </div>

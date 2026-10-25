@@ -660,6 +660,24 @@ class SQLiteStorageManager {
     return [...this.memoryCache.sales];
   }
 
+  public deleteSale(id: string): boolean {
+    const previousLength = this.memoryCache.sales.length;
+    this.memoryCache.sales = this.memoryCache.sales.filter((sale) => sale.id !== id);
+    if (this.memoryCache.sales.length === previousLength) return false;
+    this.persistAll();
+    this.notify();
+    return true;
+  }
+
+  public updateSale(id: string, updates: Partial<Pick<Sale, 'notes' | 'items' | 'subtotal' | 'discount' | 'taxAmount' | 'total' | 'profit'>>): Sale | null {
+    const index = this.memoryCache.sales.findIndex((sale) => sale.id === id);
+    if (index === -1) return null;
+    this.memoryCache.sales[index] = { ...this.memoryCache.sales[index], ...updates, notes: updates.notes === undefined ? this.memoryCache.sales[index].notes : updates.notes.trim() || undefined };
+    this.persistAll();
+    this.notify();
+    return this.memoryCache.sales[index];
+  }
+
   public createSale(
     saleData: Omit<Sale, 'id' | 'invoiceNo' | 'status' | 'createdAt' | 'items'> & {
       items: (Omit<SaleItem, 'id' | 'saleId'> & { id?: string; saleId?: string })[];

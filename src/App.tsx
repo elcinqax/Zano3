@@ -261,6 +261,8 @@ export default function App() {
               onAddPayment={(customerId, amount, paymentMethod, notes) =>
                 sqliteStorage.addCustomerPayment(customerId, amount, paymentMethod, notes)
               }
+              onUpdateSale={(id, updates) => sqliteStorage.updateSale(id, updates)}
+              onDeleteSale={(id) => sqliteStorage.deleteSale(id)}
               isOpenAddModalExternal={openAddCustomerTrigger}
               onCloseAddModalExternal={() => setOpenAddCustomerTrigger(false)}
             />
@@ -348,6 +350,8 @@ export default function App() {
               settings={settings}
               onSelectSaleForReceipt={setReceiptSale}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
+              onUpdateSale={(id, updates) => sqliteStorage.updateSale(id, updates)}
+              onDeleteSale={(id) => sqliteStorage.deleteSale(id)}
               onBackToPOS={() => setActiveTab('pos')}
             />
           )}
@@ -374,13 +378,17 @@ export default function App() {
         />
 
         {/* Modals */}
-        {receiptSale && (
-          <ReceiptModal
-            sale={receiptSale}
-            settings={settings}
-            onClose={() => setReceiptSale(null)}
-          />
-        )}
+  {receiptSale && (
+    <ReceiptModal
+      sale={receiptSale}
+      settings={settings}
+      onClose={() => setReceiptSale(null)}
+      onUpdateSale={(updates) => {
+        const updated = sqliteStorage.updateSale(receiptSale.id, updates);
+        if (updated) setReceiptSale(updated);
+      }}
+    />
+  )}
 
         {isNotificationsOpen && (
           <NotificationModal
