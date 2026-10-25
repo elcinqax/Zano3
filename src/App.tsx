@@ -241,7 +241,6 @@ export default function App() {
               }}
               onAddPayment={(customerId, amount, paymentMethod, notes) => sqliteStorage.addCustomerPayment(customerId, amount, paymentMethod, notes)}
               onOpenSalesHistory={() => setActiveTab('sales')}
-              onOpenBackupSettings={() => setActiveTab('settings')}
               productToAdd={productToAdd}
               onProductAddedToCart={() => setProductToAdd(null)}
               onSelectSaleForReceipt={setReceiptSale}
@@ -368,6 +367,7 @@ export default function App() {
               onRestoreBackup={(dump) => sqliteStorage.importDump(dump)}
               onResetToSampleData={() => sqliteStorage.resetToSampleData()}
               onResetAllReports={() => sqliteStorage.resetAllReports()}
+              onNavigateTab={setActiveTab}
             />
           )}
         </main>

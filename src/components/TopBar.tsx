@@ -125,28 +125,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => onTabChange('expenses')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              activeTab === 'expenses'
-                ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
-            }`}
-          >
-            5. Giderler
-          </button>
-          <button
-            type="button"
-            onClick={() => onTabChange('reports')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              activeTab === 'reports' || activeTab === 'dashboard'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            6. Raporlar
-          </button>
-          <button
-            type="button"
             onClick={() => onTabChange('settings')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'settings'
@@ -154,13 +132,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Yedek & Ayarlar
+            Ayarlar
           </button>
         </nav>
 
         {/* Zone 3: Primary Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Yedek & Ayarlar Button - Always Visible on Both Mobile & Desktop */}
+          {/* Ayarlar Button - Always Visible on Both Mobile & Desktop */}
           <button
             type="button"
             onClick={() => onTabChange('settings')}
@@ -173,7 +151,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             aria-label="Yedekleme ve Ayarlar"
           >
             <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110" />
-            <span className="inline font-black">Yedek</span>
+            <span className="inline font-black">Ayarlar</span>
           </button>
 
           {/* Desktop Frame View Toggle */}

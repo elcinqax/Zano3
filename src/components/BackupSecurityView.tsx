@@ -54,6 +54,7 @@ interface BackupSecurityViewProps {
   onRestoreBackup: (dump: DatabaseDump) => void;
   onResetToSampleData: () => void;
   onResetAllReports?: () => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
@@ -65,6 +66,7 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   onRestoreBackup,
   onResetToSampleData,
   onResetAllReports,
+  onNavigateTab,
 }) => {
   // Store profile
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -281,10 +283,22 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
             <Cloud className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             <span>Yedekleme & Sistem Ayarları</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
-          </p>
-        </div>
+  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+  Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
+  </p>
+  </div>
+  {onNavigateTab && (
+    <div className="mt-5 grid grid-cols-2 gap-3">
+      <button type="button" onClick={() => onNavigateTab('expenses')} className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40">
+        <span className="block text-sm font-black text-rose-700 dark:text-rose-300">Giderler</span>
+        <span className="mt-1 block text-[11px] text-rose-600/80 dark:text-rose-300/70">Gider kayıtları ve gider raporları</span>
+      </button>
+      <button type="button" onClick={() => onNavigateTab('reports')} className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/20 dark:hover:bg-sky-950/40">
+        <span className="block text-sm font-black text-sky-700 dark:text-sky-300">Raporlar</span>
+        <span className="mt-1 block text-[11px] text-sky-600/80 dark:text-sky-300/70">Satış ve işletme raporları</span>
+      </button>
+    </div>
+  )}
 
         {/* Big One-Click Backup Button */}
         <button
