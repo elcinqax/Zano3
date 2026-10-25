@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { AppLanguage, translateText } from '../i18n';
 import { exportCustomersToCSV } from '../utils/export-utils';
 import { jsPDF } from 'jspdf';
 
@@ -35,6 +36,7 @@ interface CustomersViewProps {
   onSelectSaleForReceipt: (sale: Sale) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
+  language: AppLanguage;
 }
 
 export const CustomersView: React.FC<CustomersViewProps> = ({
@@ -51,6 +53,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   onSelectSaleForReceipt,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
+  language,
 }) => {
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
@@ -244,7 +247,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   };
 
   const pdfTitleCase = (value: string) => value.replace(/(^|[\s/()_-])[a-zçğıöşü]/gi, (match) => match.toUpperCase());
-  const pdfSafeText = (value: string) => pdfTitleCase(value);
+  const pdfSafeText = (value: string) => pdfTitleCase(translateText(value, language));
   const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     let binary = '';
     const bytes = new Uint8Array(buffer);

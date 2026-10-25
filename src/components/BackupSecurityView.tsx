@@ -43,6 +43,7 @@ import {
 } from '../utils/export-utils';
 import { formatDateTime } from '../utils/formatters';
 import type { ThemeMode } from '../App';
+import { AppLanguage, LANGUAGE_OPTIONS } from '../i18n';
 
 const normalizeWhatsappNumber = (raw: string) => raw.replace(/\D/g, '').replace(/^00/, '');
 
@@ -58,6 +59,8 @@ interface BackupSecurityViewProps {
   onNavigateTab?: (tab: string) => void;
   themeMode: ThemeMode;
   onSelectTheme: (theme: ThemeMode) => void;
+  language: AppLanguage;
+  onSelectLanguage: (language: AppLanguage) => void;
 }
 
 export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
@@ -72,6 +75,8 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   onNavigateTab,
   themeMode,
   onSelectTheme,
+  language,
+  onSelectLanguage,
 }) => {
   // Store profile
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -88,6 +93,7 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(settings.isBiometricEnabled);
   const [showSqlViewer, setShowSqlViewer] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Backup Settings State
@@ -293,6 +299,14 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
   </p>
   </div>
+  <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+    <button type="button" onClick={() => setShowLanguages((open) => !open)} className="flex w-full items-center justify-between text-left">
+      <span><span className="block text-sm font-black text-indigo-800 dark:text-indigo-200">Diller</span><span className="mt-1 block text-[11px] text-indigo-700/80 dark:text-indigo-300/70">Program dilini seçin</span></span>
+      <span className="text-xs font-bold text-indigo-600">{showLanguages ? 'Kapat' : 'Aç'}</span>
+    </button>
+    {showLanguages && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{LANGUAGE_OPTIONS.map((option) => <button key={option.id} type="button" onClick={() => onSelectLanguage(option.id)} className={`rounded-xl border px-3 py-2 text-left text-xs font-bold ${language === option.id ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 dark:border-indigo-800 dark:bg-slate-800 dark:text-indigo-200'}`}><span className="block">{option.nativeLabel}</span><span className="mt-0.5 block text-[10px] font-medium opacity-75">{option.label}</span></button>)}</div>}
+  </div>
+
   <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60">
     <button type="button" onClick={() => setShowThemes((open) => !open)} className="flex w-full items-center justify-between text-left">
       <span><span className="block text-sm font-black text-slate-800 dark:text-slate-100">Temalar</span><span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">Görünüm temasını buradan seçin</span></span>
