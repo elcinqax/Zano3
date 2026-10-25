@@ -359,6 +359,13 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const downloadUrl = URL.createObjectURL(pdfBlob);
     if (preview) {
       const shareFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      const nativeShare = (window as Window & { AndroidShare?: { sharePdf: (pdf: string, name: string) => void } }).AndroidShare;
+      if (nativeShare) {
+        const reader = new FileReader();
+        reader.onload = () => nativeShare.sharePdf(String(reader.result).split(',')[1] ?? '', fileName);
+        reader.readAsDataURL(pdfBlob);
+        return;
+      }
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({
