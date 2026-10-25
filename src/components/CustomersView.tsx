@@ -7,7 +7,6 @@ import {
   MessageSquare,
   DollarSign,
   Download,
-  Eye,
   Clock,
   ArrowDownLeft,
   Edit2,
@@ -16,6 +15,7 @@ import {
   CreditCard,
   Wallet,
   ChevronDown,
+  Share2,
 } from 'lucide-react';
 import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -692,8 +692,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                   <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700" title="PDF indir">
                     <Download className="w-3 h-3" /> PDF indir
                   </button>
-                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer, true)} className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-sky-700" title="PDF görüntüle ve paylaş">
-                    <Eye className="w-3 h-3" /> PDF görüntüle
+                  <button type="button" onClick={() => handleExportCustomerPdf(historyCustomer, true)} className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm hover:bg-sky-700" title="PDF paylaş">
+                    <Share2 className="w-3 h-3" /> PDF paylaş
                   </button>
                 </div>
                 <div className="mt-2 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
