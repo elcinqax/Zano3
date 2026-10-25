@@ -230,7 +230,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const handleConfirmPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentCustomer || paymentAmount <= 0) return;
+    if (!paymentCustomer || paymentAmount === 0) return;
     onAddPayment(paymentCustomer.id, paymentAmount, paymentMethod, paymentNotes);
     setPaymentCustomer(null);
   };
@@ -678,22 +678,26 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
             <form onSubmit={handleConfirmPayment} className="space-y-3.5">
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Tahsil Edilen Tutar (₺) *
+                  Tahsil Edilen / Verilen Tutar (₺) *
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  min="0.01"
+                  min="-999999"
                   required
                   value={paymentAmount || ''}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))}
                   className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400"
                 />
-                {paymentAmount > paymentCustomer.balance && (
+                {paymentAmount < 0 ? (
+                  <p className="mt-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    Verilen tutar: satış kaydı olarak müşterinin borcuna {formatCurrency(Math.abs(paymentAmount))} eklenecek.
+                  </p>
+                ) : paymentAmount > paymentCustomer.balance ? (
                   <p className="mt-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                     Fazla ödeme: {formatCurrency(paymentAmount - paymentCustomer.balance)} müşterinin hesabına alacak olarak eklenecek.
                   </p>
-                )}
+                ) : null}
               </div>
 
               <div>
