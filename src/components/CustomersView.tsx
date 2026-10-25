@@ -605,7 +605,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                   <p>Son aldığı: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.latestProductNames.length > 0 ? purchaseSummary.latestProductNames.join(', ') : 'Ürün yok'}</span> · {purchaseSummary.latestQuantity} adet{purchaseSummary.latestDate && <> · {formatDate(purchaseSummary.latestDate)}</>}</p>
                   <p>En fazla aldığı gün: <span className="font-bold text-slate-900 dark:text-white">{purchaseSummary.busiestQuantity} ürün</span>{purchaseSummary.busiestDate && <> · {formatDate(purchaseSummary.busiestDate)}</>}</p>
   <p>Son 3 ayda aldığı: <span className="font-bold text-emerald-600 dark:text-emerald-400">{purchaseSummary.lastThreeMonthsQuantity} ürün</span></p>
-  {purchaseSummary.recentProductTotals.length > 0 && (
+  {purchaseSummary.allProductTotals.length > 0 && (
     <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
       <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">Tüm dönem toplamı</p>
       <div className="space-y-1">{purchaseSummary.allProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet</span></p>)}</div>
