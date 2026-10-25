@@ -9,13 +9,15 @@ export const LANGUAGE_OPTIONS: Array<{ id: AppLanguage; label: string; nativeLab
 
 const dictionary: Record<AppLanguage, Record<string, string>> = {
   tr: {},
+  // Common labels are kept in one place so switching from one translated language to another can always resolve back to Turkish.
+
   az: {
     'Satış': 'Satış', 'Müşteriler': 'Müştərilər', 'Ürünler': 'Məhsullar', 'Stok': 'Anbar', 'Ayarlar': 'Parametrlər',
     'Giderler': 'Xərclər', 'Raporlar': 'Hesabatlar', 'Yedekleme İşlemleri': 'Yedəkləmə Əməliyyatları', 'Temalar': 'Mövzular',
     'Diller': 'Dillər', 'Dil seçin': 'Dil seçin', 'Program dilini seçin': 'Proqram dilini seçin', 'Aç': 'Aç', 'Kapat': 'Bağla', 'Kaydet': 'Yadda saxla', 'Görünüm temasını buradan seçin': 'Görünüş mövzusunu buradan seçin',
     'Toplam Satış': 'Ümumi Satış', 'Toplam Tahsilat': 'Ümumi Ödəniş', 'Fişi görüntüle': 'Qəbzə bax',
     'Tahsilat Al': 'Ödəniş Al', 'Müşteri Geçmişi': 'Müştəri Tarixçəsi', 'Ürün / Açıklama': 'Məhsul / Açıqlama',
-    'Tutar': 'Məbləğ', 'Adet': 'Say', 'Tarih': 'Tarix', 'İşlem': 'Əməliyyat',
+    'Tutar': 'Məbləğ', 'Adet': 'Say', 'Tarih': 'Tarix', 'İşlem': 'Əməliyyat', 'Yeni Müşteri': 'Yeni Müştəri', 'Müşteri Ara': 'Müştəri Axtar', 'Müşteri Geçmişi': 'Müştəri Tarixçəsi', 'Düzenle': 'Redaktə Et', 'Sil': 'Sil', 'İptal': 'Ləğv Et', 'Telefon': 'Telefon', 'Adres': 'Ünvan', 'Not': 'Qeyd', 'Ödeme Yöntemi': 'Ödəniş Üsulu', 'Nakit': 'Nağd', 'Kart': 'Kart', 'Havale': 'Bank Köçürməsi', 'Tutar (₺)': 'Məbləğ', 'Tahsilatı kaydet': 'Ödənişi Yadda Saxla', 'PDF indir': 'PDF Yüklə', 'PDF görüntüle': 'PDF-ə Bax', 'Toplam': 'Ümumi', 'Genel Müşteri': 'Ümumi Müştəri', 'Ürün adı': 'Məhsul Adı', 'Açıklama': 'Açıqlama',
   },
   en: {
     'Satış': 'Sales', 'Müşteriler': 'Customers', 'Ürünler': 'Products', 'Stok': 'Stock', 'Ayarlar': 'Settings',
@@ -23,7 +25,7 @@ const dictionary: Record<AppLanguage, Record<string, string>> = {
     'Diller': 'Languages', 'Dil seçin': 'Choose language', 'Program dilini seçin': 'Choose the program language', 'Aç': 'Open', 'Kapat': 'Close', 'Kaydet': 'Save', 'Görünüm temasını buradan seçin': 'Choose the appearance theme here',
     'Toplam Satış': 'Total Sales', 'Toplam Tahsilat': 'Total Collections', 'Fişi görüntüle': 'View Receipt',
     'Tahsilat Al': 'Collect Payment', 'Müşteri Geçmişi': 'Customer History', 'Ürün / Açıklama': 'Product / Description',
-    'Tutar': 'Amount', 'Adet': 'Quantity', 'Tarih': 'Date', 'İşlem': 'Transaction',
+    'Tutar': 'Amount', 'Adet': 'Quantity', 'Tarih': 'Date', 'İşlem': 'Transaction', 'Yeni Müşteri': 'New Customer', 'Müşteri Ara': 'Search customers', 'Düzenle': 'Edit', 'Sil': 'Delete', 'İptal': 'Cancel', 'Telefon': 'Phone', 'Adres': 'Address', 'Not': 'Note', 'Ödeme Yöntemi': 'Payment Method', 'Nakit': 'Cash', 'Kart': 'Card', 'Havale': 'Bank Transfer', 'Tahsilatı kaydet': 'Save Payment', 'PDF indir': 'Download PDF', 'PDF görüntüle': 'View PDF', 'Toplam': 'Total', 'Genel Müşteri': 'General Customer', 'Ürün adı': 'Product Name', 'Açıklama': 'Description',
   },
   ru: {
     'Satış': 'Продажи', 'Müşteriler': 'Клиенты', 'Ürünler': 'Товары', 'Stok': 'Склад', 'Ayarlar': 'Настройки',
@@ -31,12 +33,21 @@ const dictionary: Record<AppLanguage, Record<string, string>> = {
     'Diller': 'Языки', 'Dil seçin': 'Выберите язык', 'Program dilini seçin': 'Выберите язык программы', 'Aç': 'Открыть', 'Kapat': 'Закрыть', 'Kaydet': 'Сохранить', 'Görünüm temasını buradan seçin': 'Выберите тему оформления',
     'Toplam Satış': 'Итого продаж', 'Toplam Tahsilat': 'Итого оплат', 'Fişi görüntüle': 'Просмотр чека',
     'Tahsilat Al': 'Принять оплату', 'Müşteri Geçmişi': 'История клиента', 'Ürün / Açıklama': 'Товар / Описание',
-    'Tutar': 'Сумма', 'Adet': 'Количество', 'Tarih': 'Дата', 'İşlem': 'Операция',
+    'Tutar': 'Сумма', 'Adet': 'Количество', 'Tarih': 'Дата', 'İşlem': 'Операция', 'Yeni Müşteri': 'Новый клиент', 'Müşteri Ara': 'Поиск клиентов', 'Düzenle': 'Изменить', 'Sil': 'Удалить', 'İptal': 'Отмена', 'Telefon': 'Телефон', 'Adres': 'Адрес', 'Not': 'Примечание', 'Ödeme Yöntemi': 'Способ оплаты', 'Nakit': 'Наличные', 'Kart': 'Карта', 'Havale': 'Банковский перевод', 'Tahsilatı kaydet': 'Сохранить оплату', 'PDF indir': 'Скачать PDF', 'PDF görüntüle': 'Просмотр PDF', 'Toplam': 'Итого', 'Genel Müşteri': 'Общий клиент', 'Ürün adı': 'Название товара', 'Açıklama': 'Описание',
   },
 };
 
+function resolveSourceText(value: string): string {
+  for (const translations of Object.values(dictionary)) {
+    const source = Object.entries(translations).find(([, translated]) => translated === value)?.[0];
+    if (source) return source;
+  }
+  return value;
+}
+
 export function translateText(value: string, language: AppLanguage): string {
-  return dictionary[language][value] || value;
+  const source = resolveSourceText(value);
+  return dictionary[language][source] || source;
 }
 
 export function translateDocument(language: AppLanguage): void {
@@ -48,8 +59,15 @@ export function translateDocument(language: AppLanguage): void {
   while ((node = walker.nextNode())) nodes.push(node as Text);
   nodes.forEach((textNode) => {
     const value = textNode.nodeValue?.trim();
-    if (!value || value.length > 80) return;
+    if (!value || value.length > 120) return;
     const translated = translateText(value, language);
     if (translated !== value) textNode.nodeValue = textNode.nodeValue!.replace(value, translated);
+  });
+
+  document.querySelectorAll<HTMLElement>('[placeholder], [title], [aria-label]').forEach((element) => {
+    for (const attribute of ['placeholder', 'title', 'aria-label']) {
+      const value = element.getAttribute(attribute);
+      if (value) element.setAttribute(attribute, translateText(value, language));
+    }
   });
 }
