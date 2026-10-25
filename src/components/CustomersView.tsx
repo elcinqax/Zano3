@@ -282,6 +282,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     y += 6;
     const salesTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.total, 0);
     const paymentsTotal = customerPaymentsForReport.reduce((sum, payment) => sum + payment.amount, 0);
+    const quantityTotal = customerSalesForReport.reduce((sum, sale) => sum + sale.items.reduce((itemTotal, item) => itemTotal + item.quantity, 0), 0);
     pdf.setFontSize(9);
     pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)} | Ümumi Ödəniş: ${formatCurrency(paymentsTotal)} | Əməliyyat Sayı: ${events.length}`), 14, y);
     y += 10;
@@ -343,14 +344,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setFillColor(241, 245, 249);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
-    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 18, 'FD');
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 24, 'FD');
     pdf.setFontSize(9);
     pdf.text(pdfSafeText('ÜMUMİ'), 17, y);
     pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)}`), 17, y + 7);
     pdf.text(pdfSafeText(`Ümumi Ödəniş: ${formatCurrency(paymentsTotal)}`), 105, y + 7);
+    pdf.text(pdfSafeText(`Toplam Adet: ${quantityTotal}`), 17, y + 15);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
-    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 18, 'D');
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 24, 'D');
     pdf.line(104, y - 5, 104, y + 13);
     const fileName = `${customer.name.replace(/[^a-z0-9ğ��şöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
