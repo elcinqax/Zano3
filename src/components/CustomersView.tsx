@@ -258,6 +258,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   };
 
   const handleExportCustomerPdf = async (customer: Customer, preview = false) => {
+    const previewWindow = preview && !('share' in navigator) ? window.open('', '_blank') : null;
     const monthLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Bütün Dövr';
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
@@ -358,7 +359,23 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
     if (preview) {
-      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      const shareFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      if ('share' in navigator && navigator.share && (!navigator.canShare || navigator.canShare({ files: [shareFile] }))) {
+        try {
+          await navigator.share({ title: `${customer.name} - Müşteri Geçmişi`, text: 'PDF raporunu aç veya paylaş', files: [shareFile] });
+        } catch (error) {
+          if (error instanceof DOMException && error.name !== 'AbortError') window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+        } finally {
+          URL.revokeObjectURL(downloadUrl);
+        }
+        return;
+      }
+      if (previewWindow) {
+        previewWindow.location.href = downloadUrl;
+        previewWindow.focus();
+      } else {
+        window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
     const downloadLink = document.createElement('a');
