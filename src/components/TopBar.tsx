@@ -123,22 +123,25 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             4. Stok
           </button>
-          <button
-            type="button"
-            onClick={() => onTabChange('settings')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'settings'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            Ayarlar
-          </button>
+          {activeTab !== 'pos' && (
+            <button
+              type="button"
+              onClick={() => onTabChange('settings')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'settings'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Ayarlar
+            </button>
+          )}
         </nav>
 
         {/* Zone 3: Primary Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Ayarlar Button - Always Visible on Both Mobile & Desktop */}
+          {/* Ayarlar Button - Hidden on sales screen */}
+          {activeTab !== 'pos' && (
           <button
             type="button"
             onClick={() => onTabChange('settings')}
@@ -153,6 +156,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110" />
             <span className="inline font-black">Ayarlar</span>
           </button>
+          )}
 
           {/* Desktop Frame View Toggle */}
           <button
@@ -175,7 +179,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {/* Theme picker */}
-          <div className="relative">
+          {activeTab !== 'pos' && <div className="relative">
             <button
               type="button"
               onClick={() => setIsThemePickerOpen((open) => !open)}
@@ -199,10 +203,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Theme Toggle */}
-          <button
+          {activeTab !== 'pos' && <button
             type="button"
             onClick={onToggleTheme}
             className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
@@ -214,7 +218,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             ) : (
               <Sun className="w-5 h-5 text-[#bef264]" />
             )}
-          </button>
+          </button>}
 
           {/* Lock App */}
           {isPinEnabled && (
