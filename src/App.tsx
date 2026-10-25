@@ -261,6 +261,8 @@ export default function App() {
               onAddPayment={(customerId, amount, paymentMethod, notes) =>
                 sqliteStorage.addCustomerPayment(customerId, amount, paymentMethod, notes)
               }
+              onUpdateSale={(id, updates) => sqliteStorage.updateSale(id, updates)}
+              onDeleteSale={(id) => sqliteStorage.deleteSale(id)}
               isOpenAddModalExternal={openAddCustomerTrigger}
               onCloseAddModalExternal={() => setOpenAddCustomerTrigger(false)}
             />

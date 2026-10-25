@@ -30,6 +30,7 @@ interface CustomersViewProps {
   onDeleteCustomer: (id: string) => void;
   onAddPayment: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
   onUpdateSale: (id: string, updates: Partial<Sale>) => void;
+  onDeleteSale: (id: string) => void;
   isOpenAddModalExternal: boolean;
   onCloseAddModalExternal: () => void;
 }
@@ -44,6 +45,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   onDeleteCustomer,
   onAddPayment,
   onUpdateSale,
+  onDeleteSale,
   isOpenAddModalExternal,
   onCloseAddModalExternal,
 }) => {
@@ -618,7 +620,7 @@ ${settings.storeName} nezdindeki güncel açık hesap (veresiye) bakiyeniz ${for
                   .map((entry) => entry.type === 'sale' ? (
                     <div key={entry.record.id} className={`rounded-xl border p-3 ${entry.record.paymentMethod === 'credit' ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20'}`}>
                       <div className="flex items-start justify-between gap-3"><div><p className={`text-[10px] font-bold uppercase ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{entry.record.paymentMethod === 'credit' ? 'Veresiye satış' : entry.record.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş'}</p><p className="text-xs font-bold text-slate-900 dark:text-white">#{entry.record.invoiceNo}</p><p className="text-[11px] text-slate-500">{formatDate(entry.record.createdAt)}</p></div><span className={`text-sm font-bold ${entry.record.paymentMethod === 'credit' ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300'}`}>{formatCurrency(entry.record.total)}</span></div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><button type="button" onClick={() => startEditingSale(entry.record)} className="mt-2 inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2">{entry.record.items.map((item) => `${item.productName} x${item.quantity} · ${formatCurrency(item.unitPrice)}`).join(', ')}</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => startEditingSale(entry.record)} className="inline-flex items-center gap-1 rounded-lg bg-white/70 dark:bg-slate-900/50 px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200"><Edit2 className="h-3 w-3" /> Fişi düzenle</button><button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(entry.record.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-100/80 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"><Trash2 className="h-3 w-3" /> Fişi kaldır</button></div>
                     </div>
                   ) : (
                     <div key={entry.record.id} className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">Tahsilat</p><p className="text-xs font-bold text-slate-900 dark:text-white">{formatDate(entry.record.createdAt)}</p><p className="text-[11px] text-slate-500">{entry.record.notes || 'Ödeme alındı'}</p></div><span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">-{formatCurrency(entry.record.amount)}</span></div></div>

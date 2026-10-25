@@ -660,6 +660,15 @@ class SQLiteStorageManager {
     return [...this.memoryCache.sales];
   }
 
+  public deleteSale(id: string): boolean {
+    const previousLength = this.memoryCache.sales.length;
+    this.memoryCache.sales = this.memoryCache.sales.filter((sale) => sale.id !== id);
+    if (this.memoryCache.sales.length === previousLength) return false;
+    this.persistAll();
+    this.notify();
+    return true;
+  }
+
   public updateSale(id: string, updates: Partial<Pick<Sale, 'notes' | 'items' | 'subtotal' | 'discount' | 'taxAmount' | 'total' | 'profit'>>): Sale | null {
     const index = this.memoryCache.sales.findIndex((sale) => sale.id === id);
     if (index === -1) return null;
