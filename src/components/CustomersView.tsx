@@ -359,23 +359,24 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const downloadUrl = URL.createObjectURL(pdfBlob);
     if (preview) {
       const shareFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-      if ('share' in navigator && navigator.share && (!navigator.canShare || navigator.canShare({ files: [shareFile] }))) {
+      if (typeof navigator.share === 'function') {
         try {
-          await navigator.share({ title: `${customer.name} - Müşteri Geçmişi`, text: 'PDF raporunu aç veya paylaş', files: [shareFile] });
-        } catch (error) {
-          if (error instanceof DOMException && error.name === 'AbortError') {
-            URL.revokeObjectURL(downloadUrl);
-            return;
-          }
-        } finally {
+          await navigator.share({
+            title: `${customer.name} - Müşteri Geçmişi`,
+            text: 'PDF raporunu bir uygulamayla açın veya paylaşın',
+            files: [shareFile],
+          });
           URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+          URL.revokeObjectURL(downloadUrl);
+          if (!(error instanceof DOMException && error.name === 'AbortError')) {
+            window.alert('Telefonun paylaşım menüsü açılamadı. Lütfen tarayıcı izinlerini kontrol edin.');
+          }
         }
         return;
       }
-      // Without Web Share support, navigate to the blob URL without a download
-      // attribute so the browser's built-in PDF viewer can handle the file.
-      window.location.assign(downloadUrl);
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
+      URL.revokeObjectURL(downloadUrl);
+      window.alert('Bu tarayıcı dosya paylaşımını desteklemiyor. Lütfen Chrome veya Safari ile deneyin.');
       return;
     }
     const downloadLink = document.createElement('a');
