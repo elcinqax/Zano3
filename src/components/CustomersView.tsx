@@ -253,8 +253,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş', amount: formatCurrency(sale.total), detail: sale.items.map((item) => `${item.productName} x${item.quantity}`).join(', ') })),
-      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod})`, amount: `-${formatCurrency(payment.amount)}`, detail: payment.notes || 'Ödeme alındı' })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Veresiye satış' : sale.paymentMethod === 'cash' ? 'Nakit satış' : 'Qarışıq ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Tahsilat (${payment.paymentMethod})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödeme alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -273,7 +273,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const tableLeft = 14;
     const tableRight = 196;
     const tableTop = y - 5;
-    const columnX = [14, 41, 90, 123, 196];
+    const columnX = [14, 37, 74, 108, 169, 196];
     pdf.setFillColor(234, 242, 255);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
@@ -281,17 +281,24 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setLineWidth(0.35);
     columnX.slice(1, -1).forEach((x) => pdf.line(x, tableTop, x, tableTop + 8));
     pdf.setFontSize(9);
-    pdf.text(pdfSafeText('Tarih'), 16, y);
-    pdf.text(pdfSafeText('İşlem'), 43, y);
-    pdf.text(pdfSafeText('Tutar'), 92, y);
-    pdf.text(pdfSafeText('Açıklama'), 125, y);
+    pdf.text(pdfSafeText('Tarih'), 16, y - 1);
+    pdf.text(pdfSafeText('Gün'), 16, y + 3);
+    pdf.text(pdfSafeText('İşlem'), 39, y + 1);
+    pdf.text(pdfSafeText('Tutar'), 76, y - 1);
+    pdf.text(pdfSafeText('Alttoplam'), 76, y + 3);
+    pdf.text(pdfSafeText('Açıklama'), 111, y - 1);
+    pdf.text(pdfSafeText('Ürün adı'), 111, y + 3);
+    pdf.text(pdfSafeText('Adet'), 172, y + 1);
     y += 8;
     events.forEach((event) => {
-      const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 24);
-      const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 44);
+      const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 20);
+      const dayLines = [new Date(event.date).getDate().toString()];
+      const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 31);
       const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 29);
-      const detailLines = pdf.splitTextToSize(pdfSafeText(event.detail), 66);
-      const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, detailLines.length, 1);
+      const subtotalLines = pdf.splitTextToSize(pdfSafeText(event.subtotal), 29);
+      const productLines = pdf.splitTextToSize(pdfSafeText(event.product), 52);
+      const quantityLines = [String(event.quantity)];
+      const lineCount = Math.max(dateLines.length, dayLines.length, typeLines.length, amountLines.length, subtotalLines.length, productLines.length, quantityLines.length, 1);
       const rowHeight = Math.max(10, lineCount * 4 + 5);
       if (y + rowHeight > 280) { pdf.addPage(); y = 18; }
       const rowTop = y - 5;
@@ -310,9 +317,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       pdf.setTextColor(31, 41, 55);
       const textY = rowTop + 5;
       pdf.text(dateLines, 16, textY);
-      pdf.text(typeLines, 43, textY);
-      pdf.text(amountLines, 92, textY);
-      pdf.text(detailLines, 125, textY);
+      pdf.text(dayLines, 16, textY + dateLines.length * 4);
+      pdf.text(typeLines, 39, textY);
+      pdf.text(amountLines, 76, textY);
+      pdf.text(subtotalLines, 76, textY + 4);
+      pdf.text(productLines, 111, textY);
+      pdf.text(quantityLines, 172, textY);
       y += rowHeight;
     });
     pdf.setDrawColor(0, 0, 0);
