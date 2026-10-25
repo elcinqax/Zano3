@@ -285,22 +285,22 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.text(pdfSafeText('Tarix'), 16, y + 1);
     pdf.text(pdfSafeText('Əməliyyat'), 44, y + 1);
     pdf.text(pdfSafeText('Məbləğ'), 80, y + 1);
-    pdf.text(pdfSafeText('Məhsul / Açıqlama'), 112, y + 1);
+    pdf.text(pdfSafeText('Məhsul/Açıqlama'), 112, y + 1);
     pdf.text(pdfSafeText('Say'), 174, y + 1);
     y += 8;
     events.forEach((event) => {
-      const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 20);
-      const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 30);
-      const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 25);
-      const productLines = pdf.splitTextToSize(pdfSafeText(event.product), 54);
+      const dateLines = pdf.splitTextToSize(pdfSafeText(formatDate(event.date)), 24);
+      const typeLines = pdf.splitTextToSize(pdfSafeText(event.type), 32);
+      const amountLines = pdf.splitTextToSize(pdfSafeText(event.amount), 28);
+      const productLines = pdf.splitTextToSize(pdfSafeText(event.product), 56);
       const quantityLines = [String(event.quantity)];
       const lineCount = Math.max(dateLines.length, typeLines.length, amountLines.length, productLines.length, quantityLines.length, 1);
       const rowHeight = Math.max(10, lineCount * 4 + 5);
       if (y + rowHeight > 280) { pdf.addPage(); y = 18; }
       const rowTop = y - 5;
-      const rowColor = event.type.startsWith('Veresiye')
+      const rowColor = event.type.startsWith('Nisyə')
         ? [254, 243, 199]
-        : event.type.startsWith('Nakit')
+        : event.type.startsWith('Nağd')
           ? [219, 234, 254]
           : [220, 252, 231];
       pdf.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
@@ -329,15 +329,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setFillColor(241, 245, 249);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
-    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 8, 'FD');
-    pdf.setFontSize(10);
-pdf.text(pdfSafeText('ÜMUMİ'), 17, y);
-pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)}`), 17, y);
-pdf.text(pdfSafeText(`Ümumi Ödəniş: ${formatCurrency(paymentsTotal)}`), 105, y);
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 18, 'FD');
+    pdf.setFontSize(9);
+    pdf.text(pdfSafeText('ÜMUMİ'), 17, y);
+    pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)}`), 17, y + 7);
+    pdf.text(pdfSafeText(`Ümumi Ödəniş: ${formatCurrency(paymentsTotal)}`), 105, y + 7);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
-    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 8, 'D');
-    pdf.line(104, y - 5, 104, y + 3);
+    pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 18, 'D');
+    pdf.line(104, y - 5, 104, y + 13);
     const fileName = `${customer.name.replace(/[^a-z0-9ğ��şöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
