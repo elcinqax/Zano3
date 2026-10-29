@@ -190,19 +190,36 @@ export const POSView: React.FC<POSViewProps> = ({
     [customers, selectedCustomerId]
   );
 
-  const selectedCustomerDailyAverage = useMemo(() => {
+  const selectedCustomerPeriodAverages = useMemo(() => {
     if (!selectedCustomerId) return null;
     const customerSales = sales.filter((sale) => sale.customerId === selectedCustomerId);
-    if (customerSales.length === 0) return { average: 0, saleCount: 0, activeDays: 0 };
-    const activeDays = new Set(customerSales.map((sale) => new Date(sale.createdAt).toISOString().slice(0, 10))).size;
+    if (customerSales.length === 0) return { daily: 0, weekly: 0, monthly: 0, yearly: 0 };
+
     const totalProducts = customerSales.reduce(
       (sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
       0
     );
+    const days = new Set<string>();
+    const weeks = new Set<string>();
+    const months = new Set<string>();
+    const years = new Set<string>();
+
+    customerSales.forEach((sale) => {
+      const date = new Date(sale.createdAt);
+      const day = date.toISOString().slice(0, 10);
+      days.add(day);
+      years.add(String(date.getUTCFullYear()));
+      months.add(`${date.getUTCFullYear()}-${date.getUTCMonth()}`);
+      const firstDayOfYear = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      const weekNumber = Math.ceil((((date.getTime() - firstDayOfYear.getTime()) / 86400000) + firstDayOfYear.getUTCDay() + 1) / 7);
+      weeks.add(`${date.getUTCFullYear()}-${weekNumber}`);
+    });
+
     return {
-      average: totalProducts / Math.max(activeDays, 1),
-      totalProducts,
-      activeDays,
+      daily: totalProducts / Math.max(days.size, 1),
+      weekly: totalProducts / Math.max(weeks.size, 1),
+      monthly: totalProducts / Math.max(months.size, 1),
+      yearly: totalProducts / Math.max(years.size, 1),
     };
   }, [sales, selectedCustomerId]);
 
@@ -782,9 +799,23 @@ export const POSView: React.FC<POSViewProps> = ({
           <div className="flex items-center justify-between gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950" aria-live="polite">
             <span className="font-bold text-slate-500 dark:text-slate-400">Günlük ortalama</span>
             <span className="font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">
-              {selectedCustomerDailyAverage ? `${selectedCustomerDailyAverage.average.toFixed(1)} ürün/gün` : 'Müşteri seçin'}
+              {selectedCustomerPeriodAverages ? `${selectedCustomerPeriodAverages.daily.toFixed(1)} ürün/gün` : 'Müşteri seçin'}
             </span>
           </div>
+          {selectedCustomerPeriodAverages && (
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                ['Haftalık', selectedCustomerPeriodAverages.weekly, 'ürün/hafta'],
+                ['Aylık', selectedCustomerPeriodAverages.monthly, 'ürün/ay'],
+                ['Yıllık', selectedCustomerPeriodAverages.yearly, 'ürün/yıl'],
+              ].map(([label, value, suffix]) => (
+                <div key={label} className="rounded-xl border border-slate-200/80 bg-white/70 px-2 py-1.5 text-center dark:border-slate-700 dark:bg-slate-900/70">
+                  <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</span>
+                  <span className="block font-mono text-[11px] font-black tabular-nums text-slate-900 dark:text-slate-100">{Number(value).toFixed(1)} <span className="font-sans text-[9px] font-bold">{suffix}</span></span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
