@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lock, Smartphone, Monitor, Moon, Sun } from 'lucide-react';
 
 interface TopBarProps {
@@ -26,6 +26,13 @@ export const TopBar: React.FC<TopBarProps> = ({
   themeMode,
   onToggleTheme,
 }) => {
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const getPaddingTopClass = () => {
     switch (screenTopPadding) {
       case 'large':
@@ -115,6 +122,9 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center rounded-xl border border-slate-200/80 bg-slate-50/80 px-2.5 py-2 font-mono text-[11px] font-bold tabular-nums text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300" aria-label="Anlık saat">
+            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
           <button type="button" onClick={onToggleTheme} className="size-10 flex items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
             {themeMode === 'dark' ? <Sun className="size-5 text-amber-400" /> : <Moon className="size-5 text-teal-700 dark:text-teal-300" />}
           </button>

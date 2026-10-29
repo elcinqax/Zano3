@@ -130,6 +130,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const returnToSales = () => setActiveTab('pos');
+    window.addEventListener('popstate', returnToSales);
+    window.addEventListener('appbackbutton', returnToSales);
+    return () => {
+      window.removeEventListener('popstate', returnToSales);
+      window.removeEventListener('appbackbutton', returnToSales);
+    };
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('app_language', language);
     translateDocument(language);
     const observer = new MutationObserver(() => translateDocument(language));
