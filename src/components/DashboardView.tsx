@@ -21,6 +21,13 @@ import {
   Tag,
   Receipt,
   X,
+  BarChart3,
+  CreditCard,
+  ReceiptText,
+  Boxes,
+  ClipboardList,
+  UserRound,
+  Banknote,
 } from 'lucide-react';
 import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerProductPurchaseSummary } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
@@ -52,10 +59,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   expenses = [],
   expenseItems = [],
   settings,
+  onNavigateTab,
   onResetAllReports,
 }) => {
   // Report View Selection (Sadece raporlar arasında geçiş)
   const [activeReportTab, setActiveSubReportTab] = useState<'customerProducts' | 'financialSummary' | 'topProducts' | 'expenseSummary'>('customerProducts');
+  const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
 
   // Time Range Filter
   const [timeRange, setTimeRange] = useState<'today' | '7days' | 'month' | 'year' | 'all' | 'custom'>('all');
@@ -283,6 +292,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return Object.values(groups).sort((a, b) => b.totalSpent - a.totalSpent);
   }, [customerProductPurchases]);
 
+  const dailyTotalsByCustomer = useMemo(() => {
+    const totals: Record<string, { date: string; quantity: number; amount: number; orders: number }[]> = {};
+    filteredSales.forEach((sale) => {
+      const customerId = sale.customerId || 'walk-in';
+      const matchingItems = selectedProductFilter === 'all'
+        ? sale.items
+        : sale.items.filter((item) => item.productId === selectedProductFilter);
+      if (!matchingItems.length) return;
+      const date = new Date(sale.createdAt);
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const existing = totals[customerId]?.find((entry) => entry.date === dateKey);
+      const quantity = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+      const amount = matchingItems.reduce((sum, item) => sum + item.total, 0);
+      if (existing) {
+        existing.quantity += quantity;
+        existing.amount += amount;
+        existing.orders += 1;
+      } else {
+        totals[customerId] = [...(totals[customerId] || []), { date: dateKey, quantity, amount, orders: 1 }];
+      }
+    });
+    Object.values(totals).forEach((entries) => entries.sort((a, b) => b.date.localeCompare(a.date)));
+    return totals;
+  }, [filteredSales, selectedProductFilter]);
+
   // Grouped by Product data structure
   const groupedByProduct = useMemo(() => {
     const groups: Record<
@@ -369,6 +403,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     window.print();
   };
 
+  const reportCatalog = [
+    { id: 'customerProducts', title: 'Müşteri & ürün', description: 'Kim, hangi üründen ne kadar aldı?', icon: Users, accent: 'teal', action: () => setActiveSubReportTab('customerProducts') },
+    { id: 'topProducts', title: 'Ürün performansı', description: 'En çok satan ve en kârlı ürünler', icon: Package, accent: 'blue', action: () => setActiveSubReportTab('topProducts') },
+    { id: 'financialSummary', title: 'Gelir & kâr', description: 'Ciro, maliyet ve net kâr özeti', icon: BarChart3, accent: 'emerald', action: () => setActiveSubReportTab('financialSummary') },
+    { id: 'payment', title: 'Ödeme dağılımı', description: 'Nakit, kart ve veresiye analizi', icon: CreditCard, accent: 'violet', action: () => setActiveSubReportTab('financialSummary') },
+    { id: 'expenseSummary', title: 'Gider analizi', description: 'Gider kalemleri ve dönem karşılaştırması', icon: ReceiptText, accent: 'amber', action: () => setActiveSubReportTab('financialSummary') },
+    { id: 'receivables', title: 'Açık hesaplar', description: 'Bekleyen alacaklar ve borçlu müşteriler', icon: Banknote, accent: 'rose', action: () => onNavigateTab?.('customers') },
+    { id: 'salesHistory', title: 'Satış hareketleri', description: 'Tüm satışları tarih ve müşteri bazında incele', icon: ClipboardList, accent: 'indigo', action: () => onNavigateTab?.('sales') },
+    { id: 'inventory', title: 'Stok durumu', description: 'Mevcut stok ve kritik ürünler', icon: Boxes, accent: 'cyan', action: () => onNavigateTab?.('stock') },
+    { id: 'customerAnalysis', title: 'Müşteri analizi', description: 'Müşteri alışveriş ve sadakat görünümü', icon: UserRound, accent: 'pink', action: () => setActiveSubReportTab('customerProducts') },
+    { id: 'salesOverview', title: 'Satış özeti', description: 'Dönemsel satış adedi ve toplam ciro', icon: TrendingUp, accent: 'lime', action: () => setActiveSubReportTab('financialSummary') },
+  ] as const;
+
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       {/* 1. Pure Report Header */}
@@ -417,8 +464,79 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Pure Report Navigation Tabs (Sadece Raporlar Arasında Geçiş - Başka Menü Yok) */}
-      <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+      {/* Report center */}
+      <section aria-labelledby="report-center-title" className="rounded-3xl border border-slate-200/80 bg-white/80 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950/40 sm:p-4">
+        <div className="mb-3 flex items-end justify-between gap-3 px-1">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">Rapor merkezi</p>
+            <h2 id="report-center-title" className="mt-1 text-base font-black tracking-tight text-slate-900 dark:text-slate-100">İhtiyacın olan raporu seç</h2>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{reportCatalog.length} rapor</span>
+        </div>
+        {(() => {
+          const selectedReport = reportCatalog.find((report) => report.id === expandedReportId) || reportCatalog.find((report) => report.id === activeReportTab) || reportCatalog[0];
+          const SelectedIcon = selectedReport.icon;
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900/80">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white"><SelectedIcon className="size-4" /></span>
+                <select
+                  aria-label="Rapor seç"
+                  value={selectedReport.id}
+                  onChange={(event) => {
+                    const nextReport = reportCatalog.find((report) => report.id === event.target.value);
+                    if (nextReport) {
+                      setExpandedReportId(nextReport.id);
+                      nextReport.action();
+                    }
+                  }}
+                  className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm font-black text-slate-800 outline-none dark:text-slate-100"
+                >
+                  {reportCatalog.map((report) => <option key={report.id} value={report.id}>{report.title}</option>)}
+                </select>
+                <span className="shrink-0 px-2 text-[10px] font-bold text-slate-400">{reportCatalog.length} seçenek</span>
+              </div>
+              <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900 dark:bg-teal-950/20">
+                <p className="mb-3 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
+                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                  <label className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-bold text-slate-500">Müşteri:</span>
+                    <select value={selectedCustomerFilter} onChange={(e) => setSelectedCustomerFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="all">Tüm Müşteriler ({customers.length})</option>
+                      {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-bold text-slate-500">Ürün:</span>
+                    <select value={selectedProductFilter} onChange={(e) => setSelectedProductFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="all">Tüm Ürünler ({products.length})</option>
+                      {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 items-center gap-2 sm:col-span-2">
+                    <span className="shrink-0 font-bold text-slate-500">Tarih:</span>
+                    <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as typeof timeRange)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="today">Bugün</option><option value="7days">Son 7 Gün</option><option value="month">Bu Ay</option><option value="year">Bu Yıl</option><option value="all">Tüm Zamanlar</option><option value="custom">Özel Tarih Aralığı</option>
+                    </select>
+                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak indir"><Download className="inline-block size-3.5" /> PDF</button>
+                  </label>
+                </div>
+                {timeRange === 'custom' && (
+                  <div className="mt-2 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 text-xs">
+                    <span className="font-bold text-slate-500">Aralık:</span>
+                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                    <span className="text-slate-400">-</span>
+                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </section>
+
+      {/* Report detail navigation and time filters */}
+      <div className="hidden p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1 overflow-x-auto max-w-full">
           <button
             type="button"
@@ -486,66 +604,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Custom Date Filter Input */}
-      {timeRange === 'custom' && (
-        <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 text-xs">
-          <span className="font-bold text-slate-600 dark:text-slate-400">Tarih Aralığı:</span>
-          <input
-            type="date"
-            value={customStartDate}
-            onChange={(e) => setCustomStartDate(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-semibold"
-          />
-          <span className="text-slate-400">-</span>
-          <input
-            type="date"
-            value={customEndDate}
-            onChange={(e) => setCustomEndDate(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-semibold"
-          />
-        </div>
-      )}
-
       {/* 3. REPORT TAB 1: MÜŞTERİ & ÜRÜN SATIN ALMA RAPORU (Hangi müşteri hangi üründen ne kadar almış) */}
       {activeReportTab === 'customerProducts' && (
-        <div className="space-y-4">
-          {/* Summary Banner for Customer Purchases */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span>
-              <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
-                {formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">
-                {customerProductReportSummary.totalQuantity} Adet/Birim
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span>
-              <div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
-                {customerProductReportSummary.uniqueCustomers} Müşteri
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span>
-              <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">
-                {customerProductReportSummary.uniqueProducts} Çeşit Ürün
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span>
-            </div>
+        <div className="report-print-content space-y-4">
+          <div className="print-only mb-4 border-b border-slate-300 pb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Müşteri raporu</p>
+            <h1 className="mt-1 text-xl font-black text-slate-900">{selectedCustomerFilter === 'all' ? 'Tüm müşteriler' : (customers.find((customer) => customer.id === selectedCustomerFilter)?.name || selectedCustomerFilter)}</h1>
           </div>
 
           {/* Controls: Search, Customer Filter, Product Filter, Grouping Mode */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="hidden print-hide p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               {/* Grouping mode pills */}
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl self-start">
@@ -606,40 +674,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
 
-            {/* Dropdown Filters for specific Customer or specific Product */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500 shrink-0">Müşteri Filtresi:</span>
-                <select
-                  value={selectedCustomerFilter}
-                  onChange={(e) => setSelectedCustomerFilter(e.target.value)}
-                  className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="all">Tüm Müşteriler ({customers.length})</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.phone ? `(${c.phone})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500 shrink-0">Ürün Filtresi:</span>
-                <select
-                  value={selectedProductFilter}
-                  onChange={(e) => setSelectedProductFilter(e.target.value)}
-                  className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="all">Tüm Ürünler ({products.length})</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
           </div>
 
           {/* REPORT VIEW 1: GROUPED BY CUSTOMER (Müşteri ve Aldığı Ürünler) */}
@@ -738,6 +772,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               </tbody>
                             </table>
                           </div>
+                          <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
+                              <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              {(dailyTotalsByCustomer[group.customerId] || []).map((day) => (
+                                <div key={day.date} className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2 text-xs dark:bg-slate-900/70">
+                                  <span className="font-bold text-slate-700 dark:text-slate-300">{formatDate(day.date)}</span>
+                                  <span className="flex items-center gap-2 font-black tabular-nums text-slate-900 dark:text-slate-100"><span>{day.quantity} adet</span><span className="text-teal-700 dark:text-teal-300">{formatCurrency(day.amount, settings.currency)}</span></span>
+                                </div>
+                              ))}
+                              {!dailyTotalsByCustomer[group.customerId]?.length && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -747,7 +796,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
 
-          {/* REPORT VIEW 2: GROUPED BY PRODUCT (Ürün ve Alan Müşteriler) */}
+              {/* Summary Banner for Customer Purchases */}
+          <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span><div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">{formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}</div><span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span><div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{customerProductReportSummary.totalQuantity} Adet/Birim</div><span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span><div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueCustomers} Müşteri</div><span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span><div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueProducts} Çeşit Ürün</div><span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span></div>
+          </div>
+
+      {/* REPORT VIEW 2: GROUPED BY PRODUCT (Ürün ve Alan Müşteriler) */}
           {groupingMode === 'product' && (
             <div className="space-y-3">
               {groupedByProduct.length === 0 ? (
@@ -860,7 +917,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <th className="py-3 px-4 text-right">Toplam Alınan Miktar</th>
                       <th className="py-3 px-4 text-right">Ort. Birim Fiyat</th>
                       <th className="py-3 px-4 text-right font-black">Toplam Harcama (Ciro)</th>
-                      <th className="py-3 px-4 text-right">Toplam Kâr Katkısı</th>
+                      <th className="py-3 px-4 text-right">Toplam Kâr Katk��sı</th>
                       <th className="py-3 px-4 text-right">İşlem Sayısı</th>
                       <th className="py-3 px-4 text-right">Son Satın Alma</th>
                     </tr>
@@ -936,6 +993,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
           )}
+
         </div>
       )}
 

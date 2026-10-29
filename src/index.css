@@ -204,6 +204,20 @@ html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 
 button, input, select, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
+.print-only { display: none; }
+@media print { .print-hide { display: none !important; } }
+
+@media print {
+  body * { visibility: hidden !important; }
+  #root { display: contents !important; }
+  .report-print-content, .report-print-content * { visibility: visible !important; }
+  .print-only { display: block !important; }
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body, #root { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; }
+  .report-print-content { position: absolute; top: 0; left: 0; right: 0; width: auto; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; color: black !important; break-before: auto; break-after: auto; page-break-before: auto; page-break-after: auto; }
+  .report-print-content button { display: none !important; }
+  .report-print-content > * { break-inside: avoid; page-break-inside: avoid; }
+}
 
 @media (max-width: 640px) {
   main { scroll-padding-bottom: 5rem; }
