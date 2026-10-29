@@ -63,13 +63,17 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
 
   const saveEditedSale = () => {
     if (!editingSale || editingItems.some((item) => item.quantity <= 0 || item.unitPrice < 0)) return;
-    const subtotal = editingItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const normalizedItems = editingItems.map((item) => ({
+      ...item,
+      quantity: Math.max(1, Math.round(Number(item.quantity))),
+    }));
+    const subtotal = normalizedItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     const total = Math.max(0, subtotal - editingSale.discount + editingSale.taxAmount);
     onUpdateSale(editingSale.id, {
-      items: editingItems.map((item) => ({ ...item, total: item.quantity * item.unitPrice })),
+      items: normalizedItems.map((item) => ({ ...item, total: item.quantity * item.unitPrice })),
       subtotal,
       total,
-      profit: total - editingItems.reduce((sum, item) => sum + item.quantity * item.buyPrice, 0),
+      profit: total - normalizedItems.reduce((sum, item) => sum + item.quantity * item.buyPrice, 0),
     });
     setEditingSale(null);
   };

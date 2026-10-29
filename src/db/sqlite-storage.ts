@@ -677,6 +677,12 @@ class SQLiteStorageManager {
     const updatedSale = {
       ...previousSale,
       ...updates,
+      items: updates.items
+        ? updates.items.map((item) => {
+            const quantity = Math.max(1, Math.round(Number(item.quantity)));
+            return { ...item, quantity, total: quantity * item.unitPrice };
+          })
+        : previousSale.items,
       notes: updates.notes === undefined ? previousSale.notes : updates.notes.trim() || undefined,
     };
     const previousDebt = previousSale.customerBalanceDelta || 0;
