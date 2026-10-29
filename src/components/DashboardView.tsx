@@ -786,21 +786,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {/* Products purchased by this customer */}
                       {isExpanded && (
                         <div className="px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-800">
-                          <div className="mb-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                              <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
-                              <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              {(dailyTotalsByCustomer[group.customerId] || []).map((day) => (
-                                <div key={day.date} className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2 text-xs dark:bg-slate-900/70">
-                                  <span className="font-bold text-slate-700 dark:text-slate-300">{formatDate(day.date)}</span>
-                                  <span className="flex items-center gap-2 font-black tabular-nums text-slate-900 dark:text-slate-100"><span>{day.quantity} adet</span><span className="text-teal-700 dark:text-teal-300">{formatCurrency(day.amount, settings.currency)}</span></span>
-                                </div>
-                              ))}
-                              {!dailyTotalsByCustomer[group.customerId]?.length && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
-                            </div>
-                          </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead className="text-[11px] font-bold uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
@@ -838,6 +823,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 ))}
                               </tbody>
                             </table>
+                          </div>
+                          <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
+                              <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              {(dailyTotalsByCustomer[group.customerId] || []).map((day) => (
+                                <div key={day.date} className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2 text-xs dark:bg-slate-900/70">
+                                  <span className="font-bold text-slate-700 dark:text-slate-300">{formatDate(day.date)}</span>
+                                  <span className="flex items-center gap-2 font-black tabular-nums text-slate-900 dark:text-slate-100"><span>{day.quantity} adet</span><span className="text-teal-700 dark:text-teal-300">{formatCurrency(day.amount, settings.currency)}</span></span>
+                                </div>
+                              ))}
+                              {!dailyTotalsByCustomer[group.customerId]?.length && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1037,6 +1037,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
           )}
+
         </div>
       )}
 
