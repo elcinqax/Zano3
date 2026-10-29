@@ -195,9 +195,13 @@ export const POSView: React.FC<POSViewProps> = ({
     const customerSales = sales.filter((sale) => sale.customerId === selectedCustomerId);
     if (customerSales.length === 0) return { average: 0, saleCount: 0, activeDays: 0 };
     const activeDays = new Set(customerSales.map((sale) => new Date(sale.createdAt).toISOString().slice(0, 10))).size;
+    const totalProducts = customerSales.reduce(
+      (sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+      0
+    );
     return {
-      average: customerSales.length / Math.max(activeDays, 1),
-      saleCount: customerSales.length,
+      average: totalProducts / Math.max(activeDays, 1),
+      totalProducts,
       activeDays,
     };
   }, [sales, selectedCustomerId]);
@@ -778,7 +782,7 @@ export const POSView: React.FC<POSViewProps> = ({
           <div className="flex items-center justify-between gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950" aria-live="polite">
             <span className="font-bold text-slate-500 dark:text-slate-400">Günlük ortalama</span>
             <span className="font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">
-              {selectedCustomerDailyAverage ? `${selectedCustomerDailyAverage.average.toFixed(1)} alışveriş/gün` : 'Müşteri seçin'}
+              {selectedCustomerDailyAverage ? `${selectedCustomerDailyAverage.average.toFixed(1)} ürün/gün` : 'Müşteri seçin'}
             </span>
           </div>
         </div>
