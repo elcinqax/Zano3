@@ -21,6 +21,13 @@ import {
   Tag,
   Receipt,
   X,
+  BarChart3,
+  CreditCard,
+  ReceiptText,
+  Boxes,
+  ClipboardList,
+  UserRound,
+  Banknote,
 } from 'lucide-react';
 import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerProductPurchaseSummary } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
@@ -369,6 +376,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     window.print();
   };
 
+  const reportCatalog = [
+    { id: 'customerProducts', title: 'Müşteri & ürün', description: 'Kim, hangi üründen ne kadar aldı?', icon: Users, accent: 'teal', action: () => setActiveSubReportTab('customerProducts') },
+    { id: 'topProducts', title: 'Ürün performansı', description: 'En çok satan ve en kârlı ürünler', icon: Package, accent: 'blue', action: () => setActiveSubReportTab('topProducts') },
+    { id: 'financialSummary', title: 'Gelir & kâr', description: 'Ciro, maliyet ve net kâr özeti', icon: BarChart3, accent: 'emerald', action: () => setActiveSubReportTab('financialSummary') },
+    { id: 'payment', title: 'Ödeme dağılımı', description: 'Nakit, kart ve veresiye analizi', icon: CreditCard, accent: 'violet', action: () => setActiveSubReportTab('financialSummary') },
+    { id: 'expenseSummary', title: 'Gider analizi', description: 'Gider kalemleri ve dönem karşılaştırması', icon: ReceiptText, accent: 'amber', action: () => setActiveSubReportTab('expenseSummary') },
+    { id: 'receivables', title: 'Açık hesaplar', description: 'Bekleyen alacaklar ve borçlu müşteriler', icon: Banknote, accent: 'rose', action: () => onNavigateTab?.('customers') },
+    { id: 'salesHistory', title: 'Satış hareketleri', description: 'Tüm satışları tarih ve müşteri bazında incele', icon: ClipboardList, accent: 'indigo', action: () => onNavigateTab?.('sales') },
+    { id: 'inventory', title: 'Stok durumu', description: 'Mevcut stok ve kritik ürünler', icon: Boxes, accent: 'cyan', action: () => onNavigateTab?.('stock') },
+    { id: 'customerAnalysis', title: 'Müşteri analizi', description: 'Müşteri alışveriş ve sadakat görünümü', icon: UserRound, accent: 'pink', action: () => setActiveSubReportTab('customerProducts') },
+    { id: 'salesOverview', title: 'Satış özeti', description: 'Dönemsel satış adedi ve toplam ciro', icon: TrendingUp, accent: 'lime', action: () => setActiveSubReportTab('financialSummary') },
+  ] as const;
+
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       {/* 1. Pure Report Header */}
@@ -417,7 +437,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Pure Report Navigation Tabs (Sadece Raporlar Arasında Geçiş - Başka Menü Yok) */}
+      {/* Report center */}
+      <section aria-labelledby="report-center-title" className="rounded-3xl border border-slate-200/80 bg-white/80 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950/40 sm:p-4">
+        <div className="mb-3 flex items-end justify-between gap-3 px-1">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">Rapor merkezi</p>
+            <h2 id="report-center-title" className="mt-1 text-base font-black tracking-tight text-slate-900 dark:text-slate-100">İhtiyacın olan raporu seç</h2>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{reportCatalog.length} rapor</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {reportCatalog.map((report) => {
+            const Icon = report.icon;
+            const isSelected = report.id === activeReportTab;
+            return (
+              <button key={report.id} type="button" onClick={report.action} className={`group min-h-[104px] rounded-2xl border p-3 text-left transition-all active:scale-[0.98] ${isSelected ? 'border-teal-300 bg-teal-50 shadow-sm dark:border-teal-800 dark:bg-teal-950/40' : 'border-slate-200/80 bg-white hover:border-teal-200 hover:bg-teal-50/50 dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-teal-900 dark:hover:bg-teal-950/30'}`}>
+                <span className={`mb-2 flex size-8 items-center justify-center rounded-xl ${isSelected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-teal-100 group-hover:text-teal-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-teal-950 dark:group-hover:text-teal-300'}`}><Icon className="size-4" /></span>
+                <span className="block truncate text-xs font-black text-slate-800 dark:text-slate-100">{report.title}</span>
+                <span className="mt-1 block text-[10px] leading-4 text-slate-500 dark:text-slate-400">{report.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Report detail navigation and time filters */}
       <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1 overflow-x-auto max-w-full">
           <button
