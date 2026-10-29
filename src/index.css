@@ -213,7 +213,7 @@ button { -webkit-tap-highlight-color: transparent; }
   .report-print-content, .report-print-content * { visibility: visible !important; }
   @page { size: A4 portrait; margin: 8mm; }
   html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
-  .report-print-content { position: static; width: 100%; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; color: black !important; break-after: avoid-page; page-break-after: avoid; }
+  .report-print-content { position: absolute; top: 0; left: 0; right: 0; width: auto; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; color: black !important; break-before: avoid-page; break-after: avoid-page; page-break-before: avoid; page-break-after: avoid; }
   .report-print-content button { display: none !important; }
   .report-print-content > * { break-inside: avoid; page-break-inside: avoid; }
 }
