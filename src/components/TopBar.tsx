@@ -123,9 +123,9 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className="flex h-10 items-center gap-2 rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-50 to-white px-2.5 shadow-sm shadow-teal-900/5 dark:border-teal-900/70 dark:from-teal-950/70 dark:to-slate-900" aria-label="Anlık saat">
-            <span className="flex size-6 items-center justify-center rounded-lg bg-teal-600 text-white shadow-sm shadow-teal-900/20"><Clock3 className="size-3.5" /></span>
-            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-teal-800 dark:text-teal-200">
+          <div className="flex h-10 items-center gap-2 rounded-2xl border border-slate-300/80 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] px-2.5 shadow-sm shadow-slate-900/15 dark:border-slate-700 dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)]" aria-label="Anlık saat">
+            <span className="flex size-6 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm shadow-slate-900/20 dark:bg-slate-800"><Clock3 className="size-3.5" /></span>
+            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
