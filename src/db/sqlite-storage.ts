@@ -672,7 +672,33 @@ class SQLiteStorageManager {
   public updateSale(id: string, updates: Partial<Pick<Sale, 'notes' | 'items' | 'subtotal' | 'discount' | 'taxAmount' | 'total' | 'profit'>>): Sale | null {
     const index = this.memoryCache.sales.findIndex((sale) => sale.id === id);
     if (index === -1) return null;
-    this.memoryCache.sales[index] = { ...this.memoryCache.sales[index], ...updates, notes: updates.notes === undefined ? this.memoryCache.sales[index].notes : updates.notes.trim() || undefined };
+
+    const previousSale = this.memoryCache.sales[index];
+    const updatedSale = {
+      ...previousSale,
+      ...updates,
+      notes: updates.notes === undefined ? previousSale.notes : updates.notes.trim() || undefined,
+    };
+    const previousDebt = previousSale.customerBalanceDelta || 0;
+    const updatedDebt = updatedSale.paymentMethod === 'credit'
+      ? updatedSale.total
+      : updatedSale.paymentMethod === 'mixed'
+      ? updatedSale.total - (updatedSale.cashPaid || 0) - (updatedSale.transferPaid || 0)
+      : 0;
+
+    if (updatedSale.customerId && updatedSale.status === 'completed') {
+      const customer = this.memoryCache.customers.find((item) => item.id === updatedSale.customerId);
+      if (customer) {
+        customer.balance += updatedDebt - previousDebt;
+        customer.totalPurchases += updatedSale.total - previousSale.total;
+        customer.updatedAt = new Date().toISOString();
+      }
+    }
+
+    this.memoryCache.sales[index] = {
+      ...updatedSale,
+      customerBalanceDelta: updatedDebt || undefined,
+    };
     this.persistAll();
     this.notify();
     return this.memoryCache.sales[index];
