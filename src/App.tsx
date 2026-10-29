@@ -213,21 +213,21 @@ export default function App() {
       >
         {/* Sticky Top Header Container (Prevents TopBar from overlapping status bar icons or clock) */}
         <div className="sticky top-0 z-30 w-full shrink-0">
-          {/* Android Simulated Status Bar */}
-          {(
-            <div className="flex h-8 bg-[#fffdf5] text-slate-700 px-5 items-center justify-between border-b border-slate-200/90 shrink-0 select-none dark:bg-slate-950 dark:text-slate-200 dark:border-slate-800/90">
-              <span className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-mono text-[11px] font-bold tracking-[0.12em] text-slate-700 shadow-inner dark:bg-slate-800/80 dark:text-emerald-300">
-                <Clock3 className="size-3 text-teal-700 dark:text-emerald-400" />
+          {/* Android Simulated Status Bar (Visible ONLY in Desktop Mobile Frame preview) */}
+          {isMobileFrame && (
+            <div className="hidden lg:flex h-8 bg-slate-950 text-slate-200 px-5 items-center justify-between border-b border-slate-800/90 shrink-0 select-none">
+              <span className="flex items-center gap-1.5 rounded-full bg-slate-800/80 px-2.5 py-1 font-mono text-[11px] font-bold tracking-[0.12em] text-emerald-300 shadow-inner">
+                <Clock3 className="size-3 text-emerald-400" />
                 {currentTime}
               </span>
               {/* Camera cutout */}
-              <div aria-label="Kamera çentiği" className="size-4 rounded-full border-2 border-slate-300 bg-slate-800 shadow-[inset_0_0_0_2px_#111827,0_1px_2px_rgba(15,23,42,0.25)] dark:border-slate-700 dark:bg-slate-950" />
-              <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
-                <Signal className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+              <div className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-700" />
+              <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                <Signal className="w-3.5 h-3.5" />
                 <span title="Offline SQLite Modu" className="flex items-center">
-                  <WifiOff className="w-3.5 h-3.5 text-teal-700 dark:text-emerald-400" />
+                  <WifiOff className="w-3.5 h-3.5 text-emerald-400" />
                 </span>
-                <BatteryCharging className="w-3.5 h-3.5 text-teal-700 dark:text-emerald-400" />
+                <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
               </div>
             </div>
           )}
@@ -356,9 +356,10 @@ export default function App() {
 
           {/* 6. Raporlar */}
           {(activeTab === 'reports' || activeTab === 'dashboard') && (
-            <DashboardView
-              sales={sales}
-              customers={customers}
+              <DashboardView
+                sales={sales}
+                payments={payments}
+                customers={customers}
               products={products}
               expenses={expenses}
               expenseItems={expenseItems}

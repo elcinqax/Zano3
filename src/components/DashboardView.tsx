@@ -30,7 +30,7 @@ import {
   UserRound,
   Banknote,
 } from 'lucide-react';
-import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerProductPurchaseSummary } from '../types';
+import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerPayment, CustomerProductPurchaseSummary } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
 import {
   exportToExcel,
@@ -41,6 +41,7 @@ import {
 
 interface DashboardViewProps {
   sales: Sale[];
+  payments: CustomerPayment[];
   customers: Customer[];
   products: Product[];
   expenses?: Expense[];
@@ -55,6 +56,7 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   sales,
+  payments,
   customers,
   products,
   expenses = [],
@@ -401,19 +403,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return breakdown;
   }, [filteredSales]);
 
+  const reportEvents = useMemo(() => {
+    const creditEvents = filteredSales
+      .filter((sale) => Boolean(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
+      .map((sale) => ({ type: 'Veresiye', date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
+    const collectionEvents = payments
+      .filter((payment) => selectedCustomerFilter === 'all' || payment.customerId === selectedCustomerFilter)
+      .map((payment) => ({ type: 'Tahsilat', date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
+    return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [filteredSales, payments, selectedCustomerFilter]);
+
   // Print Report Handler
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!window.matchMedia('(max-width: 768px)').matches) {
       window.print();
       return;
     }
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const normalizePdfText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const fontResponse = await fetch('/fonts/DejaVuSans.ttf');
+    if (!fontResponse.ok) throw new Error('PDF font could not be loaded');
+    const fontBytes = new Uint8Array(await fontResponse.arrayBuffer());
+    let fontBinary = '';
+    for (let index = 0; index < fontBytes.length; index += 0x8000) {
+      fontBinary += String.fromCharCode(...fontBytes.subarray(index, index + 0x8000));
+    }
+    const fontBase64 = btoa(fontBinary);
+    doc.addFileToVFS('DejaVuSans.ttf', fontBase64);
+    doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    doc.setFont('DejaVuSans', 'normal');
     const addLine = (text: string, y: number, size = 10, bold = false) => {
-      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFont('DejaVuSans', 'normal');
       doc.setFontSize(size);
-      doc.text(normalizePdfText(text), 14, y);
+      doc.text(text, 14, y);
     };
 
     let y = 16;
@@ -426,25 +448,91 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     addLine(`Toplam miktar: ${customerProductReportSummary.totalQuantity} adet`, y, 10);
     y += 10;
 
+    const tableX = [14, 58, 116, 146, 196];
+    const drawTableHeader = () => {
+      doc.setFillColor(13, 148, 136);
+      doc.rect(14, y - 5, 182, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text('Müşteri', tableX[0] + 2, y);
+      doc.text('Ürün', tableX[1] + 2, y);
+      doc.text('Miktar', tableX[2] + 2, y);
+      doc.text('Toplam', tableX[3] + 2, y);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+    };
+
+    drawTableHeader();
     groupedByCustomer.forEach((group) => {
-      if (y > 275) {
-        doc.addPage();
-        y = 16;
-      }
-      addLine(group.customerName, y, 11, true);
-      y += 6;
       group.products.forEach((product) => {
-        if (y > 280) {
+        const customerLines = doc.splitTextToSize(group.customerName, 40) as string[];
+        const productLines = doc.splitTextToSize(product.productName, 52) as string[];
+        const rowLines = Math.max(customerLines.length, productLines.length, 1);
+        const rowHeight = Math.max(8, rowLines * 4 + 4);
+
+        if (y + rowHeight > 282) {
           doc.addPage();
           y = 16;
+          drawTableHeader();
         }
-        addLine(`- ${product.productName}: ${product.totalQuantity} adet / ${formatCurrency(product.totalSpent, settings.currency)}`, y, 9);
-        y += 5;
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.2);
+        doc.rect(14, y - 5, 182, rowHeight);
+        doc.setFontSize(7.5);
+        customerLines.forEach((line, index) => doc.text(line, tableX[0] + 2, y + index * 4));
+        productLines.forEach((line, index) => doc.text(line, tableX[1] + 2, y + index * 4));
+        doc.text(String(product.totalQuantity), tableX[2] + 2, y);
+        doc.text(formatCurrency(product.totalSpent, settings.currency), tableX[3] + 2, y);
+        y += rowHeight;
       });
-      y += 3;
     });
 
-    doc.save(`rapor-${new Date().toISOString().slice(0, 10)}.pdf`);
+    y += 5;
+    doc.setFontSize(10);
+    doc.setFont('DejaVuSans', 'normal');
+    doc.text(`Genel toplam: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)} / ${customerProductReportSummary.totalQuantity} adet`, 14, y);
+
+    if (reportEvents.length > 0) {
+      y += 10;
+      addLine('Veresiye ve tahsilat hareketleri', y, 11, true);
+      y += 7;
+      doc.setFillColor(71, 85, 105);
+      doc.rect(14, y - 5, 182, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text('Tür', 16, y); doc.text('Tarih', 45, y); doc.text('Müşteri', 78, y); doc.text('Detay', 140, y); doc.text('Tutar', 176, y);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+      reportEvents.forEach((event) => {
+        if (y > 282) { doc.addPage(); y = 16; }
+        doc.setFontSize(7.5);
+        doc.text(event.type, 16, y);
+        doc.text(formatDate(event.date), 45, y);
+        doc.text(doc.splitTextToSize(event.customer, 58)[0], 78, y);
+        doc.text(String(event.detail), 140, y);
+        doc.text(formatCurrency(event.amount, settings.currency), 176, y);
+        y += 6;
+      });
+    }
+
+      const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
+    try {
+      const pdfBlob = doc.output('blob');
+      const downloadUrl = URL.createObjectURL(pdfBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = filename;
+      downloadLink.rel = 'noopener';
+      downloadLink.style.display = 'none';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+    } catch (error) {
+      console.error('[v0] PDF download failed, falling back to print:', error);
+      window.print();
+    }
   };
 
   const reportCatalog = [
@@ -848,6 +936,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span><div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueProducts} Çeşit Ürün</div><span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span></div>
           </div>
 
+          {reportEvents.length > 0 && (
+            <section className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="mb-2 text-sm font-black text-slate-800 dark:text-slate-100">Veresiye ve tahsilat günleri</h3>
+              <div className="space-y-1.5">
+                {reportEvents.map((event, index) => (
+                  <div key={`${event.type}-${event.date}-${index}`} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950">
+                    <span className={`rounded-lg px-2 py-1 font-black ${event.type === 'Tahsilat' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'}`}>{event.type}</span>
+                    <span className="min-w-0 truncate text-slate-600 dark:text-slate-300">{event.customer} · {event.detail}</span>
+                    <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200">{formatDate(event.date)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
       {/* REPORT VIEW 2: GROUPED BY PRODUCT (Ürün ve Alan Müşteriler) */}
           {groupingMode === 'product' && (
             <div className="space-y-3">
@@ -878,7 +981,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             </h3>
                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                {group.customers.length} farklı müşteri satın aldı
+                                {group.customers.length} farklı mü��teri satın aldı
                               </span>
                               <span>·</span>
                               <span>Toplam {group.totalQuantity} {group.unit} satıldı</span>
