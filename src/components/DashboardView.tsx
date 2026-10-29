@@ -473,31 +473,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{reportCatalog.length} rapor</span>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {reportCatalog.map((report) => {
-            const Icon = report.icon;
-            const isSelected = report.id === activeReportTab;
-            const isExpanded = report.id === expandedReportId;
-            return (
-              <div key={report.id}>
-                <button type="button" aria-expanded={isExpanded} onClick={() => setExpandedReportId(isExpanded ? null : report.id)} className={`group flex min-h-0 w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all active:scale-[0.99] ${isExpanded || isSelected ? 'border-teal-300 bg-teal-50 shadow-sm dark:border-teal-800 dark:bg-teal-950/40' : 'border-slate-200/80 bg-white hover:border-teal-200 hover:bg-teal-50/50 dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-teal-900 dark:hover:bg-teal-950/30'}`}>
-                  <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${isExpanded || isSelected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-teal-100 group-hover:text-teal-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-teal-950 dark:group-hover:text-teal-300'}`}><Icon className="size-4" /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-black text-slate-800 dark:text-slate-100">{report.title}</span>
-                    <span className="mt-1 block truncate text-[10px] text-slate-500 dark:text-slate-400">{report.description}</span>
-                  </span>
-                  <span className="shrink-0 text-sm font-black text-slate-400 dark:text-slate-500">{isExpanded ? '−' : '+'}</span>
-                </button>
-                {isExpanded && (
-                  <div className="rounded-b-2xl border-x border-b border-teal-200 bg-white px-3 pb-3 pt-2 shadow-sm dark:border-teal-900 dark:bg-slate-900">
-                    <p className="text-[11px] leading-4 text-slate-600 dark:text-slate-300">Bu raporu açarak filtrelenmiş sonuçları, toplamları ve detay dağılımlarını inceleyebilirsin.</p>
-                    <button type="button" onClick={report.action} className="mt-3 w-full rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-teal-700">Raporu aç</button>
-                  </div>
-                )}
+        {(() => {
+          const selectedReport = reportCatalog.find((report) => report.id === expandedReportId) || reportCatalog.find((report) => report.id === activeReportTab) || reportCatalog[0];
+          const SelectedIcon = selectedReport.icon;
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900/80">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white"><SelectedIcon className="size-4" /></span>
+                <select
+                  aria-label="Rapor seç"
+                  value={selectedReport.id}
+                  onChange={(event) => {
+                    const nextReport = reportCatalog.find((report) => report.id === event.target.value);
+                    if (nextReport) setExpandedReportId(nextReport.id);
+                  }}
+                  className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm font-black text-slate-800 outline-none dark:text-slate-100"
+                >
+                  {reportCatalog.map((report) => <option key={report.id} value={report.id}>{report.title}</option>)}
+                </select>
+                <span className="shrink-0 px-2 text-[10px] font-bold text-slate-400">{reportCatalog.length} seçenek</span>
               </div>
-            );
-          })}
-        </div>
+              <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900 dark:bg-teal-950/20">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
+                  <button type="button" onClick={selectedReport.action} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-teal-700">Raporu aç</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {/* Report detail navigation and time filters */}
