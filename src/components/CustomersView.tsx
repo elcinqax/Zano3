@@ -555,21 +555,21 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             </button>
           )}
         </div>
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="space-y-2 p-2 sm:p-3">
           {filteredCustomers.map((c) => {
             const hasDebt = c.balance > 0;
             return (
               <div
                 key={c.id}
-                className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm shadow-slate-900/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-200 hover:bg-emerald-50/20 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/10 transition-colors"
               >
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <div className="flex min-w-0 flex-col items-start gap-1.5">
                     <button
                       type="button"
                       onClick={() => { setHistoryCustomer(c); setSelectedHistoryMonth(null); }}
-                      className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
+                      className="block max-w-full truncate text-sm font-black text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
                       title="Müşteri geçmişini görüntüle"
                     >
                       {c.name}
