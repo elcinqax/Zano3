@@ -204,9 +204,11 @@ html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 
 button, input, select, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
+.print-only { display: none; }
 
 @media print {
   body * { visibility: hidden !important; }
+  .print-only { display: block !important; }
   .report-print-content, .report-print-content * { visibility: visible !important; }
   .report-print-content { position: absolute; inset: 0; width: 100%; padding: 16px; background: white !important; color: black !important; }
   .report-print-content button { display: none !important; }

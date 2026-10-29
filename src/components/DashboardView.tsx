@@ -579,6 +579,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 3. REPORT TAB 1: MÜŞTERİ & ÜRÜN SATIN ALMA RAPORU (Hangi müşteri hangi üründen ne kadar almış) */}
       {activeReportTab === 'customerProducts' && (
         <div className="report-print-content space-y-4">
+          <div className="print-only mb-4 border-b border-slate-300 pb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Müşteri raporu</p>
+            <h1 className="mt-1 text-xl font-black text-slate-900">{selectedCustomerFilter === 'all' ? 'Tüm müşteriler' : (customers.find((customer) => customer.id === selectedCustomerFilter)?.name || selectedCustomerFilter)}</h1>
+          </div>
           {/* Summary Banner for Customer Purchases */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
