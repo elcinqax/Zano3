@@ -27,8 +27,17 @@ html[data-theme="sand"] { --theme-font: "Nunito Sans", system-ui, sans-serif; --
   --app-ink: #16302b;
 }
 
-html.dark, html[data-theme="ocean"], html[data-theme="plum"], html[data-theme="forest"], html[data-theme="sand"] {
+html.dark, html[data-theme="dark"], html[data-theme="ocean"], html[data-theme="plum"], html[data-theme="forest"], html[data-theme="sand"] {
   color-scheme: dark;
+}
+
+html[data-theme="dark"] {
+  --app-accent: #2dd4bf;
+  --app-accent-soft: #123b36;
+  --app-surface: #101b1a;
+  --app-canvas: #07100f;
+  --app-border: #29403b;
+  --app-ink: #e7f1ee;
 }
 
 html[data-theme="ocean"] { --app-accent: #67e8f9; --app-accent-soft: #123b48; --app-surface: #101a2b; --app-canvas: #080f1d; --app-border: #243653; }
@@ -111,6 +120,65 @@ html[data-theme="sand"] h1, html[data-theme="sand"] h2, html[data-theme="sand"] 
   border: 1px solid var(--app-border);
   box-shadow: 0 4px 24px -2px color-mix(in srgb, var(--app-accent) 18%, transparent);
 }
+
+/* Keep legacy utility surfaces dark when the night mode is active. */
+html.dark .bg-white,
+html[data-theme="dark"] .bg-white,
+html.dark .bg-slate-50,
+html[data-theme="dark"] .bg-slate-50,
+html.dark .bg-gray-50,
+html.dark .bg-zinc-50 {
+  background-color: #111b1a !important;
+}
+
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/88 {
+  background-color: rgba(15, 23, 42, 0.88) !important;
+}
+
+html.dark .text-slate-950,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: #e7f1ee !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: #b4c7c1 !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.dark .border-gray-200 {
+  border-color: #29403b !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea,
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #0d1716 !important;
+  color: #e7f1ee !important;
+  border-color: #29403b !important;
+}
+
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-gray-50 { background-color: #111b1a !important; }
+html[data-theme="dark"] .text-slate-950,
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-slate-800 { color: #e7f1ee !important; }
+html[data-theme="dark"] .text-slate-700,
+html[data-theme="dark"] .text-slate-600 { color: #b4c7c1 !important; }
+html[data-theme="dark"] .border-slate-200,
+html[data-theme="dark"] .border-slate-300 { border-color: #29403b !important; }
 
 /* Theme-specific overrides keep the existing component utility classes visually distinct. */
 html[data-theme="ocean"] .bg-slate-950 { background-color: #101a2b !important; }
