@@ -576,7 +576,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
               <div
                 key={c.id}
                 ref={(element) => { customerCardRefs.current[c.id] = element; }}
-                className={`p-3 sm:p-4 ${focusedCustomerId === c.id ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-400 dark:bg-emerald-950/30' : ''} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors`}
+                className={`p-3 sm:p-4 ${focusedCustomerId === c.id ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-400 dark:bg-emerald-950/30' : filterDebtOnly ? 'bg-amber-50/60 ring-1 ring-inset ring-amber-200 dark:bg-amber-950/20 dark:ring-amber-900/60' : ''} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors`}
               >
                 {/* Info */}
                 <div className="min-w-0 flex-1">
