@@ -7,7 +7,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-html[data-theme="light"] { --theme-font: "Plus Jakarta Sans", system-ui, sans-serif; --theme-heading: 700; }
+html[data-theme="light"] { --theme-font: "Plus Jakarta Sans", system-ui, sans-serif; --theme-heading: 750; }
 html[data-theme="dark"] { --theme-font: "DM Sans", system-ui, sans-serif; --theme-heading: 700; }
 html[data-theme="ocean"] { --theme-font: "Space Grotesk", system-ui, sans-serif; --theme-heading: 600; }
 html[data-theme="plum"] { --theme-font: "Outfit", system-ui, sans-serif; --theme-heading: 600; }
@@ -19,15 +19,25 @@ html[data-theme="sand"] { --theme-font: "Nunito Sans", system-ui, sans-serif; --
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --app-accent: #365314;
-  --app-accent-soft: #ecfccb;
-  --app-surface: #fffdf5;
-  --app-canvas: #f4f1e8;
-  --app-border: #d8d3c4;
+  --app-accent: #0f766e;
+  --app-accent-soft: #ccfbf1;
+  --app-surface: #ffffff;
+  --app-canvas: #f6f8f7;
+  --app-border: #dce5e1;
+  --app-ink: #16302b;
 }
 
-html.dark, html[data-theme="ocean"], html[data-theme="plum"], html[data-theme="forest"], html[data-theme="sand"] {
+html.dark, html[data-theme="dark"], html[data-theme="ocean"], html[data-theme="plum"], html[data-theme="forest"], html[data-theme="sand"] {
   color-scheme: dark;
+}
+
+html[data-theme="dark"] {
+  --app-accent: #5eead4;
+  --app-accent-soft: #123b50;
+  --app-surface: #111c2e;
+  --app-canvas: #080f1d;
+  --app-border: #263852;
+  --app-ink: #e6eef8;
 }
 
 html[data-theme="ocean"] { --app-accent: #67e8f9; --app-accent-soft: #123b48; --app-surface: #101a2b; --app-canvas: #080f1d; --app-border: #243653; }
@@ -41,8 +51,10 @@ html:not(.dark) {
 
 body {
   background: var(--app-canvas);
-  padding-top: env(safe-area-inset-top, 0px);
+  color: var(--app-ink);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
@@ -94,18 +106,87 @@ html[data-theme="sand"] h1, html[data-theme="sand"] h2, html[data-theme="sand"] 
 
 /* Modern Card Glow & Glass Utility */
 .modern-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--app-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px -18px rgba(22, 48, 43, 0.32);
 }
 
 .dark .modern-card {
   background: color-mix(in srgb, var(--app-surface) 92%, transparent);
   backdrop-filter: blur(16px);
   border: 1px solid var(--app-border);
-  box-shadow: 0 4px 24px -2px color-mix(in srgb, var(--app-accent) 18%, transparent);
+  box-shadow: 0 14px 34px -22px rgba(0, 0, 0, 0.72);
 }
+
+/* Keep legacy utility surfaces dark when the night mode is active. */
+html.dark .bg-white,
+html[data-theme="dark"] .bg-white,
+html.dark .bg-slate-50,
+html[data-theme="dark"] .bg-slate-50,
+html.dark .bg-gray-50,
+html.dark .bg-zinc-50 {
+  background-color: #111c2e !important;
+}
+
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/88 {
+  background-color: rgba(15, 23, 42, 0.88) !important;
+}
+
+html.dark .text-slate-950,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: #e6eef8 !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: #9fb0c5 !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.dark .border-gray-200 {
+  border-color: #263852 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea,
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #0c1628 !important;
+  color: #e6eef8 !important;
+  border-color: #263852 !important;
+}
+
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-gray-50 { background-color: #111c2e !important; }
+html[data-theme="dark"] .text-slate-950,
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-slate-800 { color: #e6eef8 !important; }
+html[data-theme="dark"] .text-slate-700,
+html[data-theme="dark"] .text-slate-600 { color: #9fb0c5 !important; }
+html[data-theme="dark"] .border-slate-200,
+html[data-theme="dark"] .border-slate-300 { border-color: #263852 !important; }
+
+html.dark .bg-emerald-600,
+html[data-theme="dark"] .bg-emerald-600 { background-color: #0f766e !important; }
+html.dark .bg-emerald-700,
+html[data-theme="dark"] .bg-emerald-700 { background-color: #115e59 !important; }
+html.dark .text-emerald-400,
+html[data-theme="dark"] .text-emerald-400 { color: #5eead4 !important; }
+html.dark .text-emerald-600,
+html[data-theme="dark"] .text-emerald-600 { color: #2dd4bf !important; }
 
 /* Theme-specific overrides keep the existing component utility classes visually distinct. */
 html[data-theme="ocean"] .bg-slate-950 { background-color: #101a2b !important; }
@@ -121,4 +202,11 @@ html[data-theme="plum"] .text-emerald-400 { color: #e9a8ff !important; }
 html[data-theme="forest"] .text-emerald-400 { color: #86efac !important; }
 html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 
+button, input, select, textarea { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 640px) {
+  main { scroll-padding-bottom: 5rem; }
+  h1, h2, h3 { letter-spacing: -0.035em; }
+}
 

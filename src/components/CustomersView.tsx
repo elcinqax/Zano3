@@ -561,11 +561,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             return (
               <div
                 key={c.id}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
               >
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => { setHistoryCustomer(c); setSelectedHistoryMonth(null); }}
@@ -616,13 +616,13 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
+                <div className="flex w-full items-center justify-end gap-1.5 shrink-0 pt-2 sm:w-auto sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
                   {/* Collection / customer balance settlement */}
                   {c.balance !== 0 && (
                     <button
                       type="button"
                       onClick={() => handleOpenPayment(c)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors ${hasDebt ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                      className={`min-h-9 flex-1 sm:flex-none px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 shadow-sm transition-colors ${hasDebt ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                       title={hasDebt ? 'Tahsilat Al' : 'Müşteriye Ödeme Yap'}
                     >
                       <ArrowDownLeft className="w-3.5 h-3.5" />
@@ -635,7 +635,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSendWhatsAppReminder(c)}
-                      className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors"
+                      className="size-9 shrink-0 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors"
                       title="WhatsApp ile Mesaj Gönder"
                     >
                       <MessageSquare className="w-4 h-4" />
@@ -646,7 +646,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                   <button
                     type="button"
                     onClick={() => openEditModal(c)}
-                    className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="size-9 shrink-0 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     title="Düzenle"
                   >
                     <Edit2 className="w-4 h-4" />

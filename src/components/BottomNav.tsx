@@ -49,8 +49,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="sticky bottom-0 z-40 w-full bg-[#fffdf5]/94 dark:bg-[#171914]/96 backdrop-blur-2xl border-t border-[#d8d3c4] dark:border-[#34382b] transition-colors shadow-[0_-6px_24px_rgba(30,32,20,0.12)] shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="grid grid-cols-5 h-16 items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
+    <nav className="sticky bottom-0 z-40 w-full bg-white/92 dark:bg-slate-950/94 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_-12px_32px_-22px_rgba(15,23,42,0.5)] shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="grid grid-cols-5 h-[4.5rem] items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =
@@ -65,8 +65,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               className={`relative flex flex-col items-center justify-center min-h-[52px] py-1 transition-all rounded-2xl active:scale-95 ${
                 isActive
                   ? tab.id === 'expenses'
-                    ? 'text-[#a16207] dark:text-[#facc15] font-extrabold'
-                    : 'text-[#4d7c0f] dark:text-[#bef264] font-extrabold'
+                    ? 'text-amber-700 dark:text-amber-300 font-extrabold'
+                    : 'text-teal-700 dark:text-teal-300 font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
               aria-label={tab.label}
@@ -76,8 +76,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 className={`relative flex items-center justify-center w-11 sm:w-14 h-8 rounded-2xl transition-all duration-300 ${
                   isActive
                     ? tab.id === 'expenses'
-                      ? 'bg-yellow-400/10 text-[#a16207] dark:text-[#facc15] ring-1 ring-yellow-400/25 shadow-xs'
-                      : 'bg-lime-400/10 text-[#4d7c0f] dark:text-[#bef264] ring-1 ring-lime-400/25 shadow-xs'
+                      ? 'bg-amber-100/80 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 ring-1 ring-amber-200/80 dark:ring-amber-800/60 shadow-xs'
+                      : 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 ring-1 ring-teal-200/80 dark:ring-teal-800/60 shadow-xs'
                     : 'bg-transparent'
                 }`}
               >
@@ -94,7 +94,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 )}
               </div>
 
-              <span className="text-[11px] sm:text-xs tracking-tight mt-1 truncate leading-none">
+              <span className="text-[10px] sm:text-xs tracking-tight mt-1 truncate leading-none font-semibold">
                 {tab.label}
               </span>
             </button>

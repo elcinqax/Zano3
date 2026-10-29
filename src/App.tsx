@@ -45,8 +45,7 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
-      if (saved && THEME_ORDER.includes(saved as ThemeMode)) return saved as ThemeMode;
-      return 'dark';
+      return saved === 'dark' ? 'dark' : 'light';
     }
     return 'light';
   });
@@ -128,6 +127,16 @@ export default function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const returnToSales = () => setActiveTab('pos');
+    window.addEventListener('popstate', returnToSales);
+    window.addEventListener('appbackbutton', returnToSales);
+    return () => {
+      window.removeEventListener('popstate', returnToSales);
+      window.removeEventListener('appbackbutton', returnToSales);
+    };
   }, []);
 
   useEffect(() => {
@@ -221,12 +230,14 @@ export default function App() {
   isMobileFrame={isMobileFrame}
             onToggleMobileFrame={() => setIsMobileFrame(!isMobileFrame)}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+  onTabChange={setActiveTab}
+  themeMode={themeMode === 'dark' ? 'dark' : 'light'}
+  onToggleTheme={() => setThemeMode((prev) => prev === 'dark' ? 'light' : 'dark')}
+  />
         </div>
 
         {/* Scrollable Content Body */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 max-w-7xl mx-auto w-full pb-24 sm:pb-8">
+        <main className="flex-1 overflow-y-auto px-3.5 sm:px-6 py-4 sm:py-6 max-w-7xl mx-auto w-full pb-24 sm:pb-8">
           {/* 1. Satış (POS) */}
           {activeTab === 'pos' && (
             <POSView
