@@ -442,6 +442,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             type="button"
+            onClick={handlePrint}
+            className="px-3 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            title="Raporu PDF olarak indir"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>PDF İndir</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => exportCustomerPurchasesToExcel(customerProductPurchases, settings.storeName)}
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
             title="Müşteri-Ürün Satın Alma Raporunu Excel Olarak İndir"
