@@ -176,6 +176,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const productById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
+  const filteredPayments = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOf7Days = new Date(now);
+    startOf7Days.setDate(now.getDate() - 7);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    return payments.filter((payment) => {
+      const paymentDate = new Date(payment.createdAt);
+      if (timeRange === 'today') return paymentDate >= startOfToday;
+      if (timeRange === '7days') return paymentDate >= startOf7Days;
+      if (timeRange === 'month') return paymentDate >= startOfMonth;
+      if (timeRange === 'year') return paymentDate >= startOfYear;
+      if (timeRange === 'custom') {
+        if (customStartDate && paymentDate < new Date(`${customStartDate}T00:00:00`)) return false;
+        if (customEndDate && paymentDate > new Date(`${customEndDate}T23:59:59.999`)) return false;
+      }
+      return true;
+    });
+  }, [payments, timeRange, customStartDate, customEndDate]);
+
   // =========================================================================
   // MAIN FEATURE: HANGİ MÜŞTERİ HANGİ ÜRÜNDEN NE KADAR ALMIŞ (Customer x Product Report)
   // =========================================================================
@@ -408,11 +430,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const creditEvents = filteredSales
       .filter((sale) => matchesSelectedCustomer(sale.customerId) && Boolean(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
       .map((sale) => ({ type: 'Veresiye', date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
-    const collectionEvents = payments
+    const collectionEvents = filteredPayments
       .filter((payment) => matchesSelectedCustomer(payment.customerId))
       .map((payment) => ({ type: 'Tahsilat', date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
-    return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [filteredSales, payments, selectedCustomerFilter]);
+    return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredSales, filteredPayments, selectedCustomerFilter]);
 
   // Print Report Handler
   const handlePrint = async () => {
@@ -516,6 +538,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         y += 6;
       });
     }
+
+    const creditTotal = reportEvents
+      .filter((event) => event.type === 'Veresiye')
+      .reduce((total, event) => total + event.amount, 0);
+    const collectionTotal = reportEvents
+      .filter((event) => event.type === 'Tahsilat')
+      .reduce((total, event) => total + event.amount, 0);
+    const remainingDebt = Math.max(0, creditTotal - collectionTotal);
+
+    if (y > 265) {
+      doc.addPage();
+      y = 18;
+    } else {
+      y += 10;
+    }
+    addLine('Rapor toplamları', y, 11, true);
+    y += 7;
+    addLine(`Toplam satış tutarı: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}`, y, 9);
+    y += 5;
+    addLine(`Toplam veresiye: ${formatCurrency(creditTotal, settings.currency)}`, y, 9);
+    y += 5;
+    addLine(`Toplam tahsilat: -${formatCurrency(collectionTotal, settings.currency)}`, y, 9);
+    y += 7;
+    doc.setFillColor(15, 118, 110);
+    doc.roundedRect(14, y - 5, 182, 12, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('DejaVuSans', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Kalan borç: ${formatCurrency(remainingDebt, settings.currency)}`, 18, y + 3);
+    doc.setTextColor(0, 0, 0);
 
       const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
