@@ -584,7 +584,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <h1 className="mt-1 text-xl font-black text-slate-900">{selectedCustomerFilter === 'all' ? 'Tüm müşteriler' : (customers.find((customer) => customer.id === selectedCustomerFilter)?.name || selectedCustomerFilter)}</h1>
           </div>
           {/* Summary Banner for Customer Purchases */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
               <span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span>
               <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
@@ -619,7 +619,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Controls: Search, Customer Filter, Product Filter, Grouping Mode */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="print-hide p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               {/* Grouping mode pills */}
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl self-start">

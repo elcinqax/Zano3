@@ -205,6 +205,7 @@ html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 button, input, select, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 .print-only { display: none; }
+@media print { .print-hide { display: none !important; } }
 
 @media print {
   body * { visibility: hidden !important; }
