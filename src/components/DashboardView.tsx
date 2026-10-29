@@ -411,7 +411,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const collectionEvents = payments
       .filter((payment) => matchesSelectedCustomer(payment.customerId))
       .map((payment) => ({ type: 'Tahsilat', date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
-    return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredSales, payments, selectedCustomerFilter]);
 
   // Print Report Handler
