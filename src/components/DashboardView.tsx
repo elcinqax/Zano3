@@ -528,7 +528,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </section>
 
       {/* Report detail navigation and time filters */}
-      <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+      <div className="hidden p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1 overflow-x-auto max-w-full">
           <button
             type="button"
@@ -659,7 +659,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Controls: Search, Customer Filter, Product Filter, Grouping Mode */}
-          <div className="print-hide p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="hidden print-hide p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               {/* Grouping mode pills */}
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl self-start">
