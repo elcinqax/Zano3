@@ -611,40 +611,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Müşteri raporu</p>
             <h1 className="mt-1 text-xl font-black text-slate-900">{selectedCustomerFilter === 'all' ? 'Tüm müşteriler' : (customers.find((customer) => customer.id === selectedCustomerFilter)?.name || selectedCustomerFilter)}</h1>
           </div>
-          {/* Summary Banner for Customer Purchases */}
-          <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span>
-              <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
-                {formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">
-                {customerProductReportSummary.totalQuantity} Adet/Birim
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span>
-              <div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
-                {customerProductReportSummary.uniqueCustomers} Müşteri
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span>
-              <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">
-                {customerProductReportSummary.uniqueProducts} Çeşit Ürün
-              </div>
-              <span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span>
-            </div>
-          </div>
 
           {/* Controls: Search, Customer Filter, Product Filter, Grouping Mode */}
           <div className="hidden print-hide p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
@@ -830,7 +796,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
 
-          {/* REPORT VIEW 2: GROUPED BY PRODUCT (Ürün ve Alan Müşteriler) */}
+              {/* Summary Banner for Customer Purchases */}
+          <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span><div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">{formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}</div><span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span><div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{customerProductReportSummary.totalQuantity} Adet/Birim</div><span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span><div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueCustomers} Müşteri</div><span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span><div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueProducts} Çeşit Ürün</div><span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span></div>
+          </div>
+
+      {/* REPORT VIEW 2: GROUPED BY PRODUCT (Ürün ve Alan Müşteriler) */}
           {groupingMode === 'product' && (
             <div className="space-y-3">
               {groupedByProduct.length === 0 ? (
