@@ -561,7 +561,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             return (
               <div
                 key={c.id}
-                className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm shadow-slate-900/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-200 hover:bg-emerald-50/20 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/10 transition-colors"
+                className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm shadow-slate-900/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-emerald-200 hover:bg-emerald-50/20 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/10 transition-colors"
               >
                 {/* Info */}
                 <div className="min-w-0 flex-1">
@@ -569,7 +569,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                     <button
                       type="button"
                       onClick={() => { setHistoryCustomer(c); setSelectedHistoryMonth(null); }}
-                      className="block max-w-full truncate text-sm font-black text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
+                      className="block max-w-full break-words text-sm font-black leading-tight text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline underline-offset-2 text-left"
                       title="Müşteri geçmişini görüntüle"
                     >
                       {c.name}
@@ -589,9 +589,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  <div className="mt-1 flex min-w-0 flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
                     {c.phone ? (
-                      <span className="flex items-center gap-1 font-mono text-slate-600 dark:text-slate-300">
+                      <span className="flex min-w-0 items-center gap-1 font-mono text-slate-600 dark:text-slate-300">
                         <Phone className="w-3 h-3 text-slate-400" />
                         {c.phone}
                       </span>
@@ -601,7 +601,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                     {c.address && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <span className="truncate max-w-[200px]">{c.address}</span>
+                        <span className="max-w-full truncate sm:max-w-[200px]">{c.address}</span>
                       </>
                     )}
                     <span aria-hidden="true">·</span>
@@ -616,17 +616,17 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex w-full items-center justify-end gap-1.5 shrink-0 pt-2 sm:w-auto sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
+                <div className="grid w-full grid-cols-4 items-center gap-1 border-t border-slate-100 pt-2 sm:flex sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0 dark:border-slate-800">
                   {/* Collection / customer balance settlement */}
                   {c.balance !== 0 && (
                     <button
                       type="button"
                       onClick={() => handleOpenPayment(c)}
-                      className={`min-h-9 flex-1 sm:flex-none px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 shadow-sm transition-colors ${hasDebt ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                      className={`min-h-9 min-w-0 px-2 py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 shadow-sm transition-colors ${hasDebt ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                       title={hasDebt ? 'Tahsilat Al' : 'Müşteriye Ödeme Yap'}
                     >
                       <ArrowDownLeft className="w-3.5 h-3.5" />
-                      <span>{hasDebt ? 'Tahsilat Al' : 'Tahsilat Al'}</span>
+                      <span className="hidden sm:inline">Tahsilat Al</span>
                     </button>
                   )}
 
