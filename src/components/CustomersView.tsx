@@ -493,14 +493,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
         {/* Müşteri İsimleri (Arama Alanının Hemen Altında) */}
         <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
-          <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto pb-1 sm:grid-cols-3 lg:grid-cols-5">
-            <span className="col-span-2 self-center text-[11px] font-bold uppercase tracking-wider text-slate-400 sm:col-span-3 lg:col-span-5">
+          <div className="grid max-h-44 grid-cols-3 gap-1.5 overflow-y-auto pb-1 sm:grid-cols-3 lg:grid-cols-5">
+            <span className="col-span-3 self-center text-[11px] font-bold uppercase tracking-wider text-slate-400 sm:col-span-3 lg:col-span-5">
               Müşteri İsimleri
             </span>
             <button
               type="button"
               onClick={() => { setSearch(''); setCustomerListOpen(true); }}
-              className={`min-w-0 justify-start px-3 py-2 rounded-xl text-xs font-semibold whitespace-normal break-words text-left transition-all border ${
+              className={`min-w-0 justify-start px-1.5 py-2 rounded-xl text-[10px] leading-tight font-semibold whitespace-normal break-words text-left transition-all border ${
                 !search
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm'
                   : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
