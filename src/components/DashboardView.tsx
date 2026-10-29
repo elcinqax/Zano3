@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { jsPDF } from 'jspdf';
 import {
   FileSpreadsheet,
   Download,
@@ -164,13 +163,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     () => customers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0),
     [customers]
   );
-  const debtorCount = customers.filter((c) => c.balance > 0).length;
+  const debtorCount = useMemo(() => customers.filter((c) => c.balance > 0).length, [customers]);
 
   // Inventory value
   const inventoryCostValue = useMemo(
     () => products.reduce((sum, p) => sum + p.stock * p.buyPrice, 0),
     [products]
   );
+
+  const productById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
   // =========================================================================
   // MAIN FEATURE: HANGİ MÜŞTERİ HANGİ ÜRÜNDEN NE KADAR ALMIŞ (Customer x Product Report)
@@ -186,7 +187,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       sale.items.forEach((item) => {
         const key = `${cId}___${item.productId}`;
-        const prod = products.find((p) => p.id === item.productId);
+        const prod = productById.get(item.productId);
         const unit = prod?.unit || 'Adet';
         const category = prod?.category || 'Genel';
 
@@ -247,7 +248,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     // Sort by total spent descending
     return list.sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [filteredSales, products, selectedCustomerFilter, selectedProductFilter, customerProductSearch]);
+  }, [filteredSales, productById, selectedCustomerFilter, selectedProductFilter, customerProductSearch]);
 
   // Total summary of customer product report
   const customerProductReportSummary = useMemo(() => {
@@ -400,12 +401,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [filteredSales]);
 
   // Print Report Handler
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!window.matchMedia('(max-width: 768px)').matches) {
       window.print();
       return;
     }
 
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const normalizePdfText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const addLine = (text: string, y: number, size = 10, bold = false) => {
@@ -424,7 +426,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     addLine(`Toplam miktar: ${customerProductReportSummary.totalQuantity} adet`, y, 10);
     y += 10;
 
-    customerProductPurchases.forEach((group) => {
+    groupedByCustomer.forEach((group) => {
       if (y > 275) {
         doc.addPage();
         y = 16;
@@ -436,7 +438,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           doc.addPage();
           y = 16;
         }
-        addLine(`- ${product.productName}: ${product.quantity} adet / ${formatCurrency(product.totalSpent, settings.currency)}`, y, 9);
+        addLine(`- ${product.productName}: ${product.totalQuantity} adet / ${formatCurrency(product.totalSpent, settings.currency)}`, y, 9);
         y += 5;
       });
       y += 3;

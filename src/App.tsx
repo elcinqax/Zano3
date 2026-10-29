@@ -142,9 +142,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('app_language', language);
     translateDocument(language);
-    const observer = new MutationObserver(() => translateDocument(language));
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+
   }, [language]);
 
   // Handle Dark mode class
