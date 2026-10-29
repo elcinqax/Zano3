@@ -485,7 +485,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   value={selectedReport.id}
                   onChange={(event) => {
                     const nextReport = reportCatalog.find((report) => report.id === event.target.value);
-                    if (nextReport) setExpandedReportId(nextReport.id);
+                    if (nextReport) {
+                      setExpandedReportId(nextReport.id);
+                      nextReport.action();
+                    }
                   }}
                   className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm font-black text-slate-800 outline-none dark:text-slate-100"
                 >
@@ -494,10 +497,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="shrink-0 px-2 text-[10px] font-bold text-slate-400">{reportCatalog.length} seçenek</span>
               </div>
               <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900 dark:bg-teal-950/20">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="min-w-0 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
-                  <button type="button" onClick={selectedReport.action} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-teal-700">Raporu aç</button>
-                </div>
+                <p className="text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
               </div>
             </div>
           );
