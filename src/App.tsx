@@ -226,7 +226,7 @@ export default function App() {
         </div>
 
         {/* Scrollable Content Body */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 max-w-7xl mx-auto w-full pb-24 sm:pb-8">
+        <main className="flex-1 overflow-y-auto px-3.5 sm:px-6 py-4 sm:py-6 max-w-7xl mx-auto w-full pb-24 sm:pb-8">
           {/* 1. Satış (POS) */}
           {activeTab === 'pos' && (
             <POSView

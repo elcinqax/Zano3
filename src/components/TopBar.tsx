@@ -37,8 +37,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`w-full bg-[#fffdf5]/92 dark:bg-[#171914]/94 backdrop-blur-xl border-b border-[#d8d3c4] dark:border-[#34382b] transition-colors shadow-[0_4px_18px_rgba(30,32,20,0.08)] ${getPaddingTopClass()}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <header className={`w-full bg-white/88 dark:bg-slate-950/88 backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] ${getPaddingTopClass()}`}>
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-3">
         {/* Zone 1: Brand wordmark & emblem */}
         <div className="flex items-center gap-2.5">
           <button
@@ -46,7 +46,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={() => onTabChange('pos')}
             className="flex items-center gap-3 text-left group transition-transform active:scale-98"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#bef264] dark:bg-[#365314] text-[#1a2410] dark:text-[#bef264] flex items-center justify-center font-black text-xl shadow-md shadow-lime-900/25 ring-1 ring-white/20">
+            <div className="size-10 rounded-[0.9rem] bg-teal-700 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-teal-900/20 ring-4 ring-teal-50 dark:ring-teal-950/40">
               M
             </div>
             <div className="leading-tight">
