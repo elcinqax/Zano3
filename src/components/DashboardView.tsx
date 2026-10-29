@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { jsPDF } from 'jspdf';
 import {
   FileSpreadsheet,
   Download,
@@ -401,13 +402,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [filteredSales]);
 
   // Print Report Handler
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!window.matchMedia('(max-width: 768px)').matches) {
       window.print();
       return;
     }
 
-    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const normalizePdfText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const addLine = (text: string, y: number, size = 10, bold = false) => {
