@@ -479,14 +479,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
         {/* Müşteri İsimleri (Arama Alanının Hemen Altında) */}
         <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
-              Müşteri İsimleri:
+          <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto pb-1 sm:grid-cols-3 lg:grid-cols-5">
+            <span className="col-span-2 self-center text-[11px] font-bold uppercase tracking-wider text-slate-400 sm:col-span-3 lg:col-span-5">
+              Müşteri İsimleri
             </span>
             <button
               type="button"
               onClick={() => setSearch('')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+              className={`min-w-0 justify-start px-3 py-2 rounded-xl text-xs font-semibold whitespace-normal break-words text-left transition-all border ${
                 !search
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm'
                   : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -501,7 +501,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                   key={c.id}
                   type="button"
                   onClick={() => setSearch(isSelected ? '' : c.name)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 border ${
+                  className={`min-w-0 justify-start px-3 py-2 rounded-xl text-xs font-semibold whitespace-normal break-words text-left transition-all flex items-center gap-1.5 border ${
                     isSelected
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                       : 'bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:text-emerald-600'
