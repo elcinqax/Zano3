@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Users,
   Search,
@@ -59,6 +59,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const [search, setSearch] = useState('');
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
   const [customerListOpen, setCustomerListOpen] = useState(false);
+  const [focusedCustomerId, setFocusedCustomerId] = useState<string | null>(null);
+  const customerCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -409,6 +411,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   };
 
+  const focusCustomer = (customer: Customer) => {
+    setSearch(customer.name);
+    setCustomerListOpen(true);
+    setFocusedCustomerId(customer.id);
+    window.setTimeout(() => customerCardRefs.current[customer.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+    window.setTimeout(() => setFocusedCustomerId(null), 1500);
+  };
+
   const handleSendWhatsAppReminder = (customer: Customer) => {
     if (!customer.phone) return;
   const message = `Hörmətli ${customer.name},
@@ -504,7 +514,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setSearch(isSelected ? '' : c.name)}
+                  onClick={() => isSelected ? setSearch('') : focusCustomer(c)}
                   className={`min-w-0 justify-start px-3 py-2 rounded-xl text-xs font-semibold whitespace-normal break-words text-left transition-all flex items-center gap-1.5 border ${
                     isSelected
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
@@ -565,7 +575,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             return (
               <div
                 key={c.id}
-                className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                ref={(element) => { customerCardRefs.current[c.id] = element; }}
+                className={`p-3 sm:p-4 ${focusedCustomerId === c.id ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-400 dark:bg-emerald-950/30' : ''} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors`}
               >
                 {/* Info */}
                 <div className="min-w-0 flex-1">
