@@ -803,15 +803,15 @@ export const POSView: React.FC<POSViewProps> = ({
             </span>
           </div>
           {selectedCustomerPeriodAverages && (
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="flex flex-col gap-2">
               {[
                 ['Haftalık', selectedCustomerPeriodAverages.weekly, 'ürün/hafta'],
                 ['Aylık', selectedCustomerPeriodAverages.monthly, 'ürün/ay'],
                 ['Yıllık', selectedCustomerPeriodAverages.yearly, 'ürün/yıl'],
               ].map(([label, value, suffix]) => (
-                <div key={label} className="rounded-xl border border-slate-200/80 bg-white/70 px-2 py-1.5 text-center dark:border-slate-700 dark:bg-slate-900/70">
-                  <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">{label}</span>
-                  <span className="block font-mono text-[11px] font-black tabular-nums text-slate-900 dark:text-slate-100">{Number(value).toFixed(1)} <span className="font-sans text-[9px] font-bold">{suffix}</span></span>
+                <div key={label} className="flex items-center justify-between gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950">
+                  <span className="font-bold text-slate-500 dark:text-slate-400">{label}</span>
+                  <span className="font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">{Number(value).toFixed(1)} <span className="font-sans text-[10px] font-bold">{suffix}</span></span>
                 </div>
               ))}
             </div>
