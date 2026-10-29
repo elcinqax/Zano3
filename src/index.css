@@ -211,8 +211,11 @@ button { -webkit-tap-highlight-color: transparent; }
   body * { visibility: hidden !important; }
   .print-only { display: block !important; }
   .report-print-content, .report-print-content * { visibility: visible !important; }
-  .report-print-content { position: absolute; inset: 0; width: 100%; padding: 16px; background: white !important; color: black !important; }
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+  .report-print-content { position: static; width: 100%; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; color: black !important; break-after: avoid-page; page-break-after: avoid; }
   .report-print-content button { display: none !important; }
+  .report-print-content > * { break-inside: avoid; page-break-inside: avoid; }
 }
 
 @media (max-width: 640px) {
