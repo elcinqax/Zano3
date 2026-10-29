@@ -442,11 +442,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0">
             <button
               type="button"
               onClick={() => setFilterDebtOnly(!filterDebtOnly)}
-              className={`px-3.5 h-11 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap border ${
+              className={`col-span-2 justify-center px-3.5 h-11 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap border sm:col-span-1 ${
                 filterDebtOnly
                   ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                   : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -459,7 +459,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             <button
               type="button"
               onClick={openAddModal}
-              className="px-4 h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap"
+              className="min-w-0 justify-center px-3 h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>+ Yeni Müşteri</span>
@@ -468,7 +468,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             <button
               type="button"
               onClick={() => exportCustomersToCSV(customers)}
-              className="px-3 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="min-w-0 justify-center px-3 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="CSV İndir"
             >
               <Download className="w-3.5 h-3.5" />
