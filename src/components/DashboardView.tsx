@@ -497,7 +497,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="shrink-0 px-2 text-[10px] font-bold text-slate-400">{reportCatalog.length} seçenek</span>
               </div>
               <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900 dark:bg-teal-950/20">
-                <p className="text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
+                <p className="mb-3 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
+                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                  <label className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-bold text-slate-500">Müşteri:</span>
+                    <select value={selectedCustomerFilter} onChange={(e) => setSelectedCustomerFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="all">Tüm Müşteriler ({customers.length})</option>
+                      {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-bold text-slate-500">Ürün:</span>
+                    <select value={selectedProductFilter} onChange={(e) => setSelectedProductFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="all">Tüm Ürünler ({products.length})</option>
+                      {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 items-center gap-2 sm:col-span-2">
+                    <span className="shrink-0 font-bold text-slate-500">Tarih:</span>
+                    <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as typeof timeRange)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="today">Bugün</option><option value="7days">Son 7 Gün</option><option value="month">Bu Ay</option><option value="year">Bu Yıl</option><option value="all">Tüm Zamanlar</option><option value="custom">Özel Tarih Aralığı</option>
+                    </select>
+                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak indir"><Download className="inline-block size-3.5" /> PDF</button>
+                  </label>
+                </div>
               </div>
             </div>
           );
@@ -697,59 +720,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
 
-            {/* Dropdown Filters for specific Customer or specific Product */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500 shrink-0">Müşteri Filtresi:</span>
-                <select
-                  value={selectedCustomerFilter}
-                  onChange={(e) => setSelectedCustomerFilter(e.target.value)}
-                  className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="all">Tüm Müşteriler ({customers.length})</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.phone ? `(${c.phone})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500 shrink-0">Ürün Filtresi:</span>
-                <select
-                  value={selectedProductFilter}
-                  onChange={(e) => setSelectedProductFilter(e.target.value)}
-                  className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="all">Tüm Ürünler ({products.length})</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 sm:col-span-2">
-                <span className="font-bold text-slate-500 shrink-0">Tarih Filtresi:</span>
-                <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value as typeof timeRange)}
-                  className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="today">Bugün</option>
-                  <option value="7days">Son 7 Gün</option>
-                  <option value="month">Bu Ay</option>
-                  <option value="year">Bu Yıl</option>
-                  <option value="all">Tüm Zamanlar</option>
-                  <option value="custom">Özel Tarih Aralığı</option>
-                </select>
-                <button type="button" onClick={handlePrint} className="h-9 shrink-0 rounded-xl bg-teal-600 px-3 text-xs font-black text-white shadow-sm transition-colors hover:bg-teal-700" title="Filtrelenmiş rapor fişini PDF olarak indir">
-                  <Download className="inline-block size-3.5" /> <span className="hidden min-[420px]:inline">PDF İndir</span><span className="min-[420px]:hidden">PDF</span>
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* REPORT VIEW 1: GROUPED BY CUSTOMER (Müşteri ve Aldığı Ürünler) */}
