@@ -779,11 +779,17 @@ export const POSView: React.FC<POSViewProps> = ({
             <span>Ödeme Al</span>
             <ArrowRight className="w-5 h-5" />
           </button>
-          <div className="flex items-center justify-between gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950" aria-live="polite">
-            <span className="font-bold text-slate-500 dark:text-slate-400">Günlük ortalama</span>
-            <span className="font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">
-              {selectedCustomerDailyAverage ? `${selectedCustomerDailyAverage.average.toFixed(1)} ürün/gün` : 'Müşteri seçin'}
-            </span>
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950" aria-live="polite">
+            <div className="min-w-0">
+              <span className="block font-bold text-slate-500 dark:text-slate-400">Günlük ortalama</span>
+              <span className="block truncate font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">
+                {selectedCustomerDailyAverage ? `${selectedCustomerDailyAverage.average.toFixed(1)} ürün/gün` : 'Müşteri seçin'}
+              </span>
+            </div>
+            <div className="shrink-0 border-l border-slate-200 pl-3 text-right dark:border-slate-700">
+              <span className="block font-bold text-slate-500 dark:text-slate-400">Genel müşteri</span>
+              <span className="block font-mono font-black tabular-nums text-teal-700 dark:text-teal-300">{customers.length}</span>
+            </div>
           </div>
         </div>
       </div>
