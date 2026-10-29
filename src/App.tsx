@@ -130,7 +130,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const returnToSales = () => setActiveTab('pos');
+    const appHistoryState = { mobileSalesApp: true };
+    const keepAppHistoryEntry = () => {
+      window.history.pushState(appHistoryState, '', window.location.href);
+    };
+
+    keepAppHistoryEntry();
+
+    const returnToSales = () => {
+      setActiveTab('pos');
+      keepAppHistoryEntry();
+    };
+
     window.addEventListener('popstate', returnToSales);
     window.addEventListener('appbackbutton', returnToSales);
     return () => {
