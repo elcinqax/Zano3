@@ -444,7 +444,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       y += 3;
     });
 
-    doc.save(`rapor-${new Date().toISOString().slice(0, 10)}.pdf`);
+      const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
+    try {
+      const pdfBlob = doc.output('blob');
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (isIOS) {
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) {
+      console.error('[v0] PDF download failed, falling back to print:', error);
+      window.print();
+    }
   };
 
   const reportCatalog = [
