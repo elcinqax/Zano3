@@ -421,15 +421,11 @@ export default function App() {
 
         {/* Modals */}
   {receiptSale && (
-    <ReceiptModal
-      sale={receiptSale}
-      settings={settings}
-      onClose={() => setReceiptSale(null)}
-      onUpdateSale={(updates) => {
-        const updated = sqliteStorage.updateSale(receiptSale.id, updates);
-        if (updated) setReceiptSale(updated);
-      }}
-    />
+          <ReceiptModal
+            sale={receiptSale}
+            settings={settings}
+            onClose={() => setReceiptSale(null)}
+          />
   )}
 
         {isNotificationsOpen && (
