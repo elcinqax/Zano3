@@ -402,18 +402,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [filteredSales]);
 
   // Print Report Handler
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!window.matchMedia('(max-width: 768px)').matches) {
       window.print();
       return;
     }
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const normalizePdfText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const fontWindow = isIOS ? window.open('about:blank', '_blank') : null;
+    const fontResponse = await fetch('/fonts/DejaVuSans.ttf');
+    const fontBytes = new Uint8Array(await fontResponse.arrayBuffer());
+    let fontBinary = '';
+    for (let index = 0; index < fontBytes.length; index += 0x8000) {
+      fontBinary += String.fromCharCode(...fontBytes.subarray(index, index + 0x8000));
+    }
+    const fontBase64 = btoa(fontBinary);
+    doc.addFileToVFS('DejaVuSans.ttf', fontBase64);
+    doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    doc.setFont('DejaVuSans', 'normal');
     const addLine = (text: string, y: number, size = 10, bold = false) => {
-      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFont('DejaVuSans', 'normal');
       doc.setFontSize(size);
-      doc.text(normalizePdfText(text), 14, y);
+      doc.text(text, 14, y);
     };
 
     let y = 16;
@@ -448,10 +459,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     try {
       const pdfBlob = doc.output('blob');
       const blobUrl = URL.createObjectURL(pdfBlob);
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
       if (isIOS) {
-        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+        if (fontWindow) fontWindow.location.href = blobUrl;
+        else window.open(blobUrl, '_blank', 'noopener,noreferrer');
       } else {
         const link = document.createElement('a');
         link.href = blobUrl;
@@ -900,7 +910,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             </h3>
                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                {group.customers.length} farklı müşteri satın aldı
+                                {group.customers.length} farklı mü��teri satın aldı
                               </span>
                               <span>·</span>
                               <span>Toplam {group.totalQuantity} {group.unit} satıldı</span>
