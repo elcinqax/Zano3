@@ -191,8 +191,7 @@ export const POSView: React.FC<POSViewProps> = ({
   );
 
   const selectedCustomerPeriodAverages = useMemo(() => {
-    if (!selectedCustomerId) return null;
-    const customerSales = sales.filter((sale) => sale.customerId === selectedCustomerId);
+    const customerSales = sales.filter((sale) => selectedCustomerId ? sale.customerId === selectedCustomerId : !sale.customerId);
     if (customerSales.length === 0) return { daily: 0, weekly: 0, monthly: 0, yearly: 0 };
 
     const totalProducts = customerSales.reduce(
@@ -799,7 +798,7 @@ export const POSView: React.FC<POSViewProps> = ({
           <div className="flex items-center justify-between gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950" aria-live="polite">
             <span className="font-bold text-slate-500 dark:text-slate-400">Günlük ortalama</span>
             <span className="font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">
-              {selectedCustomerPeriodAverages ? `${selectedCustomerPeriodAverages.daily.toFixed(1)} ürün/gün` : 'Müşteri seçin'}
+              {selectedCustomerPeriodAverages ? `${selectedCustomerPeriodAverages.daily.toFixed(1)} ürün/gün` : 'Veri yok'}
             </span>
           </div>
           {selectedCustomerPeriodAverages && (
