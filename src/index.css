@@ -205,6 +205,13 @@ html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 button, input, select, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 
+@media print {
+  body * { visibility: hidden !important; }
+  .report-print-content, .report-print-content * { visibility: visible !important; }
+  .report-print-content { position: absolute; inset: 0; width: 100%; padding: 16px; background: white !important; color: black !important; }
+  .report-print-content button { display: none !important; }
+}
+
 @media (max-width: 640px) {
   main { scroll-padding-bottom: 5rem; }
   h1, h2, h3 { letter-spacing: -0.035em; }

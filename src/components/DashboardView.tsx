@@ -442,16 +442,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             type="button"
-            onClick={handlePrint}
-            className="px-3 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
-            title="Raporu PDF olarak indir"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>PDF İndir</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => exportCustomerPurchasesToExcel(customerProductPurchases, settings.storeName)}
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
             title="Müşteri-Ürün Satın Alma Raporunu Excel Olarak İndir"
@@ -588,7 +578,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* 3. REPORT TAB 1: MÜŞTERİ & ÜRÜN SATIN ALMA RAPORU (Hangi müşteri hangi üründen ne kadar almış) */}
       {activeReportTab === 'customerProducts' && (
-        <div className="space-y-4">
+        <div className="report-print-content space-y-4">
           {/* Summary Banner for Customer Purchases */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
@@ -734,6 +724,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <option value="all">Tüm Zamanlar</option>
                   <option value="custom">Özel Tarih Aralığı</option>
                 </select>
+                <button type="button" onClick={handlePrint} className="h-9 shrink-0 rounded-xl bg-teal-600 px-3 text-xs font-black text-white shadow-sm transition-colors hover:bg-teal-700" title="Filtrelenmiş rapor fişini PDF olarak indir">
+                  <Download className="inline-block size-3.5" /> <span className="hidden min-[420px]:inline">PDF İndir</span><span className="min-[420px]:hidden">PDF</span>
+                </button>
               </div>
             </div>
           </div>
