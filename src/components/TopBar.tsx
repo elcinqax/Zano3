@@ -48,7 +48,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`relative w-full bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:z-20 after:h-12 after:bg-gradient-to-t after:from-transparent after:to-slate-950/25 dark:after:to-slate-950/70 ${getPaddingTopClass()}`}>
+    <header className={`relative w-full bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] ${getPaddingTopClass()}`}>
 
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-3">
         {/* Zone 1: Brand wordmark & emblem */}
@@ -123,9 +123,9 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className="flex h-10 items-center gap-2 rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-50 to-white px-2.5 shadow-sm shadow-teal-900/5 dark:border-teal-900/70 dark:from-teal-950/70 dark:to-slate-900" aria-label="Anlık saat">
-            <span className="flex size-6 items-center justify-center rounded-lg bg-teal-600 text-white shadow-sm shadow-teal-900/20"><Clock3 className="size-3.5" /></span>
-            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-teal-800 dark:text-teal-200">
+          <div className="flex h-10 items-center gap-2 rounded-2xl border border-slate-300/70 bg-transparent px-2.5 dark:border-slate-700/70" aria-label="Anlık saat">
+            <span className="flex size-6 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm shadow-slate-900/20 dark:bg-slate-800"><Clock3 className="size-3.5" /></span>
+            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
@@ -138,7 +138,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             type="button"
             onClick={onToggleMobileFrame}
             className="hidden lg:flex min-w-[36px] h-9 px-3 items-center gap-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800"
-            title="Telefon / Masaüstü Görünümünü Değiştir"
+            title="Telefon / Masaüstü G��rünümünü Değiştir"
           >
             {isMobileFrame ? (
               <>
