@@ -437,23 +437,50 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     addLine(`Toplam miktar: ${customerProductReportSummary.totalQuantity} adet`, y, 10);
     y += 10;
 
+    const tableX = [14, 58, 116, 146, 196];
+    const drawTableHeader = () => {
+      doc.setFillColor(13, 148, 136);
+      doc.rect(14, y - 5, 182, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text('Müşteri', tableX[0] + 2, y);
+      doc.text('Ürün', tableX[1] + 2, y);
+      doc.text('Miktar', tableX[2] + 2, y);
+      doc.text('Toplam', tableX[3] + 2, y);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+    };
+
+    drawTableHeader();
     groupedByCustomer.forEach((group) => {
-      if (y > 275) {
-        doc.addPage();
-        y = 16;
-      }
-      addLine(group.customerName, y, 11, true);
-      y += 6;
       group.products.forEach((product) => {
-        if (y > 280) {
+        const customerLines = doc.splitTextToSize(group.customerName, 40) as string[];
+        const productLines = doc.splitTextToSize(product.productName, 52) as string[];
+        const rowLines = Math.max(customerLines.length, productLines.length, 1);
+        const rowHeight = Math.max(8, rowLines * 4 + 4);
+
+        if (y + rowHeight > 282) {
           doc.addPage();
           y = 16;
+          drawTableHeader();
         }
-        addLine(`- ${product.productName}: ${product.totalQuantity} adet / ${formatCurrency(product.totalSpent, settings.currency)}`, y, 9);
-        y += 5;
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.2);
+        doc.rect(14, y - 5, 182, rowHeight);
+        doc.setFontSize(7.5);
+        customerLines.forEach((line, index) => doc.text(line, tableX[0] + 2, y + index * 4));
+        productLines.forEach((line, index) => doc.text(line, tableX[1] + 2, y + index * 4));
+        doc.text(String(product.totalQuantity), tableX[2] + 2, y);
+        doc.text(formatCurrency(product.totalSpent, settings.currency), tableX[3] + 2, y);
+        y += rowHeight;
       });
-      y += 3;
     });
+
+    y += 5;
+    doc.setFontSize(10);
+    doc.setFont('DejaVuSans', 'normal');
+    doc.text(`Genel toplam: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)} / ${customerProductReportSummary.totalQuantity} adet`, 14, y);
 
       const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
