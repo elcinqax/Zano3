@@ -220,8 +220,10 @@ export default function App() {
   isMobileFrame={isMobileFrame}
             onToggleMobileFrame={() => setIsMobileFrame(!isMobileFrame)}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+  onTabChange={setActiveTab}
+  themeMode={themeMode === 'dark' ? 'dark' : 'light'}
+  onToggleTheme={() => setThemeMode((prev) => prev === 'dark' ? 'light' : 'dark')}
+  />
         </div>
 
         {/* Scrollable Content Body */}

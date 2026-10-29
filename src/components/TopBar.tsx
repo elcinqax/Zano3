@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Smartphone, Monitor } from 'lucide-react';
+import { Lock, Smartphone, Monitor, Moon, Sun } from 'lucide-react';
 
 interface TopBarProps {
   storeName: string;
@@ -10,6 +10,8 @@ interface TopBarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   screenTopPadding?: 'auto' | 'compact' | 'large' | 'zero';
+  themeMode: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -21,6 +23,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   activeTab,
   onTabChange,
   screenTopPadding = 'auto',
+  themeMode,
+  onToggleTheme,
 }) => {
   const getPaddingTopClass = () => {
     switch (screenTopPadding) {
@@ -40,7 +44,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     <header className={`w-full bg-white/88 dark:bg-slate-950/88 backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] ${getPaddingTopClass()}`}>
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-3">
         {/* Zone 1: Brand wordmark & emblem */}
-        <div className="flex items-center gap-2.5">
+        <div className="min-w-0 flex-1 flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => onTabChange('pos')}
@@ -50,7 +54,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               M
             </div>
             <div className="leading-tight">
-              <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              <span className="max-w-[11rem] truncate text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 {storeName || 'Almalı Təndiri'}
               </span>
               <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">
@@ -110,7 +114,10 @@ export const TopBar: React.FC<TopBarProps> = ({
         </nav>
 
         {/* Zone 3: Primary Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
+          <button type="button" onClick={onToggleTheme} className="size-10 flex items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
+            {themeMode === 'dark' ? <Sun className="size-5 text-amber-400" /> : <Moon className="size-5 text-teal-700 dark:text-teal-300" />}
+          </button>
 
           {/* Desktop Frame View Toggle */}
           <button
