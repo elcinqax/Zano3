@@ -48,7 +48,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`w-full bg-white/88 dark:bg-slate-950/88 backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] ${getPaddingTopClass()}`}>
+    <header className={`w-full bg-[linear-gradient(to_top,rgba(15,23,42,0.22),rgba(255,255,255,0.96)_72%)] dark:bg-[linear-gradient(to_top,rgba(2,6,23,0.9),rgba(2,6,23,0.98)_72%)] backdrop-blur-2xl border-b border-slate-300/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.55)] ${getPaddingTopClass()}`}>
+
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-3">
         {/* Zone 1: Brand wordmark & emblem */}
         <div className="min-w-0 flex-1 flex items-center gap-2.5">
