@@ -521,6 +521,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak indir"><Download className="inline-block size-3.5" /> PDF</button>
                   </label>
                 </div>
+                {timeRange === 'custom' && (
+                  <div className="mt-2 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 text-xs">
+                    <span className="font-bold text-slate-500">Aralık:</span>
+                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                    <span className="text-slate-400">-</span>
+                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -595,26 +603,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ))}
         </div>
       </div>
-
-      {/* Custom Date Filter Input */}
-      {timeRange === 'custom' && (
-        <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 text-xs">
-          <span className="font-bold text-slate-600 dark:text-slate-400">Tarih Aralığı:</span>
-          <input
-            type="date"
-            value={customStartDate}
-            onChange={(e) => setCustomStartDate(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-semibold"
-          />
-          <span className="text-slate-400">-</span>
-          <input
-            type="date"
-            value={customEndDate}
-            onChange={(e) => setCustomEndDate(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-semibold"
-          />
-        </div>
-      )}
 
       {/* 3. REPORT TAB 1: MÜŞTERİ & ÜRÜN SATIN ALMA RAPORU (Hangi müşteri hangi üründen ne kadar almış) */}
       {activeReportTab === 'customerProducts' && (
