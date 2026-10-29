@@ -404,11 +404,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [filteredSales]);
 
   const reportEvents = useMemo(() => {
+    const matchesSelectedCustomer = (customerId?: string) => selectedCustomerFilter === 'all' || customerId === selectedCustomerFilter;
     const creditEvents = filteredSales
-      .filter((sale) => Boolean(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
+      .filter((sale) => matchesSelectedCustomer(sale.customerId) && Boolean(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
       .map((sale) => ({ type: 'Veresiye', date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
     const collectionEvents = payments
-      .filter((payment) => selectedCustomerFilter === 'all' || payment.customerId === selectedCustomerFilter)
+      .filter((payment) => matchesSelectedCustomer(payment.customerId))
       .map((payment) => ({ type: 'Tahsilat', date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
     return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [filteredSales, payments, selectedCustomerFilter]);
@@ -928,14 +929,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
 
-              {/* Summary Banner for Customer Purchases */}
-          <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span><div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">{formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}</div><span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span></div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span><div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{customerProductReportSummary.totalQuantity} Adet/Birim</div><span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span></div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span><div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueCustomers} Müşteri</div><span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span></div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span><div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueProducts} Çeşit Ürün</div><span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span></div>
-          </div>
-
           {reportEvents.length > 0 && (
             <section className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h3 className="mb-2 text-sm font-black text-slate-800 dark:text-slate-100">Veresiye ve tahsilat günleri</h3>
@@ -950,6 +943,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </section>
           )}
+
+          {/* Summary Banner for Customer Purchases */}
+          <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span><div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">{formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}</div><span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span><div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{customerProductReportSummary.totalQuantity} Adet/Birim</div><span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span><div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueCustomers} Müşteri</div><span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span><div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueProducts} Çeşit Ürün</div><span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span></div>
+          </div>
 
       {/* REPORT VIEW 2: GROUPED BY PRODUCT (Ürün ve Alan Müşteriler) */}
           {groupingMode === 'product' && (
