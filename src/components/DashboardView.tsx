@@ -59,6 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   expenses = [],
   expenseItems = [],
   settings,
+  onNavigateTab,
   onResetAllReports,
 }) => {
   // Report View Selection (Sadece raporlar arasında geçiş)
@@ -381,7 +382,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     { id: 'topProducts', title: 'Ürün performansı', description: 'En çok satan ve en kârlı ürünler', icon: Package, accent: 'blue', action: () => setActiveSubReportTab('topProducts') },
     { id: 'financialSummary', title: 'Gelir & kâr', description: 'Ciro, maliyet ve net kâr özeti', icon: BarChart3, accent: 'emerald', action: () => setActiveSubReportTab('financialSummary') },
     { id: 'payment', title: 'Ödeme dağılımı', description: 'Nakit, kart ve veresiye analizi', icon: CreditCard, accent: 'violet', action: () => setActiveSubReportTab('financialSummary') },
-    { id: 'expenseSummary', title: 'Gider analizi', description: 'Gider kalemleri ve dönem karşılaştırması', icon: ReceiptText, accent: 'amber', action: () => setActiveSubReportTab('expenseSummary') },
+    { id: 'expenseSummary', title: 'Gider analizi', description: 'Gider kalemleri ve dönem karşılaştırması', icon: ReceiptText, accent: 'amber', action: () => setActiveSubReportTab('financialSummary') },
     { id: 'receivables', title: 'Açık hesaplar', description: 'Bekleyen alacaklar ve borçlu müşteriler', icon: Banknote, accent: 'rose', action: () => onNavigateTab?.('customers') },
     { id: 'salesHistory', title: 'Satış hareketleri', description: 'Tüm satışları tarih ve müşteri bazında incele', icon: ClipboardList, accent: 'indigo', action: () => onNavigateTab?.('sales') },
     { id: 'inventory', title: 'Stok durumu', description: 'Mevcut stok ve kritik ürünler', icon: Boxes, accent: 'cyan', action: () => onNavigateTab?.('stock') },
