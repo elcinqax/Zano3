@@ -190,6 +190,18 @@ export const POSView: React.FC<POSViewProps> = ({
     [customers, selectedCustomerId]
   );
 
+  const selectedCustomerDailyAverage = useMemo(() => {
+    if (!selectedCustomerId) return null;
+    const customerSales = sales.filter((sale) => sale.customerId === selectedCustomerId);
+    if (customerSales.length === 0) return { average: 0, saleCount: 0, activeDays: 0 };
+    const activeDays = new Set(customerSales.map((sale) => new Date(sale.createdAt).toISOString().slice(0, 10))).size;
+    return {
+      average: customerSales.length / Math.max(activeDays, 1),
+      saleCount: customerSales.length,
+      activeDays,
+    };
+  }, [sales, selectedCustomerId]);
+
   // Özel fiyat sadece Genel Müşteri için geçerli; kayıtlı müşteri seçilince liste fiyatına dönülür
   const submitCollection = () => {
     if (!selectedCustomer || !onAddPayment) return;
@@ -753,15 +765,23 @@ export const POSView: React.FC<POSViewProps> = ({
           )}
         </div>
 
-        <button
-          type="button"
-          disabled={cart.length === 0}
-          onClick={openPaymentModal}
-          className="h-14 sm:h-15 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none text-white text-base sm:text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
-        >
-          <span>Ödeme Al</span>
-          <ArrowRight className="w-5 h-5" />
-        </button>
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:min-w-56">
+          <button
+            type="button"
+            disabled={cart.length === 0}
+            onClick={openPaymentModal}
+            className="h-14 sm:h-15 w-full px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none text-white text-base sm:text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
+          >
+            <span>Ödeme Al</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+          <div className="flex items-center justify-between gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-3.5 py-2 text-xs dark:border-slate-700 dark:bg-slate-950" aria-live="polite">
+            <span className="font-bold text-slate-500 dark:text-slate-400">Günlük ortalama</span>
+            <span className="font-mono font-black tabular-nums text-slate-900 dark:text-slate-100">
+              {selectedCustomerDailyAverage ? `${selectedCustomerDailyAverage.average.toFixed(1)} alışveriş/gün` : 'Müşteri seçin'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* MODAL: SATIŞ İÇİN MÜŞTERİ SEÇ */}
