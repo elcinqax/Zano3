@@ -208,8 +208,9 @@ button { -webkit-tap-highlight-color: transparent; }
 @media print { .print-hide { display: none !important; } }
 
 @media print {
-  body * { display: none !important; }
-  .report-print-content, .report-print-content * { display: revert !important; visibility: visible !important; }
+  body * { visibility: hidden !important; }
+  #root { display: contents !important; }
+  .report-print-content, .report-print-content * { visibility: visible !important; }
   .print-only { display: block !important; }
   @page { size: A4 portrait; margin: 8mm; }
   html, body, #root { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; }
