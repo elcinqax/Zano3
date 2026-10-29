@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { jsPDF } from 'jspdf';
 import {
   FileSpreadsheet,
   Download,
@@ -400,7 +401,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Print Report Handler
   const handlePrint = () => {
-    window.print();
+    if (!window.matchMedia('(max-width: 768px)').matches) {
+      window.print();
+      return;
+    }
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const normalizePdfText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const addLine = (text: string, y: number, size = 10, bold = false) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(size);
+      doc.text(normalizePdfText(text), 14, y);
+    };
+
+    let y = 16;
+    addLine('Musteri ve Urun Raporu', y, 16, true);
+    y += 8;
+    addLine(`Tarih: ${timeRange === 'all' ? 'Tum zamanlar' : timeRange}`, y, 9);
+    y += 8;
+    addLine(`Toplam satis: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}`, y, 10, true);
+    y += 6;
+    addLine(`Toplam miktar: ${customerProductReportSummary.totalQuantity} adet`, y, 10);
+    y += 10;
+
+    customerProductPurchases.forEach((group) => {
+      if (y > 275) {
+        doc.addPage();
+        y = 16;
+      }
+      addLine(group.customerName, y, 11, true);
+      y += 6;
+      group.products.forEach((product) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 16;
+        }
+        addLine(`- ${product.productName}: ${product.quantity} adet / ${formatCurrency(product.totalSpent, settings.currency)}`, y, 9);
+        y += 5;
+      });
+      y += 3;
+    });
+
+    doc.save(`rapor-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const reportCatalog = [
