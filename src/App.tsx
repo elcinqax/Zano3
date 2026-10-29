@@ -45,8 +45,7 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme_preference');
-      if (saved && THEME_ORDER.includes(saved as ThemeMode)) return saved as ThemeMode;
-      return 'dark';
+      return saved === 'dark' ? 'dark' : 'light';
     }
     return 'light';
   });
