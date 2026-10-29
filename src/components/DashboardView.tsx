@@ -684,6 +684,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   ))}
                 </select>
               </div>
+
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <span className="font-bold text-slate-500 shrink-0">Tarih Filtresi:</span>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value as typeof timeRange)}
+                  className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="today">Bugün</option>
+                  <option value="7days">Son 7 Gün</option>
+                  <option value="month">Bu Ay</option>
+                  <option value="year">Bu Yıl</option>
+                  <option value="all">Tüm Zamanlar</option>
+                  <option value="custom">Özel Tarih Aralığı</option>
+                </select>
+              </div>
             </div>
           </div>
 
