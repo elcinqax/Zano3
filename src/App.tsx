@@ -356,9 +356,10 @@ export default function App() {
 
           {/* 6. Raporlar */}
           {(activeTab === 'reports' || activeTab === 'dashboard') && (
-            <DashboardView
-              sales={sales}
-              customers={customers}
+              <DashboardView
+                sales={sales}
+                payments={payments}
+                customers={customers}
               products={products}
               expenses={expenses}
               expenseItems={expenseItems}
