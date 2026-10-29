@@ -517,6 +517,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       });
     }
 
+    const creditTotal = reportEvents
+      .filter((event) => event.type === 'Veresiye')
+      .reduce((total, event) => total + event.amount, 0);
+    const collectionTotal = reportEvents
+      .filter((event) => event.type === 'Tahsilat')
+      .reduce((total, event) => total + event.amount, 0);
+    const remainingDebt = Math.max(0, creditTotal - collectionTotal);
+
+    if (y > 265) {
+      doc.addPage();
+      y = 18;
+    } else {
+      y += 10;
+    }
+    addLine('Rapor toplamları', y, 11, true);
+    y += 7;
+    addLine(`Toplam satış tutarı: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}`, y, 9);
+    y += 5;
+    addLine(`Toplam veresiye: ${formatCurrency(creditTotal, settings.currency)}`, y, 9);
+    y += 5;
+    addLine(`Toplam tahsilat: -${formatCurrency(collectionTotal, settings.currency)}`, y, 9);
+    y += 7;
+    doc.setFillColor(15, 118, 110);
+    doc.roundedRect(14, y - 5, 182, 12, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('DejaVuSans', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Kalan borç: ${formatCurrency(remainingDebt, settings.currency)}`, 18, y + 3);
+    doc.setTextColor(0, 0, 0);
+
       const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
       const pdfBlob = doc.output('blob');
