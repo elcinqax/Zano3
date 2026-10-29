@@ -52,7 +52,6 @@ html:not(.dark) {
 body {
   background: var(--app-canvas);
   color: var(--app-ink);
-  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
