@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Lock, Smartphone, Monitor, Moon, Sun } from 'lucide-react';
+import { Lock, Smartphone, Monitor, Moon, Sun, Clock3 } from 'lucide-react';
 
 interface TopBarProps {
   storeName: string;
@@ -122,8 +122,11 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className="flex items-center rounded-xl border border-slate-200/80 bg-slate-50/80 px-2.5 py-2 font-mono text-[11px] font-bold tabular-nums text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300" aria-label="Anlık saat">
-            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          <div className="flex h-10 items-center gap-2 rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-50 to-white px-2.5 shadow-sm shadow-teal-900/5 dark:border-teal-900/70 dark:from-teal-950/70 dark:to-slate-900" aria-label="Anlık saat">
+            <span className="flex size-6 items-center justify-center rounded-lg bg-teal-600 text-white shadow-sm shadow-teal-900/20"><Clock3 className="size-3.5" /></span>
+            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-teal-800 dark:text-teal-200">
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
           </div>
           <button type="button" onClick={onToggleTheme} className="size-10 flex items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
             {themeMode === 'dark' ? <Sun className="size-5 text-amber-400" /> : <Moon className="size-5 text-teal-700 dark:text-teal-300" />}
