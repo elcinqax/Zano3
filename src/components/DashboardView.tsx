@@ -473,23 +473,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{reportCatalog.length} rapor</span>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {reportCatalog.map((report) => {
             const Icon = report.icon;
             const isSelected = report.id === activeReportTab;
             const isExpanded = report.id === expandedReportId;
             return (
-              <div key={report.id} className={isExpanded ? 'col-span-2 sm:col-span-1' : ''}>
-                <button type="button" aria-expanded={isExpanded} onClick={() => setExpandedReportId(isExpanded ? null : report.id)} className={`group flex min-h-[104px] w-full flex-col rounded-2xl border p-3 text-left transition-all active:scale-[0.98] ${isExpanded || isSelected ? 'border-teal-300 bg-teal-50 shadow-sm dark:border-teal-800 dark:bg-teal-950/40' : 'border-slate-200/80 bg-white hover:border-teal-200 hover:bg-teal-50/50 dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-teal-900 dark:hover:bg-teal-950/30'}`}>
-                  <span className="flex items-start justify-between gap-2">
-                    <span className={`flex size-8 items-center justify-center rounded-xl ${isExpanded || isSelected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-teal-100 group-hover:text-teal-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-teal-950 dark:group-hover:text-teal-300'}`}><Icon className="size-4" /></span>
-                    <span className="text-xs font-black text-slate-400 dark:text-slate-500">{isExpanded ? '−' : '+'}</span>
+              <div key={report.id}>
+                <button type="button" aria-expanded={isExpanded} onClick={() => setExpandedReportId(isExpanded ? null : report.id)} className={`group flex min-h-0 w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all active:scale-[0.99] ${isExpanded || isSelected ? 'border-teal-300 bg-teal-50 shadow-sm dark:border-teal-800 dark:bg-teal-950/40' : 'border-slate-200/80 bg-white hover:border-teal-200 hover:bg-teal-50/50 dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-teal-900 dark:hover:bg-teal-950/30'}`}>
+                  <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${isExpanded || isSelected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-teal-100 group-hover:text-teal-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-teal-950 dark:group-hover:text-teal-300'}`}><Icon className="size-4" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-black text-slate-800 dark:text-slate-100">{report.title}</span>
+                    <span className="mt-1 block truncate text-[10px] text-slate-500 dark:text-slate-400">{report.description}</span>
                   </span>
-                  <span className="mt-2 block truncate text-xs font-black text-slate-800 dark:text-slate-100">{report.title}</span>
-                  <span className="mt-1 block text-[10px] leading-4 text-slate-500 dark:text-slate-400">{report.description}</span>
+                  <span className="shrink-0 text-sm font-black text-slate-400 dark:text-slate-500">{isExpanded ? '−' : '+'}</span>
                 </button>
                 {isExpanded && (
-                  <div className="mt-1 rounded-2xl border border-teal-200 bg-white p-3 shadow-sm dark:border-teal-900 dark:bg-slate-900">
+                  <div className="rounded-b-2xl border-x border-b border-teal-200 bg-white px-3 pb-3 pt-2 shadow-sm dark:border-teal-900 dark:bg-slate-900">
                     <p className="text-[11px] leading-4 text-slate-600 dark:text-slate-300">Bu raporu açarak filtrelenmiş sonuçları, toplamları ve detay dağılımlarını inceleyebilirsin.</p>
                     <button type="button" onClick={report.action} className="mt-3 w-full rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-teal-700">Raporu aç</button>
                   </div>
