@@ -81,6 +81,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [groupingMode, setGroupingMode] = useState<'customer' | 'product' | 'flat'>('customer');
   const [expandedCustomerIds, setExpandedCustomerIds] = useState<Record<string, boolean>>({});
   const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
+  const [annualReportYear, setAnnualReportYear] = useState(new Date().getFullYear());
 
   // Filter sales by selected time range
   const filteredSales = useMemo(() => {
@@ -276,6 +277,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [filteredSales, productById, selectedCustomerFilter, selectedProductFilter, customerProductSearch]);
 
   // Total summary of customer product report
+  const annualMonthlyProductAverages = useMemo(() => {
+    const months = Array.from({ length: 12 }, (_, month) => ({ month, products: [] as { productName: string; unit: string; totalQuantity: number; orders: number; average: number }[] }));
+    sales.forEach((sale) => {
+      if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== annualReportYear) return;
+      if (selectedCustomerFilter !== 'all' && sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter) return;
+      const month = months[new Date(sale.createdAt).getMonth()];
+      sale.items.forEach((item) => {
+        if (selectedProductFilter !== 'all' && item.productId !== selectedProductFilter && item.productName !== selectedProductFilter) return;
+        const existing = month.products.find((product) => product.productName === item.productName);
+        if (existing) {
+          existing.totalQuantity += item.quantity;
+          existing.orders += 1;
+          existing.average = existing.totalQuantity / existing.orders;
+        } else {
+          month.products.push({ productName: item.productName, unit: item.unit, totalQuantity: item.quantity, orders: 1, average: item.quantity });
+        }
+      });
+    });
+    return months;
+  }, [sales, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
+
+  const availableReportYears = useMemo(() => {
+    const years = new Set(sales.filter((sale) => sale.status !== 'cancelled').map((sale) => new Date(sale.createdAt).getFullYear()));
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [sales]);
+
   const customerProductReportSummary = useMemo(() => {
     const totalQuantity = customerProductPurchases.reduce((s, i) => s + i.totalQuantity, 0);
     const totalSpent = customerProductPurchases.reduce((s, i) => s + i.totalSpent, 0);
@@ -703,7 +731,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as typeof timeRange)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
                       <option value="today">Bugün</option><option value="7days">Son 7 Gün</option><option value="month">Bu Ay</option><option value="year">Bu Yıl</option><option value="all">Tüm Zamanlar</option><option value="custom">Özel Tarih Aralığı</option>
                     </select>
-                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak indir"><Download className="inline-block size-3.5" /> PDF</button>
+                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fi��ini PDF olarak indir"><Download className="inline-block size-3.5" /> PDF</button>
                   </label>
                 </div>
                 {timeRange === 'custom' && (
@@ -860,6 +888,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
           </div>
+
+          <section className="mb-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-3 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">Yıllık müşteri ürün ortalaması</h2>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Seçili müşterinin aldığı ürünleri ay bazında gösterir.</p>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <span>Yıl</span>
+                <select value={annualReportYear} onChange={(event) => setAnnualReportYear(Number(event.target.value))} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-900 dark:bg-slate-900 dark:text-slate-100">
+                  {availableReportYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="mt-3 space-y-2">
+              {annualMonthlyProductAverages.map((month) => {
+                const monthName = new Intl.DateTimeFormat('tr-TR', { month: 'long' }).format(new Date(annualReportYear, month.month, 1));
+                return (
+                  <details key={month.month} open={month.products.length > 0} className="overflow-hidden rounded-xl border border-emerald-100 bg-white/80 dark:border-emerald-900/50 dark:bg-slate-900/70">
+                    <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-xs font-black capitalize text-slate-800 dark:text-slate-100">
+                      <span>{monthName}</span><span className="text-[10px] font-semibold text-slate-400">{month.products.length} ürün</span>
+                    </summary>
+                    <div className="border-t border-emerald-100/70 px-3 py-2 dark:border-emerald-900/40">
+                      {month.products.length === 0 ? <p className="py-1 text-[11px] text-slate-400">Bu ay ürün satışı bulunamadı.</p> : <div className="space-y-1.5">{month.products.sort((a, b) => b.average - a.average).map((product) => <div key={product.productName} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950"><span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-300">{product.productName}</span><span className="shrink-0 font-black tabular-nums text-emerald-700 dark:text-emerald-300">{product.average.toFixed(1)} {product.unit}/alış</span></div>)}</div>}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          </section>
 
           {/* REPORT VIEW 1: GROUPED BY CUSTOMER (Müşteri ve Aldığı Ürünler) */}
           {groupingMode === 'customer' && (
