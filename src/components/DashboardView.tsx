@@ -278,7 +278,7 @@ if (selectedCustomerFilter !== 'all') {
 
   // Total summary of customer product report
   const annualMonthlyProductAverages = useMemo(() => {
-    const months = Array.from({ length: 12 }, (_, month) => ({ month, products: [] as { productName: string; unit: string; totalQuantity: number; orders: number; average: number }[] }));
+    const months = Array.from({ length: 12 }, (_, month) => ({ month, products: [] as { productName: string; unit: string; totalQuantity: number; orders: number; orderIds: string[]; average: number }[] }));
     sales.forEach((sale) => {
       if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== annualReportYear) return;
       if (selectedCustomerFilter !== 'all' && (selectedCustomerFilter === 'general' ? sale.customerId : sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter)) return;
@@ -288,10 +288,13 @@ if (selectedCustomerFilter !== 'all') {
         const existing = month.products.find((product) => product.productName === item.productName);
         if (existing) {
           existing.totalQuantity += item.quantity;
-          existing.orders += 1;
+          if (!existing.orderIds.includes(sale.id)) {
+            existing.orderIds.push(sale.id);
+            existing.orders = existing.orderIds.length;
+          }
           existing.average = existing.totalQuantity / existing.orders;
         } else {
-          month.products.push({ productName: item.productName, unit: item.unit, totalQuantity: item.quantity, orders: 1, average: item.quantity });
+          month.products.push({ productName: item.productName, unit: item.unit, totalQuantity: item.quantity, orders: 1, orderIds: [sale.id], average: item.quantity });
         }
       });
     });
