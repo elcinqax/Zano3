@@ -685,26 +685,31 @@ class SQLiteStorageManager {
         : previousSale.items,
       notes: updates.notes === undefined ? previousSale.notes : updates.notes.trim() || undefined,
     };
-    const previousDebt = previousSale.customerBalanceDelta || 0;
     const updatedDebt = updatedSale.paymentMethod === 'credit'
       ? updatedSale.total
       : updatedSale.paymentMethod === 'mixed'
-      ? updatedSale.total - (updatedSale.cashPaid || 0) - (updatedSale.transferPaid || 0)
+      ? updatedSale.total - (updatedSale.paidAmount || (updatedSale.cashPaid || 0) + (updatedSale.transferPaid || 0))
       : 0;
+
+    this.memoryCache.sales[index] = {
+      ...updatedSale,
+      customerBalanceDelta: Number(updatedDebt.toFixed(2)) || undefined,
+    };
 
     if (updatedSale.customerId && updatedSale.status === 'completed') {
       const customer = this.memoryCache.customers.find((item) => item.id === updatedSale.customerId);
       if (customer) {
-        customer.balance += updatedDebt - previousDebt;
-        customer.totalPurchases += updatedSale.total - previousSale.total;
+        const customerSales = this.memoryCache.sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed');
+        const totalPurchases = customerSales.reduce((sum, sale) => sum + sale.total, 0);
+        const totalDebt = customerSales.reduce((sum, sale) => sum + (sale.customerBalanceDelta || 0), 0);
+        const totalPayments = this.memoryCache.payments
+          .filter((payment) => payment.customerId === customer.id)
+          .reduce((sum, payment) => sum + payment.amount, 0);
+        customer.totalPurchases = Number(totalPurchases.toFixed(2));
+        customer.balance = Number((totalDebt - totalPayments).toFixed(2));
         customer.updatedAt = new Date().toISOString();
       }
     }
-
-    this.memoryCache.sales[index] = {
-      ...updatedSale,
-      customerBalanceDelta: updatedDebt || undefined,
-    };
     this.persistAll();
     this.notify();
     return this.memoryCache.sales[index];
