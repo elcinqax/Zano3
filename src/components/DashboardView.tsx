@@ -252,9 +252,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }));
 
     // Apply Customer Filter
-    if (selectedCustomerFilter !== 'all') {
-      list = list.filter((item) => item.customerId === selectedCustomerFilter || item.customerName === selectedCustomerFilter);
-    }
+if (selectedCustomerFilter !== 'all') {
+  list = list.filter((item) => selectedCustomerFilter === 'general' ? item.customerId.startsWith('anon-') : item.customerId === selectedCustomerFilter || item.customerName === selectedCustomerFilter);
+  }
 
     // Apply Product Filter
     if (selectedProductFilter !== 'all') {
@@ -281,7 +281,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const months = Array.from({ length: 12 }, (_, month) => ({ month, products: [] as { productName: string; unit: string; totalQuantity: number; orders: number; average: number }[] }));
     sales.forEach((sale) => {
       if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== annualReportYear) return;
-      if (selectedCustomerFilter !== 'all' && sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter) return;
+      if (selectedCustomerFilter !== 'all' && (selectedCustomerFilter === 'general' ? sale.customerId : sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter)) return;
       const month = months[new Date(sale.createdAt).getMonth()];
       sale.items.forEach((item) => {
         if (selectedProductFilter !== 'all' && item.productId !== selectedProductFilter && item.productName !== selectedProductFilter) return;
@@ -454,9 +454,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [filteredSales]);
 
   const reportEvents = useMemo(() => {
-    const matchesSelectedCustomer = (customerId?: string) => selectedCustomerFilter === 'all' || customerId === selectedCustomerFilter;
+    const matchesSelectedCustomer = (customerId?: string) => selectedCustomerFilter === 'all' || (selectedCustomerFilter === 'general' ? !customerId : customerId === selectedCustomerFilter);
     const creditEvents = filteredSales
-      .filter((sale) => matchesSelectedCustomer(sale.customerId) && Boolean(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
+      .filter((sale) => matchesSelectedCustomer(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
       .map((sale) => ({ type: 'Veresiye', date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
     const collectionEvents = filteredPayments
       .filter((payment) => matchesSelectedCustomer(payment.customerId))
@@ -716,6 +716,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span className="shrink-0 font-bold text-slate-500">Müşteri:</span>
                     <select value={selectedCustomerFilter} onChange={(e) => setSelectedCustomerFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
                       <option value="all">Tüm Müşteriler ({customers.length})</option>
+                      <option value="general">Genel Müşteri</option>
                       {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
                     </select>
                   </label>
