@@ -41,6 +41,7 @@ import {
   downloadFile,
   shareOrSaveFile,
 } from '../utils/export-utils';
+import { shareOrDownloadBlob } from '../utils/share-utils';
 import { formatDateTime } from '../utils/formatters';
 import type { ThemeMode } from '../App';
 import { AppLanguage, LANGUAGE_OPTIONS } from '../i18n';
@@ -144,6 +145,10 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
     const filename = getStandardBackupFileName('json');
 
     const res = await shareOrSaveFile(jsonStr, filename, 'application/json');
+    if (!res.success) {
+      showNotification('Yedek paylaşımı iptal edildi.', 'info');
+      return;
+    }
     const nowIso = new Date().toISOString();
     onUpdateSettings({
       lastBackupDate: nowIso,
@@ -157,11 +162,17 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
     }
   };
 
-  const handlePhoneSQLDump = () => {
+  const handlePhoneSQLDump = async () => {
     const sql = sqliteStorage.exportSQLDump();
     const filename = getStandardBackupFileName('sql');
-    downloadFile(sql, filename, 'application/sql');
-    showNotification(`SQLite (.sql) veritabanı dosyası telefonunuza indirildi.`, 'success');
+    const res = await shareOrSaveFile(sql, filename, 'application/sql');
+    if (res.method === 'cancelled') {
+      showNotification('SQL yedeği paylaşımı iptal edildi.', 'info');
+    } else if (res.method === 'share') {
+      showNotification('SQLite (.sql) dosyası için paylaşım / kaydetme penceresi açıldı.', 'success');
+    } else {
+      showNotification(`SQLite (.sql) veritabanı dosyası telefonunuza indirildi.`, 'success');
+    }
   };
 
   const handleFileRestoreFromPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,28 +223,29 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
       const jsonStr = JSON.stringify(dump, null, 2);
       const filename = getStandardBackupFileName('json');
       const nowIso = new Date().toISOString();
+      const message = `${storeName || 'MobilSatış'} yedeği - ${formatDateTime(nowIso)}\nDosya: ${filename}`;
 
-      downloadFile(jsonStr, filename, 'application/json');
+      // Önce paylaşım menüsü; desteklenmiyorsa dosya indirilir ve WhatsApp sohbeti açılır.
+      const outcome = await shareOrDownloadBlob(
+        new Blob([jsonStr], { type: 'application/json' }),
+        filename,
+        { title: filename, text: message },
+      );
+
+      if (outcome === 'cancelled') {
+        showNotification('Yedek paylaşımı iptal edildi.', 'info');
+        return;
+      }
+
       onUpdateSettings({
         lastBackupDate: nowIso,
         lastPhoneBackupDate: nowIso,
         backupWhatsappNumber: backupWhatsappNumber.trim(),
       });
 
-      const message = `${storeName || 'MobilSatış'} yedeği - ${formatDateTime(nowIso)}\nDosya: ${filename}`;
-      const file = new File([jsonStr], filename, { type: 'application/json' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: filename, text: message });
-          showNotification('Yedek telefona kaydedildi. WhatsApp\'ta kendi numaranızı seçip gönderin.', 'success');
-          return;
-        } catch (err: unknown) {
-          if (err instanceof Error && err.name === 'AbortError') {
-            showNotification('Yedek telefona kaydedildi. WhatsApp gönderimi iptal edildi.', 'info');
-            return;
-          }
-        }
+      if (outcome === 'shared') {
+        showNotification('Yedek paylaşım menüsüne gönderildi. WhatsApp\'ta kendi numaranızı seçip gönderin.', 'success');
+        return;
       }
 
       window.open(

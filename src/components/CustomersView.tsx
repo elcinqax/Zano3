@@ -21,7 +21,8 @@ import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { AppLanguage, translateText } from '../i18n';
 import { exportCustomersToCSV } from '../utils/export-utils';
-import { jsPDF } from 'jspdf';
+import { createPdfDocument } from '../utils/pdf-utils';
+import { downloadBlob, shareOrDownloadBlob } from '../utils/share-utils';
 
 interface CustomersViewProps {
   customers: Customer[];
@@ -268,17 +269,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisy�� Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisyə Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
       ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Ödəniş (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödəniş alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
-    const fontResponse = await fetch('/fonts/DejaVuSans.ttf');
-    if (!fontResponse.ok) throw new Error('PDF font could not be loaded');
-    const fontBase64 = arrayBufferToBase64(await fontResponse.arrayBuffer());
-    pdf.addFileToVFS('DejaVuSans.ttf', fontBase64);
-    pdf.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
-    pdf.setFont('DejaVuSans', 'normal');
+    const pdf = await createPdfDocument();
     let y = 18;
     pdf.setFontSize(18);
     pdf.text(pdfSafeText(`${customer.name} - Müştəri Tarixçəsi`), 14, y);
@@ -360,55 +355,19 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setLineWidth(0.8);
     pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 24, 'D');
     pdf.line(104, y - 5, 104, y + 13);
-    const fileName = `${customer.name.replace(/[^a-z0-9ğ��şöçıİĞÜŞÖÇ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
+    const fileName = `${customer.name.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-raporu.pdf`;
     const pdfBlob = pdf.output('blob');
-    const downloadUrl = URL.createObjectURL(pdfBlob);
-    if (preview) {
-      const shareFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-      const nativeShare = (window as Window & { AndroidShare?: { sharePdf: (pdf: string, name: string) => void } }).AndroidShare;
-      if (nativeShare) {
-        const reader = new FileReader();
-        reader.onload = () => nativeShare.sharePdf(String(reader.result).split(',')[1] ?? '', fileName);
-        reader.readAsDataURL(pdfBlob);
-        return;
-      }
-      if (typeof navigator.share === 'function') {
-        try {
-          await navigator.share({
-            title: `${customer.name} - Müşteri Geçmişi`,
-            text: 'PDF raporunu bir uygulamayla açın veya paylaşın',
-            files: [shareFile],
-          });
-          URL.revokeObjectURL(downloadUrl);
-        } catch (error) {
-          URL.revokeObjectURL(downloadUrl);
-          if (!(error instanceof DOMException && error.name === 'AbortError')) {
-            window.alert('Telefonun paylaşım menüsü açılamadı. Lütfen tarayıcı izinlerini kontrol edin.');
-          }
-        }
-        return;
-      }
-      const fallbackLink = document.createElement('a');
-      fallbackLink.href = downloadUrl;
-      fallbackLink.download = fileName;
-      fallbackLink.rel = 'noopener';
-      fallbackLink.style.display = 'none';
-      document.body.appendChild(fallbackLink);
-      fallbackLink.click();
-      fallbackLink.remove();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
-      window.alert('Bu ortam dosya paylaşımını desteklemiyor. PDF indirildi; Dosyalar uygulamasından açabilirsiniz.');
+    if (!preview) {
+      downloadBlob(pdfBlob, fileName);
       return;
     }
-    const downloadLink = document.createElement('a');
-    downloadLink.href = downloadUrl;
-    downloadLink.download = fileName;
-    downloadLink.rel = 'noopener';
-    downloadLink.style.display = 'none';
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    downloadLink.remove();
-    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    const outcome = await shareOrDownloadBlob(pdfBlob, fileName, {
+      title: `${customer.name} - Müşteri Geçmişi`,
+      text: 'PDF raporunu bir uygulamayla açın veya paylaşın',
+    });
+    if (outcome === 'downloaded') {
+      window.alert('Bu ortam dosya paylaşımını desteklemiyor. PDF indirildi; Dosyalar uygulamasından açabilirsiniz.');
+    }
   };
 
   const focusCustomer = (customer: Customer) => {
@@ -925,7 +884,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                   type="tel"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
-                  placeholder="+994 50 123 45 67 (İsteğe bağl��)"
+                  placeholder="+994 50 123 45 67 (İsteğe bağlı)"
                   className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>

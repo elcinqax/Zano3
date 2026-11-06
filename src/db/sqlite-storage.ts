@@ -1123,7 +1123,7 @@ class SQLiteStorageManager {
     // Settings
     const set = this.memoryCache.settings;
     lines.push(
-      `INSERT OR REPLACE INTO settings (id, storeName, storePhone, storeAddress, currency, taxRate, isPinEnabled, pinCode, isBiometricEnabled, autoLockMinutes, theme, lastBackupDate) VALUES ('main', '${set.storeName}', '${set.storePhone}', '${set.storeAddress}', '${set.currency}', ${set.taxRate}, ${set.isPinEnabled ? 1 : 0}, '${set.pinCode}', ${set.isBiometricEnabled ? 1 : 0}, ${set.autoLockMinutes}, '${set.theme}', '${set.lastBackupDate || ''}');`
+      `INSERT OR REPLACE INTO settings (id, storeName, storePhone, storeAddress, currency, taxRate, isPinEnabled, pinCode, isBiometricEnabled, autoLockMinutes, theme, lastBackupDate) VALUES ('main', '${String(set.storeName ?? '').replace(/'/g, "''")}', '${String(set.storePhone ?? '').replace(/'/g, "''")}', '${String(set.storeAddress ?? '').replace(/'/g, "''")}', '${String(set.currency ?? '').replace(/'/g, "''")}', ${set.taxRate}, ${set.isPinEnabled ? 1 : 0}, '${String(set.pinCode ?? '').replace(/'/g, "''")}', ${set.isBiometricEnabled ? 1 : 0}, ${set.autoLockMinutes}, '${String(set.theme ?? '').replace(/'/g, "''")}', '${set.lastBackupDate || ''}');`
     );
 
     lines.push('');

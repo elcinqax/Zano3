@@ -1,7 +1,10 @@
-import React from 'react';
-import { Printer, X, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Printer, X, CheckCircle2, Share2, Loader2 } from 'lucide-react';
+import type { jsPDF } from 'jspdf';
 import { Sale, AppSettings } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { createPdfDocument } from '../utils/pdf-utils';
+import { shareOrDownloadBlob } from '../utils/share-utils';
 
 interface ReceiptModalProps {
   sale: Sale;
@@ -22,8 +25,139 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     card: 'Kart',
   };
 
+  const [isSharing, setIsSharing] = useState(false);
+  const money = (amount: number) => formatCurrency(amount, settings.currency);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const buildReceiptPdf = async (): Promise<Blob> => {
+    const WIDTH = 80;
+    const MARGIN = 5;
+    const RIGHT = WIDTH - MARGIN;
+
+    const draw = (doc: jsPDF): number => {
+      let y = 9;
+      const gap = (size: number) => size * 0.3528 * 1.4;
+      const centered = (text: string, size = 9) => {
+        doc.setFontSize(size);
+        doc.text(text, WIDTH / 2, y, { align: 'center' });
+        y += gap(size);
+      };
+      const wrappedCentered = (text: string, size: number) => {
+        doc.setFontSize(size);
+        (doc.splitTextToSize(text, WIDTH - MARGIN * 2) as string[]).forEach((line) => {
+          doc.text(line, WIDTH / 2, y, { align: 'center' });
+          y += gap(size);
+        });
+      };
+      const row = (left: string, right: string, size = 8) => {
+        doc.setFontSize(size);
+        doc.text(left, MARGIN, y);
+        doc.text(right, RIGHT, y, { align: 'right' });
+        y += gap(size);
+      };
+      const divider = () => {
+        y -= 1;
+        doc.setLineWidth(0.2);
+        doc.setLineDashPattern([1, 1], 0);
+        doc.line(MARGIN, y, RIGHT, y);
+        doc.setLineDashPattern([], 0);
+        y += 4;
+      };
+
+      centered((settings.storeName || 'Mobil Satış').toUpperCase(), 11);
+      if (settings.storeAddress) wrappedCentered(settings.storeAddress, 7.5);
+      if (settings.storePhone) centered(`Tel: ${settings.storePhone}`, 7.5);
+      y += 1;
+      divider();
+
+      row('Fatura No:', sale.invoiceNo);
+      row('Tarih:', formatDateTime(sale.createdAt));
+      row('Müşteri:', String(doc.splitTextToSize(sale.customerName, 42)[0] ?? ''));
+      if (sale.customerPhone) row('Telefon:', sale.customerPhone);
+      y += 1;
+      divider();
+
+      row('ÜRÜN', 'AD.     TUTAR', 7.5);
+      y += 0.5;
+      sale.items.forEach((item) => {
+        doc.setFontSize(8);
+        const nameLines = doc.splitTextToSize(item.productName, 34) as string[];
+        nameLines.forEach((line, index) => {
+          doc.text(line, MARGIN, y);
+          if (index === 0) {
+            doc.text(`x${item.quantity}`, 48, y, { align: 'right' });
+            doc.text(money(item.total), RIGHT, y, { align: 'right' });
+          }
+          y += gap(8);
+        });
+        doc.setFontSize(7);
+        doc.text(`@${money(item.unitPrice)}`, MARGIN, y);
+        y += gap(7) + 1;
+      });
+      divider();
+
+      row('Ara Toplam:', money(sale.subtotal));
+      if (sale.discount > 0) row('İndirim:', `-${money(sale.discount)}`);
+      y += 1;
+      row('GENEL TOPLAM:', money(sale.total), 10);
+      y += 1;
+      divider();
+
+      row('Ödeme Yöntemi:', paymentLabels[sale.paymentMethod] ?? String(sale.paymentMethod));
+      if (sale.paymentMethod === 'mixed') {
+        row('Nakit:', money(sale.cashPaid || 0), 7.5);
+        row('Havale / EFT:', money(sale.transferPaid || 0), 7.5);
+        row('Toplam Tahsil Edilen:', money(sale.paidAmount), 7.5);
+      }
+      if (sale.paymentMethod === 'cash') {
+        row('Alınan Nakit:', money(sale.paidAmount));
+        if (sale.changeAmount > 0) row('Para Üstü:', money(sale.changeAmount));
+      }
+      y += 1;
+      if (sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta > 0) {
+        wrappedCentered(`Kalan ${money(sale.customerBalanceDelta)} tutar müşteri veresiye borcuna eklenmiştir.`, 7);
+      } else if (sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta < 0) {
+        wrappedCentered(`Fazla verilen ${money(Math.abs(sale.customerBalanceDelta))} tutar müşteri hesabına avans/alacak kaydedilmiştir.`, 7);
+      } else if (sale.paymentMethod === 'credit') {
+        wrappedCentered('Bu tutar müşterinin açık hesap veresiye borcuna kaydedilmiştir.', 7);
+      }
+
+      y += 2;
+      divider();
+      centered(settings.storeName || 'Mobil Satış', 8);
+      centered('Mali değeri yoktur · Bilgi fişidir', 7);
+      return y;
+    };
+
+    // Önce ölçüm için uzun bir sayfaya çizip gerçek yüksekliği bulur, sonra tam boyutlu sayfaya çizer.
+    const measureDoc = await createPdfDocument({ unit: 'mm', format: [WIDTH, 1500] });
+    const height = Math.max(100, draw(measureDoc) + 6);
+    const finalDoc = await createPdfDocument({ unit: 'mm', format: [WIDTH, height] });
+    draw(finalDoc);
+    return finalDoc.output('blob');
+  };
+
+  const handleSharePdf = async () => {
+    if (isSharing) return;
+    setIsSharing(true);
+    try {
+      const blob = await buildReceiptPdf();
+      const safeName = sale.invoiceNo.replace(/[^\w.-]+/g, '-');
+      const outcome = await shareOrDownloadBlob(blob, `fis-${safeName}.pdf`, {
+        title: `Satış Fişi ${sale.invoiceNo}`,
+      });
+      if (outcome === 'downloaded') {
+        window.alert('Bu cihaz paylaşım menüsünü desteklemiyor, PDF indirildi. Dosyalar uygulamasından açabilirsiniz.');
+      }
+    } catch (error) {
+      console.error('Fiş PDF olarak hazırlanamadı:', error);
+      window.alert('Fiş PDF olarak hazırlanamadı. Lütfen tekrar deneyin.');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
 
@@ -97,13 +231,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   <div className="pr-2 max-w-[150px]">
                     <p className="font-medium text-slate-900 dark:text-slate-100 truncate">{item.productName}</p>
                     <p className="text-[10px] text-slate-400">
-                      @{formatCurrency(item.unitPrice)}
+                      @{money(item.unitPrice)}
                     </p>
                   </div>
                   <div className="flex gap-4 items-center shrink-0">
                     <span className="text-slate-600 dark:text-slate-400 tabular-nums">x{item.quantity}</span>
                     <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
-                      {formatCurrency(item.total)}
+                      {money(item.total)}
                     </span>
                   </div>
                 </div>
@@ -115,17 +249,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="py-3 border-b border-dashed border-slate-300 dark:border-slate-700 space-y-1 text-[11px]">
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-400">Ara Toplam:</span>
-              <span className="tabular-nums">{formatCurrency(sale.subtotal)}</span>
+              <span className="tabular-nums">{money(sale.subtotal)}</span>
             </div>
             {sale.discount > 0 && (
               <div className="flex justify-between text-rose-600 dark:text-rose-400">
                 <span>İndirim:</span>
-                <span className="tabular-nums">-{formatCurrency(sale.discount)}</span>
+                <span className="tabular-nums">-{money(sale.discount)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm font-bold pt-1.5 text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800">
               <span>GENEL TOPLAM:</span>
-              <span className="tabular-nums">{formatCurrency(sale.total)}</span>
+              <span className="tabular-nums">{money(sale.total)}</span>
             </div>
           </div>
 
@@ -140,15 +274,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 space-y-1 text-[10px]">
                 <div className="flex justify-between">
                   <span className="text-slate-500">💵 Nakit:</span>
-                  <span className="tabular-nums font-medium">{formatCurrency(sale.cashPaid || 0)}</span>
+                  <span className="tabular-nums font-medium">{money(sale.cashPaid || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">🏦 Havale / EFT:</span>
-                  <span className="tabular-nums font-medium">{formatCurrency(sale.transferPaid || 0)}</span>
+                  <span className="tabular-nums font-medium">{money(sale.transferPaid || 0)}</span>
                 </div>
                 <div className="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-700">
                   <span>Toplam Tahsil Edilen:</span>
-                  <span className="tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(sale.paidAmount)}</span>
+                  <span className="tabular-nums text-emerald-600 dark:text-emerald-400">{money(sale.paidAmount)}</span>
                 </div>
               </div>
             )}
@@ -157,12 +291,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <>
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Alınan Nakit:</span>
-                  <span className="tabular-nums font-semibold">{formatCurrency(sale.paidAmount)}</span>
+                  <span className="tabular-nums font-semibold">{money(sale.paidAmount)}</span>
                 </div>
                 {sale.changeAmount > 0 && (
                   <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
                     <span>Para Üstü:</span>
-                    <span className="tabular-nums">{formatCurrency(sale.changeAmount)}</span>
+                    <span className="tabular-nums">{money(sale.changeAmount)}</span>
                   </div>
                 )}
               </>
@@ -171,13 +305,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Customer Account Adjustments */}
             {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta > 0 && (
               <div className="p-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg text-center text-[10px] font-medium font-sans">
-                Kalan <strong>{formatCurrency(sale.customerBalanceDelta)}</strong> tutar müşteri veresiye borcuna eklenmiştir.
+                Kalan <strong>{money(sale.customerBalanceDelta)}</strong> tutar müşteri veresiye borcuna eklenmiştir.
               </div>
             )}
 
             {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta < 0 && (
               <div className="p-2 bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-lg text-center text-[10px] font-medium font-sans">
-                Fazla verilen <strong>{formatCurrency(Math.abs(sale.customerBalanceDelta))}</strong> tutar müşteri hesabına avans/alacak kaydedilmiştir.
+                Fazla verilen <strong>{money(Math.abs(sale.customerBalanceDelta))}</strong> tutar müşteri hesabına avans/alacak kaydedilmiştir.
               </div>
             )}
 
@@ -203,6 +337,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           >
             <Printer className="w-4 h-4" />
             <span>Yazdır</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSharePdf}
+            disabled={isSharing}
+            className="h-11 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+          >
+            {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+            <span>PDF Paylaş</span>
           </button>
           <button
             type="button"

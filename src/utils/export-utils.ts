@@ -1,8 +1,17 @@
 import * as XLSX from 'xlsx';
 import { Customer, Product, Sale, Expense, CustomerProductPurchaseSummary } from '../types';
 import { formatDate, formatDateTime } from './formatters';
+import { downloadBlob, saveOrShareBlob, shareOrDownloadBlob, ShareOutcome } from './share-utils';
 
-export const exportToExcel = (sales: Sale[], customers: Customer[], products: Product[], storeName: string = 'MobilSatış') => {
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+// XLSX.writeFile telefonda/WebView'de dosyayı sessizce indirir; bunun yerine blob üretip paylaşım menüsünü açarız.
+const saveWorkbook = (wb: XLSX.WorkBook, fileName: string): Promise<ShareOutcome> => {
+  const data = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
+  return saveOrShareBlob(new Blob([data], { type: XLSX_MIME }), fileName, { title: fileName });
+};
+
+export const exportToExcel = async (sales: Sale[], customers: Customer[], products: Product[], storeName: string = 'MobilSatış') => {
   const wb = XLSX.utils.book_new();
 
   // 1. Sales Worksheet
@@ -97,20 +106,13 @@ export const exportToExcel = (sales: Sale[], customers: Customer[], products: Pr
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Finansal Özet');
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `MobilSatis_Raporu_${todayStr}.xlsx`);
+  await saveWorkbook(wb, `MobilSatis_Raporu_${todayStr}.xlsx`);
 };
 
-export const exportToCSV = (content: string, filename: string) => {
-  // Prepend UTF-8 BOM so Excel on Windows & Android opens Turkish characters without encoding errors
+export const exportToCSV = async (content: string, filename: string) => {
+  // Excel'in Türkçe karakterleri doğru açması için UTF-8 BOM eklenir
   const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  await saveOrShareBlob(blob, filename, { title: filename });
 };
 
 export const exportSalesToCSV = (sales: Sale[]) => {
@@ -162,44 +164,24 @@ export const exportProductsToCSV = (products: Product[]) => {
 };
 
 export const downloadFile = (content: string, filename: string, mimeType: string = 'text/plain') => {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([content], { type: mimeType }), filename);
 };
 
-export const shareOrSaveFile = async (content: string, filename: string, mimeType: string = 'application/json'): Promise<{ success: boolean; method: string }> => {
+export const shareOrSaveFile = async (
+  content: string,
+  filename: string,
+  mimeType: string = 'application/json',
+): Promise<{ success: boolean; method: string }> => {
   const blob = new Blob([content], { type: mimeType });
-  const file = new File([blob], filename, { type: mimeType });
-
-  // If mobile browser supports Web Share API with files (Android share sheet, e.g. WhatsApp)
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'MobilSatış Veritabanı Yedeği',
-        text: 'MobilSatış SQLite yerel yedek dosyası.',
-      });
-      return { success: true, method: 'share' };
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        return { success: false, method: 'cancelled' };
-      }
-      // Fallback to direct download
-    }
-  }
-
-  // Fallback to standard download
-  downloadFile(content, filename, mimeType);
-  return { success: true, method: 'download' };
+  const outcome = await shareOrDownloadBlob(blob, filename, {
+    title: 'MobilSatış Veritabanı Yedeği',
+    text: 'MobilSatış SQLite yerel yedek dosyası.',
+  });
+  if (outcome === 'cancelled') return { success: false, method: 'cancelled' };
+  return { success: true, method: outcome === 'shared' ? 'share' : 'download' };
 };
 
-export const exportCustomerPurchasesToExcel = (
+export const exportCustomerPurchasesToExcel = async (
   items: CustomerProductPurchaseSummary[],
   storeName: string = 'Almalı Təndiri'
 ) => {
@@ -220,7 +202,7 @@ export const exportCustomerPurchasesToExcel = (
   const ws = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'Müşteri Ürün Satış Raporu');
   const todayStr = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `Musteri_Urun_Satis_Raporu_${todayStr}.xlsx`);
+  await saveWorkbook(wb, `Musteri_Urun_Satis_Raporu_${todayStr}.xlsx`);
 };
 
 export const exportCustomerPurchasesToCSV = (items: CustomerProductPurchaseSummary[]) => {
@@ -243,7 +225,7 @@ export const exportCustomerPurchasesToCSV = (items: CustomerProductPurchaseSumma
   exportToCSV(csv, `musteri_urun_raporu_${today}.csv`);
 };
 
-export const exportExpensesToExcel = (
+export const exportExpensesToExcel = async (
   expenses: Expense[],
   expenseBreakdown: { name: string; category: string; totalAmount: number; totalQuantity: number; unit: string; entriesCount: number }[],
   storeName: string = 'Almalı Təndiri'
@@ -279,7 +261,7 @@ export const exportExpensesToExcel = (
   XLSX.utils.book_append_sheet(wb, wsDetails, 'Tüm Gider Kayıtları');
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `Giderler_Raporu_${todayStr}.xlsx`);
+  await saveWorkbook(wb, `Giderler_Raporu_${todayStr}.xlsx`);
 };
 
 export const exportExpensesToCSV = (expenses: Expense[]) => {

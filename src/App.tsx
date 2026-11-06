@@ -1,3 +1,4 @@
+import { preloadPdfFont } from './utils/pdf-utils';
 import React, { useState, useEffect } from 'react';
 import { sqliteStorage } from './db/sqlite-storage';
 import { Customer, Product, Sale, AppNotification, AppSettings, DatabaseDump, Expense, ExpenseItem } from './types';
@@ -148,6 +149,12 @@ export default function App() {
       window.removeEventListener('popstate', returnToSales);
       window.removeEventListener('appbackbutton', returnToSales);
     };
+  }, []);
+
+  useEffect(() => {
+    // PDF yazı tipini arka planda hazırla: paylaşım menüsü hızlı açılsın.
+    const timer = window.setTimeout(preloadPdfFont, 2500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

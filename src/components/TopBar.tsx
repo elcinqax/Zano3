@@ -138,7 +138,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             type="button"
             onClick={onToggleMobileFrame}
             className="hidden lg:flex min-w-[36px] h-9 px-3 items-center gap-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800"
-            title="Telefon / Masaüstü G��rünümünü Değiştir"
+            title="Telefon / Masaüstü Görünümünü Değiştir"
           >
             {isMobileFrame ? (
               <>

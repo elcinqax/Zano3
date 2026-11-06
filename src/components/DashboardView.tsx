@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { jsPDF } from 'jspdf';
+import { createPdfDocument } from '../utils/pdf-utils';
+import { shareOrDownloadBlob } from '../utils/share-utils';
 import {
   FileSpreadsheet,
   Download,
@@ -465,22 +466,18 @@ if (selectedCustomerFilter !== 'all') {
 
   // Print Report Handler
   const handlePrint = async () => {
-    if (!window.matchMedia('(max-width: 768px)').matches) {
+    const hasNativeShare = Boolean((window as unknown as { AndroidShare?: unknown }).AndroidShare);
+    if (!hasNativeShare && !window.matchMedia('(max-width: 768px)').matches) {
       window.print();
       return;
     }
 
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const fontResponse = await fetch('/fonts/DejaVuSans.ttf');
-    if (!fontResponse.ok) throw new Error('PDF font could not be loaded');
-    const fontBytes = new Uint8Array(await fontResponse.arrayBuffer());
-    let fontBinary = '';
-    for (let index = 0; index < fontBytes.length; index += 0x8000) {
-      fontBinary += String.fromCharCode(...fontBytes.subarray(index, index + 0x8000));
-    }
-    const fontBase64 = btoa(fontBinary);
-    doc.addFileToVFS('DejaVuSans.ttf', fontBase64);
-    doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    const doc = await createPdfDocument().catch((error: unknown) => {
+      console.error('PDF font could not be loaded:', error);
+      window.alert('PDF oluşturulamadı: yazı tipi dosyası yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+      return null;
+    });
+    if (!doc) return;
     doc.setFont('DejaVuSans', 'normal');
     const addLine = (text: string, y: number, size = 10, bold = false) => {
       doc.setFont('DejaVuSans', 'normal');
@@ -596,21 +593,16 @@ if (selectedCustomerFilter !== 'all') {
     doc.text(`Kalan borç: ${formatCurrency(remainingDebt, settings.currency)}`, 18, y + 3);
     doc.setTextColor(0, 0, 0);
 
-      const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `rapor-${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
-      const pdfBlob = doc.output('blob');
-      const downloadUrl = URL.createObjectURL(pdfBlob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = downloadUrl;
-      downloadLink.download = filename;
-      downloadLink.rel = 'noopener';
-      downloadLink.style.display = 'none';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      downloadLink.remove();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+      const outcome = await shareOrDownloadBlob(doc.output('blob'), filename, {
+        title: 'Müşteri ve Ürün Raporu',
+      });
+      if (outcome === 'downloaded') {
+        window.alert('Bu cihaz paylaşım menüsünü desteklemiyor, PDF indirildi. Dosyalar uygulamasından açabilirsiniz.');
+      }
     } catch (error) {
-      console.error('[v0] PDF download failed, falling back to print:', error);
+      console.error('PDF paylaşımı başarısız oldu, yazdırmaya geçiliyor:', error);
       window.print();
     }
   };
@@ -731,7 +723,7 @@ if (selectedCustomerFilter !== 'all') {
                     <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as typeof timeRange)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
                       <option value="today">Bugün</option><option value="7days">Son 7 Gün</option><option value="month">Bu Ay</option><option value="year">Bu Yıl</option><option value="all">Tüm Zamanlar</option><option value="custom">Özel Tarih Aralığı</option>
                     </select>
-                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fi��ini PDF olarak indir"><Download className="inline-block size-3.5" /> PDF</button>
+                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak paylaş"><Download className="inline-block size-3.5" /> PDF paylaş</button>
                   </label>
                 </div>
                 {timeRange === 'custom' && (
@@ -1092,7 +1084,7 @@ if (selectedCustomerFilter !== 'all') {
                             </h3>
                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                {group.customers.length} farklı mü��teri satın aldı
+                                {group.customers.length} farklı müşteri satın aldı
                               </span>
                               <span>·</span>
                               <span>Toplam {group.totalQuantity} {group.unit} satıldı</span>
@@ -1175,7 +1167,7 @@ if (selectedCustomerFilter !== 'all') {
                       <th className="py-3 px-4 text-right">Toplam Alınan Miktar</th>
                       <th className="py-3 px-4 text-right">Ort. Birim Fiyat</th>
                       <th className="py-3 px-4 text-right font-black">Toplam Harcama (Ciro)</th>
-                      <th className="py-3 px-4 text-right">Toplam Kâr Katk��sı</th>
+                      <th className="py-3 px-4 text-right">Toplam Kâr Katkısı</th>
                       <th className="py-3 px-4 text-right">İşlem Sayısı</th>
                       <th className="py-3 px-4 text-right">Son Satın Alma</th>
                     </tr>

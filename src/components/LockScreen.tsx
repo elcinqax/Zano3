@@ -165,9 +165,11 @@ export const LockScreen: React.FC<LockScreenProps> = ({
         </div>
 
         {/* Forgot PIN hint */}
-        <p className="text-[11px] text-slate-600 mt-2 text-center">
-          Varsayılan Güvenlik PIN: <span className="font-mono text-slate-400">1234</span>
-        </p>
+        {storedPin === '1234' && (
+          <p className="text-[11px] text-slate-600 mt-2 text-center">
+            Varsayılan Güvenlik PIN: <span className="font-mono text-slate-400">1234</span>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import android.net.Uri;
 import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Base64;
+import android.util.Base64;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
@@ -38,19 +38,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private final class PdfShareBridge {
+        // Eski çağrılarla uyumluluk için korunuyor.
         @JavascriptInterface
         public void sharePdf(String base64Pdf, String fileName) {
+            shareFile(base64Pdf, fileName, "application/pdf");
+        }
+
+        // PDF, Excel, CSV, JSON gibi her dosya türünü Android paylaşım menüsüne gönderir.
+        @JavascriptInterface
+        public void shareFile(String base64Data, String fileName, String mimeType) {
             try {
-                File file = new File(getCacheDir(), fileName.endsWith(".pdf") ? fileName : fileName + ".pdf");
+                String safeName = new File(fileName == null ? "dosya" : fileName).getName();
+                if (safeName.isEmpty()) safeName = "dosya";
+                File file = new File(getCacheDir(), safeName);
                 try (FileOutputStream output = new FileOutputStream(file)) {
-                    output.write(Base64.getDecoder().decode(base64Pdf));
+                    output.write(Base64.decode(base64Data, Base64.DEFAULT));
                 }
                 Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", file);
                 Intent share = new Intent(Intent.ACTION_SEND);
-                share.setType("application/pdf");
+                share.setType(mimeType == null || mimeType.isEmpty() ? "application/octet-stream" : mimeType);
                 share.putExtra(Intent.EXTRA_STREAM, uri);
                 share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                startActivity(Intent.createChooser(share, "PDF'i şu uygulamayla paylaş"));
+                final Intent chooser = Intent.createChooser(share, "Paylaş");
+                runOnUiThread(() -> startActivity(chooser));
             } catch (Exception error) {
                 error.printStackTrace();
             }
