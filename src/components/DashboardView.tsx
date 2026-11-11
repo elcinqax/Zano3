@@ -732,7 +732,7 @@ if (selectedCustomerFilter !== 'all') {
             <span>Raporlar & Analizler</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Mü��teri satın alma raporları, ürün satış dağılımları ve finansal özet
+            Mü����teri satın alma raporları, ürün satış dağılımları ve finansal özet
           </p>
         </div>
 
@@ -1000,7 +1000,7 @@ if (selectedCustomerFilter !== 'all') {
                 </label>
                 {annualTotalsByUnit !== null && (
                   <p aria-live="polite" className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-slate-900 dark:text-emerald-300">
-                    <span className="sr-only">Yıllık toplam:</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400">Yıl toplamı</span>
                     {annualTotalsByUnit.length === 0 ? <span>0</span> : annualTotalsByUnit.map((total) => <span key={total.unit}>{total.quantity.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {total.unit}</span>)}
                   </p>
                 )}
@@ -1128,13 +1128,13 @@ if (selectedCustomerFilter !== 'all') {
                             </table>
                           </div>
                           <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
-                            <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                               <div className="flex min-w-0 flex-col">
                                 <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
                                 <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
                               </div>
                               {dailyYears.length > 0 && (
-                                <div className="print:hidden flex min-w-0 flex-wrap items-center justify-end gap-2">
+                                <div className="print:hidden flex min-w-0 flex-wrap items-center gap-2">
                                   <label className="flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
                                     <span>Yıl</span>
                                     <select
@@ -1147,9 +1147,9 @@ if (selectedCustomerFilter !== 'all') {
                                     </select>
                                   </label>
                                   {selectedDailyYearTotal !== null && (
-                                    <p aria-live="polite" className="shrink-0 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
-                                      <span className="sr-only">Yıllık toplam: </span>
-                                      {selectedDailyYearTotal.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} adet
+                                    <p aria-live="polite" className="flex shrink-0 items-center gap-2 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
+                                      <span className="font-bold text-slate-500 dark:text-slate-400">Yıl toplamı</span>
+                                      <span>{selectedDailyYearTotal.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} adet</span>
                                     </p>
                                   )}
                                 </div>
