@@ -1,6 +1,4 @@
-import { jsPDF } from 'jspdf';
-
-type JsPdfOptions = ConstructorParameters<typeof jsPDF>[0];
+import { jsPDF, type jsPDFOptions as JsPdfOptions } from 'jspdf';
 
 const PDF_FONT_URL = `${import.meta.env.BASE_URL}fonts/DejaVuSans.ttf`;
 

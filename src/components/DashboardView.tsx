@@ -31,7 +31,7 @@ import {
   UserRound,
   Banknote,
 } from 'lucide-react';
-import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerPayment, CustomerProductPurchaseSummary } from '../types';
+import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerPayment, CustomerProductPurchaseSummary, PaymentMethod } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
 import { PurchaseCalendar, PurchaseDayTotal } from './PurchaseCalendar';
 import { LedgerCalendar, LedgerEvent } from './LedgerCalendar';
@@ -41,6 +41,26 @@ import {
   exportCustomerPurchasesToExcel,
   exportCustomerPurchasesToCSV,
 } from '../utils/export-utils';
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: 'Nakit',
+  card: 'Kart',
+  transfer: 'Havale / EFT',
+  mixed: 'Karışık Ödeme',
+  credit: 'Veresiye',
+};
+
+const TIME_RANGE_LABELS = {
+  today: 'Bugün',
+  '7days': 'Son 7 gün',
+  month: 'Bu ay',
+  year: 'Bu yıl',
+  all: 'Tüm zamanlar',
+};
+
+const formatDateInput = (value: string) => value.split('-').reverse().join('.');
+
+const getReportCustomerId = (sale: Pick<Sale, 'customerId' | 'customerName'>) => sale.customerId || `anon-${sale.customerName}`;
 
 interface DashboardViewProps {
   sales: Sale[];
@@ -94,8 +114,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const startOf7Days = new Date(now);
-    startOf7Days.setDate(now.getDate() - 7);
+    const startOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
     const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
 
@@ -132,8 +151,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const startOf7Days = new Date(now);
-    startOf7Days.setDate(now.getDate() - 7);
+    const startOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
     const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
 
@@ -186,8 +204,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const filteredPayments = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOf7Days = new Date(now);
-    startOf7Days.setDate(now.getDate() - 7);
+    const startOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
@@ -213,7 +230,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const map: Record<string, CustomerProductPurchaseSummary> = {};
 
     filteredSales.forEach((sale) => {
-      const cId = sale.customerId || 'anon-' + sale.customerName;
+      const cId = getReportCustomerId(sale);
       const cName = sale.customerName || 'Genel Müşteri';
       const cPhone = sale.customerPhone;
 
@@ -363,9 +380,7 @@ if (selectedCustomerFilter !== 'all') {
     if (timeRange === 'today') {
       startKey = endKey;
     } else if (timeRange === '7days') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 7);
-      startKey = toKey(start);
+      startKey = toKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
     } else if (timeRange === 'month') {
       startKey = toKey(new Date(now.getFullYear(), now.getMonth(), 1));
     } else if (timeRange === 'year') {
@@ -380,11 +395,10 @@ if (selectedCustomerFilter !== 'all') {
   const dailyMonthsByCustomer = useMemo(() => {
     type DayTotal = PurchaseDayTotal;
     const totals: Record<string, DayTotal[]> = {};
+    const visibleRowKeys = new Set(customerProductPurchases.map((item) => `${item.customerId}___${item.productId}`));
     filteredSales.forEach((sale) => {
-      const customerId = sale.customerId || 'walk-in';
-      const matchingItems = selectedProductFilter === 'all'
-        ? sale.items
-        : sale.items.filter((item) => item.productId === selectedProductFilter);
+      const customerId = getReportCustomerId(sale);
+      const matchingItems = sale.items.filter((item) => visibleRowKeys.has(`${customerId}___${item.productId}`));
       if (!matchingItems.length) return;
       const date = new Date(sale.createdAt);
       const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -416,7 +430,7 @@ if (selectedCustomerFilter !== 'all') {
       });
     });
     return months;
-  }, [filteredSales, selectedProductFilter]);
+  }, [filteredSales, customerProductPurchases]);
 
   // Grouped by Product data structure
   const groupedByProduct = useMemo(() => {
@@ -506,7 +520,7 @@ if (selectedCustomerFilter !== 'all') {
       .map((sale) => ({ type: 'Veresiye' as const, date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
     const collectionEvents = filteredPayments
       .filter((payment) => matchesSelectedCustomer(payment.customerId))
-      .map((payment) => ({ type: 'Tahsilat' as const, date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
+      .map((payment) => ({ type: 'Tahsilat' as const, date: payment.createdAt, customer: payment.customerName, detail: PAYMENT_METHOD_LABELS[payment.paymentMethod] ?? payment.paymentMethod, amount: payment.amount }));
     return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredSales, filteredPayments, selectedCustomerFilter]);
 
@@ -556,11 +570,14 @@ if (selectedCustomerFilter !== 'all') {
     };
 
     let y = 16;
-    addLine('Musteri ve Urun Raporu', y, 16, true);
+    const rangeLabel = timeRange === 'custom'
+      ? `${customStartDate ? formatDateInput(customStartDate) : 'Başlangıç'} - ${customEndDate ? formatDateInput(customEndDate) : 'Bugün'}`
+      : TIME_RANGE_LABELS[timeRange];
+    addLine('Müşteri ve Ürün Raporu', y, 16, true);
     y += 8;
-    addLine(`Tarih: ${timeRange === 'all' ? 'Tum zamanlar' : timeRange}`, y, 9);
+    addLine(`Tarih: ${rangeLabel}`, y, 9);
     y += 8;
-    addLine(`Toplam satis: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}`, y, 10, true);
+    addLine(`Toplam satış: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}`, y, 10, true);
     y += 6;
     addLine(`Toplam miktar: ${customerProductReportSummary.totalQuantity} adet`, y, 10);
     y += 10;
@@ -977,7 +994,7 @@ if (selectedCustomerFilter !== 'all') {
                       <span>{monthName}</span><span className="text-[10px] font-semibold text-slate-400">{month.products.length} ürün</span>
                     </summary>
                     <div className="border-t border-emerald-100/70 px-3 py-2 dark:border-emerald-900/40">
-                      {month.products.length === 0 ? <p className="py-1 text-[11px] text-slate-400">Bu ay ürün satışı bulunamadı.</p> : <div className="space-y-1.5">{month.products.sort((a, b) => b.average - a.average).map((product) => <div key={product.productName} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950"><span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-300">{product.productName}</span><span className="shrink-0 font-black tabular-nums text-emerald-700 dark:text-emerald-300">{product.average.toFixed(2)} {product.unit}/gün</span></div>)}</div>}
+                      {month.products.length === 0 ? <p className="py-1 text-[11px] text-slate-400">Bu ay ürün satışı bulunamadı.</p> : <div className="space-y-1.5">{[...month.products].sort((a, b) => b.average - a.average).map((product) => <div key={product.productName} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950"><span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-300">{product.productName}</span><span className="shrink-0 font-black tabular-nums text-emerald-700 dark:text-emerald-300">{product.average.toFixed(2)} {product.unit}/gün</span></div>)}</div>}
                     </div>
                   </details>
                 );
