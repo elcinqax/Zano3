@@ -82,7 +82,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [groupingMode, setGroupingMode] = useState<'customer' | 'product' | 'flat'>('customer');
   const [expandedCustomerIds, setExpandedCustomerIds] = useState<Record<string, boolean>>({});
   const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
-  const [annualReportYear, setAnnualReportYear] = useState(new Date().getFullYear());
+  const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
 
   // Filter sales by selected time range
   const filteredSales = useMemo(() => {
@@ -279,9 +279,11 @@ if (selectedCustomerFilter !== 'all') {
 
   // Total summary of customer product report
   const annualMonthlyProductAverages = useMemo(() => {
-    const months = Array.from({ length: 12 }, (_, month) => ({ month, days: new Date(annualReportYear, month + 1, 0).getDate(), products: [] as { productName: string; unit: string; totalQuantity: number; average: number }[] }));
+    const year = annualReportYear;
+    if (year === null) return null;
+    const months = Array.from({ length: 12 }, (_, month) => ({ month, days: new Date(year, month + 1, 0).getDate(), products: [] as { productName: string; unit: string; totalQuantity: number; average: number }[] }));
     sales.forEach((sale) => {
-      if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== annualReportYear) return;
+      if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== year) return;
       if (selectedCustomerFilter !== 'all' && (selectedCustomerFilter === 'general' ? sale.customerId : sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter)) return;
       const month = months[new Date(sale.createdAt).getMonth()];
       sale.items.forEach((item) => {
@@ -291,12 +293,12 @@ if (selectedCustomerFilter !== 'all') {
           existing.totalQuantity += item.quantity;
           existing.average = existing.totalQuantity / month.days;
         } else {
-          month.products.push({ productName: item.productName, unit: item.unit, totalQuantity: item.quantity, average: item.quantity / month.days });
+          month.products.push({ productName: item.productName, unit: productById.get(item.productId)?.unit || 'Adet', totalQuantity: item.quantity, average: item.quantity / month.days });
         }
       });
     });
     return months;
-  }, [sales, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
+  }, [sales, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
 
   const availableReportYears = useMemo(() => {
     const years = new Set(sales.filter((sale) => sale.status !== 'cancelled').map((sale) => new Date(sale.createdAt).getFullYear()));
@@ -889,13 +891,17 @@ if (selectedCustomerFilter !== 'all') {
               </div>
               <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
                 <span>Yıl</span>
-                <select value={annualReportYear} onChange={(event) => setAnnualReportYear(Number(event.target.value))} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-900 dark:bg-slate-900 dark:text-slate-100">
+                <select value={annualReportYear ?? ''} onChange={(event) => setAnnualReportYear(event.target.value === '' ? null : Number(event.target.value))} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-900 dark:bg-slate-900 dark:text-slate-100">
+                  <option value="">-</option>
                   {availableReportYears.map((year) => <option key={year} value={year}>{year}</option>)}
                 </select>
               </label>
             </div>
+            {annualMonthlyProductAverages === null && (
+              <p className="mt-3 rounded-xl border border-dashed border-emerald-200 bg-white/70 px-3 py-2.5 text-[11px] font-semibold text-slate-500 dark:border-emerald-900/60 dark:bg-slate-900/60 dark:text-slate-400">Ayları görmek için bir yıl seçin.</p>
+            )}
             <div className="mt-3 space-y-2">
-              {annualMonthlyProductAverages.map((month) => {
+              {annualReportYear !== null && annualMonthlyProductAverages?.map((month) => {
                 const monthName = new Intl.DateTimeFormat('tr-TR', { month: 'long' }).format(new Date(annualReportYear, month.month, 1));
                 return (
                   <details key={month.month} open={month.products.length > 0} className="overflow-hidden rounded-xl border border-emerald-100 bg-white/80 dark:border-emerald-900/50 dark:bg-slate-900/70">
