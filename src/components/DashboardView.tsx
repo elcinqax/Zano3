@@ -732,7 +732,7 @@ if (selectedCustomerFilter !== 'all') {
             <span>Raporlar & Analizler</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Müşteri satın alma raporları, ürün satış dağılımları ve finansal özet
+            Mü��teri satın alma raporları, ürün satış dağılımları ve finansal özet
           </p>
         </div>
 
@@ -1040,6 +1040,7 @@ if (selectedCustomerFilter !== 'all') {
                   const dailyYears = Array.from(new Set(dailyMonths.map((month) => Number(month.monthKey.slice(0, 4))))).sort((a, b) => b - a);
                   const storedDailyYear = dailyYearByCustomer[group.customerId] ?? null;
                   const selectedDailyYear = storedDailyYear !== null && dailyYears.includes(storedDailyYear) ? storedDailyYear : null;
+                  const selectedDailyYearTotal = selectedDailyYear === null ? null : dailyMonths.reduce((sum, month) => (Number(month.monthKey.slice(0, 4)) === selectedDailyYear ? sum + month.quantity : sum), 0);
                   return (
                     <div
                       key={group.customerId}
@@ -1133,17 +1134,25 @@ if (selectedCustomerFilter !== 'all') {
                                 <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
                               </div>
                               {dailyYears.length > 0 && (
-                                <label className="print:hidden flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                                  <span>Yıl</span>
-                                  <select
-                                    value={selectedDailyYear ?? ''}
-                                    onChange={(event) => setDailyYearByCustomer((prev) => ({ ...prev, [group.customerId]: event.target.value === '' ? null : Number(event.target.value) }))}
-                                    className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-teal-400 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-100"
-                                  >
-                                    <option value="">-</option>
-                                    {dailyYears.map((year) => <option key={year} value={year}>{year}</option>)}
-                                  </select>
-                                </label>
+                                <div className="print:hidden flex min-w-0 flex-wrap items-center justify-end gap-2">
+                                  <label className="flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                                    <span>Yıl</span>
+                                    <select
+                                      value={selectedDailyYear ?? ''}
+                                      onChange={(event) => setDailyYearByCustomer((prev) => ({ ...prev, [group.customerId]: event.target.value === '' ? null : Number(event.target.value) }))}
+                                      className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-teal-400 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-100"
+                                    >
+                                      <option value="">-</option>
+                                      {dailyYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                                    </select>
+                                  </label>
+                                  {selectedDailyYearTotal !== null && (
+                                    <p aria-live="polite" className="shrink-0 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
+                                      <span className="sr-only">Yıllık toplam: </span>
+                                      {selectedDailyYearTotal.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} adet
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
                             {dailyYears.length > 0 && selectedDailyYear === null && (
