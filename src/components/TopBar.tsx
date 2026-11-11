@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Smartphone, Monitor, Moon, Sun, Clock3 } from 'lucide-react';
 
+// Every button and section inside the top bar shares the bar's own surface; reuse this for new ones.
+const TOP_BAR_SURFACE =
+  'border border-slate-200/80 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] text-slate-900 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] backdrop-blur-2xl dark:border-slate-800 dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] dark:text-slate-100';
+
 interface TopBarProps {
   storeName: string;
   onLockApp: () => void;
@@ -73,7 +77,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Zone 2: Navigation Links (hidden on compact mobile thumb zone, visible on desktop/tablet) */}
-        <nav className="hidden md:flex items-center p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+        <nav className={`hidden md:flex items-center p-1 rounded-2xl transition-colors ${TOP_BAR_SURFACE}`}>
           <button
             type="button"
             onClick={() => onTabChange('pos')}
@@ -123,13 +127,13 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className="flex h-10 items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] px-2.5 text-slate-900 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] backdrop-blur-2xl transition-colors dark:border-slate-800 dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] dark:text-slate-100" aria-label="Anlık saat">
+          <div className={`flex h-10 items-center gap-1.5 rounded-2xl px-2.5 transition-colors ${TOP_BAR_SURFACE}`} aria-label="Anlık saat">
             <Clock3 className="size-4 stroke-[2.5]" aria-hidden="true" />
             <span className="font-mono text-[11px] font-black tabular-nums tracking-tight">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
-          <button type="button" onClick={onToggleTheme} className="flex size-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 shadow-xs ring-1 ring-teal-200/80 transition-all hover:bg-teal-100 active:scale-95 dark:bg-teal-950/40 dark:text-teal-300 dark:ring-teal-800/60 dark:hover:bg-teal-900/50" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
+          <button type="button" onClick={onToggleTheme} className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-slate-300 active:scale-95 dark:hover:border-slate-700 ${TOP_BAR_SURFACE}`} title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
             {themeMode === 'dark' ? <Sun className="size-5 stroke-[2.5]" aria-hidden="true" /> : <Moon className="size-5 stroke-[2.5]" aria-hidden="true" />}
           </button>
 
@@ -137,7 +141,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onToggleMobileFrame}
-            className="hidden lg:flex min-w-[36px] h-9 px-3 items-center gap-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800"
+            className={`hidden lg:flex h-10 px-3 items-center gap-1.5 rounded-2xl text-xs font-bold transition-all hover:border-slate-300 active:scale-95 dark:hover:border-slate-700 ${TOP_BAR_SURFACE}`}
             title="Telefon / Masaüstü Görünümünü Değiştir"
           >
             {isMobileFrame ? (
@@ -160,7 +164,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <button
               type="button"
               onClick={onLockApp}
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50"
+              className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-rose-300 active:scale-95 dark:hover:border-rose-800 ${TOP_BAR_SURFACE}`}
               title="Uygulamayı Kilitle"
               aria-label="Kilitle"
             >
