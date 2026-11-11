@@ -84,6 +84,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [expandedCustomerIds, setExpandedCustomerIds] = useState<Record<string, boolean>>({});
   const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
   const [expandedDailyMonths, setExpandedDailyMonths] = useState<Record<string, boolean>>({});
+  const [dailyYearByCustomer, setDailyYearByCustomer] = useState<Record<string, number | null>>({});
   const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
 
   // Filter sales by selected time range
@@ -968,6 +969,10 @@ if (selectedCustomerFilter !== 'all') {
               ) : (
                 groupedByCustomer.map((group) => {
                   const isExpanded = expandedCustomerIds[group.customerId] === true;
+                  const dailyMonths = dailyMonthsByCustomer[group.customerId] || [];
+                  const dailyYears = Array.from(new Set(dailyMonths.map((month) => Number(month.monthKey.slice(0, 4))))).sort((a, b) => b - a);
+                  const storedDailyYear = dailyYearByCustomer[group.customerId] ?? null;
+                  const selectedDailyYear = storedDailyYear !== null && dailyYears.includes(storedDailyYear) ? storedDailyYear : null;
                   return (
                     <div
                       key={group.customerId}
@@ -1056,17 +1061,35 @@ if (selectedCustomerFilter !== 'all') {
                           </div>
                           <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
                             <div className="mb-2 flex items-center justify-between gap-2">
-                              <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
-                              <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
+                              <div className="flex min-w-0 flex-col">
+                                <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
+                                <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
+                              </div>
+                              {dailyYears.length > 0 && (
+                                <label className="print:hidden flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                                  <span>Yıl</span>
+                                  <select
+                                    value={selectedDailyYear ?? ''}
+                                    onChange={(event) => setDailyYearByCustomer((prev) => ({ ...prev, [group.customerId]: event.target.value === '' ? null : Number(event.target.value) }))}
+                                    className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-teal-400 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-100"
+                                  >
+                                    <option value="">-</option>
+                                    {dailyYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                                  </select>
+                                </label>
+                              )}
                             </div>
+                            {dailyYears.length > 0 && selectedDailyYear === null && (
+                              <p className="print:hidden rounded-xl border border-dashed border-teal-200 bg-white/70 px-3 py-2.5 text-[11px] font-semibold text-slate-500 dark:border-teal-900/60 dark:bg-slate-900/60 dark:text-slate-400">Ayları görmek için bir yıl seçin.</p>
+                            )}
                             <div className="flex flex-col gap-1.5">
-                              {(dailyMonthsByCustomer[group.customerId] || []).map((month) => {
+                              {dailyMonths.map((month) => {
                                 const monthId = `${group.customerId}-${month.monthKey}`;
                                 const isMonthOpen = expandedDailyMonths[monthId] === true;
                                 const [monthYear, monthNumber] = month.monthKey.split('-').map(Number);
                                 const monthLabel = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(monthYear, monthNumber - 1, 1));
                                 return (
-                                  <div key={month.monthKey} className="overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/70">
+                                  <div key={month.monthKey} className={`${monthYear === selectedDailyYear ? '' : 'hidden print:block '}overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/70`}>
                                     <div className="flex flex-wrap items-center justify-between gap-2 p-2">
                                       <button
                                         type="button"
@@ -1095,7 +1118,7 @@ if (selectedCustomerFilter !== 'all') {
                                   </div>
                                 );
                               })}
-                              {!dailyMonthsByCustomer[group.customerId]?.length && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
+                              {dailyMonths.length === 0 && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
                             </div>
                           </div>
                         </div>
