@@ -69,7 +69,7 @@ export const LedgerCalendar: React.FC<LedgerCalendarProps> = ({ monthKey, events
     return { cells: [...Array.from({ length: leadingBlanks }, () => null), ...dayCells], counts };
   }, [monthKey, events]);
 
-  const selectedCell = cells.find((cell) => cell?.dateKey === selectedDate);
+  const selectedCell = cells.find((cell) => cell?.dateKey === selectedDate && cell.dayEvents.length > 0);
 
   return (
     <div className="flex flex-col gap-2">
