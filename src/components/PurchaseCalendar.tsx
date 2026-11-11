@@ -18,11 +18,11 @@ interface PurchaseCalendarProps {
 
 type DayStatus = 'purchased' | 'none' | 'outside';
 
-const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, index) =>
+export const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, index) =>
   new Intl.DateTimeFormat('tr-TR', { weekday: 'short' }).format(new Date(2024, 0, 1 + index)),
 );
 
-const fullDateFormatter = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+export const fullDateFormatter = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 const STATUS_CLASSES: Record<DayStatus, string> = {
   purchased: 'bg-emerald-700 text-white dark:bg-emerald-600',

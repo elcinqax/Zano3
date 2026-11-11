@@ -34,6 +34,7 @@ import {
 import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerPayment, CustomerProductPurchaseSummary } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
 import { PurchaseCalendar, PurchaseDayTotal } from './PurchaseCalendar';
+import { LedgerCalendar, LedgerEvent } from './LedgerCalendar';
 import {
   exportToExcel,
   exportSalesToCSV,
@@ -85,6 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
   const [expandedDailyMonths, setExpandedDailyMonths] = useState<Record<string, boolean>>({});
   const [dailyYearByCustomer, setDailyYearByCustomer] = useState<Record<string, number | null>>({});
+  const [ledgerYear, setLedgerYear] = useState<number | null>(null);
   const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
 
   // Filter sales by selected time range
@@ -501,12 +503,36 @@ if (selectedCustomerFilter !== 'all') {
     const matchesSelectedCustomer = (customerId?: string) => selectedCustomerFilter === 'all' || (selectedCustomerFilter === 'general' ? !customerId : customerId === selectedCustomerFilter);
     const creditEvents = filteredSales
       .filter((sale) => matchesSelectedCustomer(sale.customerId) && (sale.customerBalanceDelta || 0) > 0)
-      .map((sale) => ({ type: 'Veresiye', date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
+      .map((sale) => ({ type: 'Veresiye' as const, date: sale.createdAt, customer: sale.customerName, detail: sale.invoiceNo, amount: sale.customerBalanceDelta || 0 }));
     const collectionEvents = filteredPayments
       .filter((payment) => matchesSelectedCustomer(payment.customerId))
-      .map((payment) => ({ type: 'Tahsilat', date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
+      .map((payment) => ({ type: 'Tahsilat' as const, date: payment.createdAt, customer: payment.customerName, detail: payment.paymentMethod, amount: payment.amount }));
     return [...creditEvents, ...collectionEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredSales, filteredPayments, selectedCustomerFilter]);
+
+  const ledgerMonths = useMemo(() => {
+    const months: { monthKey: string; creditTotal: number; collectionTotal: number; events: LedgerEvent[] }[] = [];
+    reportEvents.forEach((event) => {
+      const date = new Date(event.date);
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const monthKey = dateKey.slice(0, 7);
+      let month = months.find((item) => item.monthKey === monthKey);
+      if (!month) {
+        month = { monthKey, creditTotal: 0, collectionTotal: 0, events: [] };
+        months.push(month);
+      }
+      if (event.type === 'Veresiye') month.creditTotal += event.amount;
+      else month.collectionTotal += event.amount;
+      month.events.push({ ...event, dateKey });
+    });
+    return months;
+  }, [reportEvents]);
+
+  const ledgerYears = useMemo(
+    () => Array.from(new Set(ledgerMonths.map((month) => Number(month.monthKey.slice(0, 4))))).sort((a, b) => b - a),
+    [ledgerMonths],
+  );
+  const selectedLedgerYear = ledgerYear !== null && ledgerYears.includes(ledgerYear) ? ledgerYear : null;
 
   // Print Report Handler
   const handlePrint = async () => {
@@ -1131,15 +1157,53 @@ if (selectedCustomerFilter !== 'all') {
 
           {reportEvents.length > 0 && (
             <section className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="mb-2 text-sm font-black text-slate-800 dark:text-slate-100">Veresiye ve tahsilat günleri</h3>
-              <div className="space-y-1.5">
-                {reportEvents.map((event, index) => (
-                  <div key={`${event.type}-${event.date}-${index}`} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950">
-                    <span className={`rounded-lg px-2 py-1 font-black ${event.type === 'Tahsilat' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'}`}>{event.type}</span>
-                    <span className="min-w-0 truncate text-slate-600 dark:text-slate-300">{event.customer} · {event.detail}</span>
-                    <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200">{formatDate(event.date)}</span>
-                  </div>
-                ))}
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="min-w-0 text-sm font-black text-slate-800 dark:text-slate-100">Veresiye ve tahsilat günleri</h3>
+                <label className="print:hidden flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <span>Yıl</span>
+                  <select
+                    value={selectedLedgerYear ?? ''}
+                    onChange={(event) => setLedgerYear(event.target.value === '' ? null : Number(event.target.value))}
+                    className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-teal-400 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    <option value="">-</option>
+                    {ledgerYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </label>
+              </div>
+              {selectedLedgerYear === null && (
+                <p className="print:hidden rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-400">Ayları görmek için bir yıl seçin.</p>
+              )}
+              <div className="flex flex-col gap-1.5">
+                {ledgerMonths.map((month) => {
+                  const monthId = `ledger-${month.monthKey}`;
+                  const isMonthOpen = expandedDailyMonths[monthId] === true;
+                  const [monthYear, monthNumber] = month.monthKey.split('-').map(Number);
+                  const monthLabel = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(monthYear, monthNumber - 1, 1));
+                  return (
+                    <div key={month.monthKey} className={`${monthYear === selectedLedgerYear ? '' : 'hidden print:block '}overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-950/60`}>
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedDailyMonths((prev) => ({ ...prev, [monthId]: !prev[monthId] }))}
+                          aria-expanded={isMonthOpen}
+                          className="flex min-h-10 items-center gap-1.5 rounded-xl bg-teal-700 px-3 py-2 text-left text-white shadow-sm transition-colors hover:bg-teal-800 active:bg-teal-900"
+                        >
+                          <Calendar className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span className="text-xs font-black capitalize">{monthLabel}</span>
+                          {isMonthOpen ? <ChevronUp className="h-4 w-4 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                        </button>
+                        <span className="flex shrink-0 flex-col items-end gap-0.5 pr-1 text-[11px] font-black tabular-nums">
+                          <span className="text-amber-700 dark:text-amber-300">Veresiye {formatCurrency(month.creditTotal, settings.currency)}</span>
+                          <span className="text-emerald-700 dark:text-emerald-300">Tahsilat {formatCurrency(month.collectionTotal, settings.currency)}</span>
+                        </span>
+                      </div>
+                      <div className={`${isMonthOpen ? '' : 'hidden print:block '}border-t border-slate-200/80 p-2 dark:border-slate-800`}>
+                        <LedgerCalendar monthKey={month.monthKey} events={month.events} currency={settings.currency} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
