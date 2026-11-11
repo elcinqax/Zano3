@@ -23,6 +23,7 @@ import {
 import { Sale, Customer, Product, AppSettings } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { exportToExcel, exportSalesToCSV } from '../utils/export-utils';
+import { getSaleReturns, getSaleReturnedQuantity, formatQuantity } from '../utils/sale-returns';
 
 export type DateFilterType = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'last1year' | 'custom' | 'all';
 
@@ -199,6 +200,14 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
     [filteredSales]
   );
 
+  const totalFilteredReturnCount = useMemo(
+    () =>
+      filteredSales
+        .filter((s) => s.status === 'completed')
+        .reduce((sum, s) => sum + getSaleReturnedQuantity(s, products), 0),
+    [filteredSales, products]
+  );
+
   // Müşteri Bazında Alınan Ürün Adetleri (Hangi Müşteri Kaç Tane Almış)
   const customerPurchases = useMemo(() => {
     const map = new Map<
@@ -208,9 +217,10 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         customerName: string;
         customerPhone?: string;
         totalQuantity: number;
+        totalReturned: number;
         totalAmount: number;
         invoiceCount: number;
-        itemsMap: Map<string, { productName: string; quantity: number; unitPrice: number; total: number }>;
+        itemsMap: Map<string, { productName: string; quantity: number; returned: number; unitPrice: number; total: number }>;
       }
     >();
 
@@ -223,6 +233,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           customerName: sale.customerName,
           customerPhone: sale.customerPhone,
           totalQuantity: 0,
+          totalReturned: 0,
           totalAmount: 0,
           invoiceCount: 0,
           itemsMap: new Map(),
@@ -236,6 +247,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           const currentItem = existing.itemsMap.get(item.productName) || {
             productName: item.productName,
             quantity: 0,
+            returned: 0,
             unitPrice: item.unitPrice,
             total: 0,
           };
@@ -244,11 +256,24 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           existing.itemsMap.set(item.productName, currentItem);
         });
 
+        getSaleReturns(sale, products).forEach((returned) => {
+          existing.totalReturned += returned.quantity;
+          const currentItem = existing.itemsMap.get(returned.productName) || {
+            productName: returned.productName,
+            quantity: 0,
+            returned: 0,
+            unitPrice: 0,
+            total: 0,
+          };
+          currentItem.returned += returned.quantity;
+          existing.itemsMap.set(returned.productName, currentItem);
+        });
+
         map.set(key, existing);
       });
 
     return Array.from(map.values()).sort((a, b) => a.customerName.localeCompare(b.customerName, 'tr'));
-  }, [filteredSales]);
+  }, [filteredSales, products]);
 
   const dateFilterButtons: { id: DateFilterType; label: string; count?: number }[] = [
     { id: 'today', label: 'Bugün', count: countsByPeriod.today },
@@ -382,6 +407,8 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         <span aria-hidden="true">·</span>
         <span>Satılan Ürün: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums">{totalFilteredItemCount} adet</strong></span>
         <span aria-hidden="true">·</span>
+        <span>İade: <strong className="text-amber-700 dark:text-amber-300 tabular-nums">{formatQuantity(totalFilteredReturnCount)} adet</strong></span>
+        <span aria-hidden="true">·</span>
         <span>Toplam Ciro: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(totalFilteredAmount)}</strong></span>
         <span aria-hidden="true">·</span>
         <span>Toplam Kâr: <strong className="text-indigo-600 dark:text-indigo-400 tabular-nums">{formatCurrency(totalFilteredProfit)}</strong></span>
@@ -459,6 +486,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
             {filteredSales.map((sale) => {
               const isCancelled = sale.status === 'cancelled';
               const saleItemCount = sale.items.reduce((acc, i) => acc + i.quantity, 0);
+              const saleReturnCount = getSaleReturnedQuantity(sale, products);
 
               return (
                 <div
@@ -481,6 +509,11 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-mono">
                         {saleItemCount} Adet Ürün
                       </span>
+                      {saleReturnCount > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-mono">
+                          {formatQuantity(saleReturnCount)} Adet İade
+                        </span>
+                      )}
                       {isCancelled && (
                         <span className="text-[10px] text-rose-600 font-bold bg-rose-50 dark:bg-rose-950 px-1.5 py-0.5 rounded">
                           İptal Edildi
@@ -619,6 +652,11 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                         <span className="inline-block px-3 py-1 rounded-xl bg-emerald-600 text-white text-xs font-black font-mono shadow-xs">
                           Toplam {cust.totalQuantity} Adet Aldı
                         </span>
+                        {cust.totalReturned > 0 && (
+                          <div className="text-xs font-bold text-amber-700 dark:text-amber-300 mt-0.5">
+                            İade: {formatQuantity(cust.totalReturned)} adet
+                          </div>
+                        )}
                         <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">
                           Tutar: {formatCurrency(cust.totalAmount)}
                         </div>
@@ -639,6 +677,11 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                             <strong className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
                               ({item.quantity} adet)
                             </strong>
+                            {item.returned > 0 && (
+                              <strong className="text-amber-700 dark:text-amber-300 font-bold font-mono">
+                                İade {formatQuantity(item.returned)}
+                              </strong>
+                            )}
                           </span>
                         ))}
                       </div>

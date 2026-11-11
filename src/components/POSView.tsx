@@ -49,6 +49,7 @@ interface POSViewProps {
       discount: number;
       total: number;
     }[];
+    returns?: Sale['returns'];
     subtotal: number;
     discount: number;
     taxRate: number;
@@ -472,8 +473,8 @@ export const POSView: React.FC<POSViewProps> = ({
     e.preventDefault();
     const soldItems = netCart.filter((item) => item.quantity > 0);
     if (soldItems.length === 0) return;
-    const returnNote = netCart
-      .filter((item) => item.returned > 0)
+    const returnedItems = netCart.filter((item) => item.returned > 0);
+    const returnNote = returnedItems
       .map((item) => `${item.product.name} ${item.returned} ${item.product.unit}`)
       .join(', ');
 
@@ -536,6 +537,14 @@ export const POSView: React.FC<POSViewProps> = ({
         discount: i.discount,
         total: i.total,
       })),
+      returns: returnedItems.length > 0
+        ? returnedItems.map((item) => ({
+            productId: item.product.id,
+            productName: item.product.name,
+            quantity: item.returned,
+            unit: item.product.unit,
+          }))
+        : undefined,
       subtotal: totalAmount,
       discount: 0,
       taxRate,

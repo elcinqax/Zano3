@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerPayment, CustomerProductPurchaseSummary, PaymentMethod } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
+import { getSaleReturns, formatQuantity } from '../utils/sale-returns';
 import { PurchaseCalendar, PurchaseDayTotal } from './PurchaseCalendar';
 import { LedgerCalendar, LedgerEvent } from './LedgerCalendar';
 import {
@@ -234,22 +235,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       const cName = sale.customerName || 'Genel Müşteri';
       const cPhone = sale.customerPhone;
 
-      sale.items.forEach((item) => {
-        const key = `${cId}___${item.productId}`;
-        const prod = productById.get(item.productId);
-        const unit = prod?.unit || 'Adet';
-        const category = prod?.category || 'Genel';
+      const entryFor = (productId: string, productName: string) => {
+        const key = `${cId}___${productId}`;
+        const prod = productById.get(productId);
 
         if (!map[key]) {
           map[key] = {
             customerId: cId,
             customerName: cName,
             customerPhone: cPhone,
-            productId: item.productId,
-            productName: item.productName,
-            category,
-            unit,
+            productId,
+            productName,
+            category: prod?.category || 'Genel',
+            unit: prod?.unit || 'Adet',
             totalQuantity: 0,
+            returnedQuantity: 0,
             totalSpent: 0,
             avgPrice: 0,
             totalProfit: 0,
@@ -257,14 +257,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             lastPurchaseDate: sale.createdAt,
           };
         }
-
-        map[key].totalQuantity += item.quantity;
-        map[key].totalSpent += item.total;
-        map[key].totalProfit += (item.unitPrice - item.buyPrice) * item.quantity;
-        map[key].ordersCount += 1;
         if (new Date(sale.createdAt) > new Date(map[key].lastPurchaseDate)) {
           map[key].lastPurchaseDate = sale.createdAt;
         }
+        return map[key];
+      };
+
+      sale.items.forEach((item) => {
+        const entry = entryFor(item.productId, item.productName);
+        entry.totalQuantity += item.quantity;
+        entry.totalSpent += item.total;
+        entry.totalProfit += (item.unitPrice - item.buyPrice) * item.quantity;
+        entry.ordersCount += 1;
+      });
+
+      getSaleReturns(sale, products).forEach((returned) => {
+        entryFor(returned.productId, returned.productName).returnedQuantity += returned.quantity;
       });
     });
 
@@ -297,46 +305,65 @@ if (selectedCustomerFilter !== 'all') {
 
     // Sort by total spent descending
     return list.sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [filteredSales, productById, selectedCustomerFilter, selectedProductFilter, customerProductSearch]);
+  }, [filteredSales, products, productById, selectedCustomerFilter, selectedProductFilter, customerProductSearch]);
 
   // Total summary of customer product report
   const annualMonthlyProductAverages = useMemo(() => {
     const year = annualReportYear;
     if (year === null) return null;
-    const months = Array.from({ length: 12 }, (_, month) => ({ month, days: new Date(year, month + 1, 0).getDate(), products: [] as { productName: string; unit: string; totalQuantity: number; average: number }[] }));
+    type MonthProduct = { productName: string; unit: string; totalQuantity: number; average: number; returnedQuantity: number };
+    const months = Array.from({ length: 12 }, (_, month) => ({ month, days: new Date(year, month + 1, 0).getDate(), returnedQuantity: 0, products: [] as MonthProduct[] }));
+    const matchesProduct = (productId: string, productName: string) => selectedProductFilter === 'all' || productId === selectedProductFilter || productName === selectedProductFilter;
     sales.forEach((sale) => {
       if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== year) return;
       if (selectedCustomerFilter !== 'all' && (selectedCustomerFilter === 'general' ? sale.customerId : sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter)) return;
       const month = months[new Date(sale.createdAt).getMonth()];
-      sale.items.forEach((item) => {
-        if (selectedProductFilter !== 'all' && item.productId !== selectedProductFilter && item.productName !== selectedProductFilter) return;
-        const existing = month.products.find((product) => product.productName === item.productName);
-        if (existing) {
-          existing.totalQuantity += item.quantity;
-          existing.average = existing.totalQuantity / month.days;
-        } else {
-          month.products.push({ productName: item.productName, unit: productById.get(item.productId)?.unit || 'Adet', totalQuantity: item.quantity, average: item.quantity / month.days });
+      const productFor = (productId: string, productName: string) => {
+        let product = month.products.find((entry) => entry.productName === productName);
+        if (!product) {
+          product = { productName, unit: productById.get(productId)?.unit || 'Adet', totalQuantity: 0, average: 0, returnedQuantity: 0 };
+          month.products.push(product);
         }
+        return product;
+      };
+      sale.items.forEach((item) => {
+        if (!matchesProduct(item.productId, item.productName)) return;
+        const product = productFor(item.productId, item.productName);
+        product.totalQuantity += item.quantity;
+        product.average = product.totalQuantity / month.days;
+      });
+      getSaleReturns(sale, products).forEach((returned) => {
+        if (!matchesProduct(returned.productId, returned.productName)) return;
+        productFor(returned.productId, returned.productName).returnedQuantity += returned.quantity;
+        month.returnedQuantity += returned.quantity;
       });
     });
     return months;
-  }, [sales, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
+  }, [sales, products, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
 
   const annualTotalsByUnit = useMemo(() => {
     const year = annualReportYear;
     if (year === null) return null;
-    const totals = new Map<string, number>();
+    const sold = new Map<string, number>();
+    const returned = new Map<string, number>();
+    const matchesProduct = (productId: string, productName: string) => selectedProductFilter === 'all' || productId === selectedProductFilter || productName === selectedProductFilter;
     sales.forEach((sale) => {
       if (sale.status === 'cancelled' || new Date(sale.createdAt).getFullYear() !== year) return;
       if (selectedCustomerFilter !== 'all' && (selectedCustomerFilter === 'general' ? sale.customerId : sale.customerId !== selectedCustomerFilter && sale.customerName !== selectedCustomerFilter)) return;
       sale.items.forEach((item) => {
-        if (selectedProductFilter !== 'all' && item.productId !== selectedProductFilter && item.productName !== selectedProductFilter) return;
+        if (!matchesProduct(item.productId, item.productName)) return;
         const unit = productById.get(item.productId)?.unit || 'Adet';
-        totals.set(unit, (totals.get(unit) ?? 0) + item.quantity);
+        sold.set(unit, (sold.get(unit) ?? 0) + item.quantity);
+      });
+      getSaleReturns(sale, products).forEach((item) => {
+        if (!matchesProduct(item.productId, item.productName)) return;
+        const unit = productById.get(item.productId)?.unit || item.unit;
+        returned.set(unit, (returned.get(unit) ?? 0) + item.quantity);
       });
     });
-    return Array.from(totals, ([unit, quantity]) => ({ unit, quantity })).sort((a, b) => b.quantity - a.quantity);
-  }, [sales, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
+    const byQuantity = (totals: Map<string, number>) => Array.from(totals, ([unit, quantity]) => ({ unit, quantity })).sort((a, b) => b.quantity - a.quantity);
+    return { sold: byQuantity(sold), returned: byQuantity(returned) };
+  }, [sales, products, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
 
   const availableReportYears = useMemo(() => {
     const years = new Set(sales.filter((sale) => sale.status !== 'cancelled').map((sale) => new Date(sale.createdAt).getFullYear()));
@@ -346,11 +373,12 @@ if (selectedCustomerFilter !== 'all') {
 
   const customerProductReportSummary = useMemo(() => {
     const totalQuantity = customerProductPurchases.reduce((s, i) => s + i.totalQuantity, 0);
+    const totalReturned = customerProductPurchases.reduce((s, i) => s + i.returnedQuantity, 0);
     const totalSpent = customerProductPurchases.reduce((s, i) => s + i.totalSpent, 0);
     const totalProfit = customerProductPurchases.reduce((s, i) => s + i.totalProfit, 0);
     const uniqueCustomers = new Set(customerProductPurchases.map((i) => i.customerName)).size;
     const uniqueProducts = new Set(customerProductPurchases.map((i) => i.productName)).size;
-    return { totalQuantity, totalSpent, totalProfit, uniqueCustomers, uniqueProducts };
+    return { totalQuantity, totalReturned, totalSpent, totalProfit, uniqueCustomers, uniqueProducts };
   }, [customerProductPurchases]);
 
   // Grouped by Customer data structure for accordion view
@@ -363,6 +391,7 @@ if (selectedCustomerFilter !== 'all') {
         customerPhone?: string;
         totalSpent: number;
         totalQuantity: number;
+        totalReturned: number;
         products: CustomerProductPurchaseSummary[];
       }
     > = {};
@@ -376,11 +405,13 @@ if (selectedCustomerFilter !== 'all') {
           customerPhone: item.customerPhone,
           totalSpent: 0,
           totalQuantity: 0,
+          totalReturned: 0,
           products: [],
         };
       }
       groups[id].totalSpent += item.totalSpent;
       groups[id].totalQuantity += item.totalQuantity;
+      groups[id].totalReturned += item.returnedQuantity;
       groups[id].products.push(item);
     });
 
@@ -414,8 +445,10 @@ if (selectedCustomerFilter !== 'all') {
     const visibleRowKeys = new Set(customerProductPurchases.map((item) => `${item.customerId}___${item.productId}`));
     filteredSales.forEach((sale) => {
       const customerId = getReportCustomerId(sale);
-      const matchingItems = sale.items.filter((item) => visibleRowKeys.has(`${customerId}___${item.productId}`));
-      if (!matchingItems.length) return;
+      const isVisible = (productId: string) => visibleRowKeys.has(`${customerId}___${productId}`);
+      const matchingItems = sale.items.filter((item) => isVisible(item.productId));
+      const returned = getSaleReturns(sale, products).reduce((sum, item) => (isVisible(item.productId) ? sum + item.quantity : sum), 0);
+      if (!matchingItems.length && returned === 0) return;
       const date = new Date(sale.createdAt);
       const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const existing = totals[customerId]?.find((entry) => entry.date === dateKey);
@@ -425,11 +458,12 @@ if (selectedCustomerFilter !== 'all') {
         existing.quantity += quantity;
         existing.amount += amount;
         existing.orders += 1;
+        existing.returned += returned;
       } else {
-        totals[customerId] = [...(totals[customerId] || []), { date: dateKey, quantity, amount, orders: 1 }];
+        totals[customerId] = [...(totals[customerId] || []), { date: dateKey, quantity, amount, orders: 1, returned }];
       }
     });
-    const months: Record<string, { monthKey: string; quantity: number; amount: number; days: DayTotal[] }[]> = {};
+    const months: Record<string, { monthKey: string; quantity: number; amount: number; returned: number; days: DayTotal[] }[]> = {};
     Object.entries(totals).forEach(([customerId, entries]) => {
       entries.sort((a, b) => b.date.localeCompare(a.date));
       months[customerId] = [];
@@ -437,16 +471,17 @@ if (selectedCustomerFilter !== 'all') {
         const monthKey = entry.date.slice(0, 7);
         let month = months[customerId].find((item) => item.monthKey === monthKey);
         if (!month) {
-          month = { monthKey, quantity: 0, amount: 0, days: [] };
+          month = { monthKey, quantity: 0, amount: 0, returned: 0, days: [] };
           months[customerId].push(month);
         }
         month.quantity += entry.quantity;
         month.amount += entry.amount;
+        month.returned += entry.returned;
         month.days.push(entry);
       });
     });
     return months;
-  }, [filteredSales, customerProductPurchases]);
+  }, [filteredSales, products, customerProductPurchases]);
 
   // Grouped by Product data structure
   const groupedByProduct = useMemo(() => {
@@ -459,6 +494,7 @@ if (selectedCustomerFilter !== 'all') {
         unit: string;
         totalSpent: number;
         totalQuantity: number;
+        totalReturned: number;
         customers: CustomerProductPurchaseSummary[];
       }
     > = {};
@@ -473,11 +509,13 @@ if (selectedCustomerFilter !== 'all') {
           unit: item.unit,
           totalSpent: 0,
           totalQuantity: 0,
+          totalReturned: 0,
           customers: [],
         };
       }
       groups[id].totalSpent += item.totalSpent;
       groups[id].totalQuantity += item.totalQuantity;
+      groups[id].totalReturned += item.returnedQuantity;
       groups[id].customers.push(item);
     });
 
@@ -496,22 +534,30 @@ if (selectedCustomerFilter !== 'all') {
 
   // Top Selling Products report
   const topProducts = useMemo(() => {
-    const productStats: Record<string, { name: string; quantity: number; revenue: number; profit: number; unit: string }> = {};
+    const productStats: Record<string, { name: string; quantity: number; returned: number; revenue: number; profit: number; unit: string }> = {};
+    const statFor = (productId: string, name: string) => {
+      if (!productStats[productId]) {
+        const p = products.find((prod) => prod.id === productId);
+        productStats[productId] = {
+          name,
+          quantity: 0,
+          returned: 0,
+          revenue: 0,
+          profit: 0,
+          unit: p?.unit || 'Adet',
+        };
+      }
+      return productStats[productId];
+    };
     for (const sale of filteredSales) {
       for (const item of sale.items) {
-        if (!productStats[item.productId]) {
-          const p = products.find((prod) => prod.id === item.productId);
-          productStats[item.productId] = {
-            name: item.productName,
-            quantity: 0,
-            revenue: 0,
-            profit: 0,
-            unit: p?.unit || 'Adet',
-          };
-        }
-        productStats[item.productId].quantity += item.quantity;
-        productStats[item.productId].revenue += item.total;
-        productStats[item.productId].profit += (item.unitPrice - item.buyPrice) * item.quantity;
+        const stat = statFor(item.productId, item.productName);
+        stat.quantity += item.quantity;
+        stat.revenue += item.total;
+        stat.profit += (item.unitPrice - item.buyPrice) * item.quantity;
+      }
+      for (const item of getSaleReturns(sale, products)) {
+        statFor(item.productId, item.productName).returned += item.quantity;
       }
     }
     return Object.values(productStats).sort((a, b) => b.revenue - a.revenue);
@@ -596,6 +642,8 @@ if (selectedCustomerFilter !== 'all') {
     addLine(`Toplam satış: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}`, y, 10, true);
     y += 6;
     addLine(`Toplam miktar: ${customerProductReportSummary.totalQuantity} adet`, y, 10);
+    y += 6;
+    addLine(`Toplam iade: ${formatQuantity(customerProductReportSummary.totalReturned)} adet`, y, 10);
     y += 10;
 
     const tableX = [14, 58, 116, 146, 196];
@@ -632,7 +680,7 @@ if (selectedCustomerFilter !== 'all') {
         doc.setFontSize(7.5);
         customerLines.forEach((line, index) => doc.text(line, tableX[0] + 2, y + index * 4));
         productLines.forEach((line, index) => doc.text(line, tableX[1] + 2, y + index * 4));
-        doc.text(String(product.totalQuantity), tableX[2] + 2, y);
+        doc.text(`${product.totalQuantity}${product.returnedQuantity > 0 ? ` (İade ${formatQuantity(product.returnedQuantity)})` : ''}`, tableX[2] + 2, y);
         doc.text(formatCurrency(product.totalSpent, settings.currency), tableX[3] + 2, y);
         y += rowHeight;
       });
@@ -641,7 +689,7 @@ if (selectedCustomerFilter !== 'all') {
     y += 5;
     doc.setFontSize(10);
     doc.setFont('DejaVuSans', 'normal');
-    doc.text(`Genel toplam: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)} / ${customerProductReportSummary.totalQuantity} adet`, 14, y);
+    doc.text(`Genel toplam: ${formatCurrency(customerProductReportSummary.totalSpent, settings.currency)} / ${customerProductReportSummary.totalQuantity} adet / İade ${formatQuantity(customerProductReportSummary.totalReturned)} adet`, 14, y);
 
     if (reportEvents.length > 0) {
       y += 10;
@@ -732,7 +780,7 @@ if (selectedCustomerFilter !== 'all') {
             <span>Raporlar & Analizler</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Mü����teri satın alma raporları, ürün satış dağılımları ve finansal özet
+            Mü������teri satın alma raporları, ürün satış dağılımları ve finansal özet
           </p>
         </div>
 
@@ -1001,7 +1049,8 @@ if (selectedCustomerFilter !== 'all') {
                 {annualTotalsByUnit !== null && (
                   <p aria-live="polite" className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-slate-900 dark:text-emerald-300">
                     <span className="font-bold text-slate-500 dark:text-slate-400">Yıl toplamı</span>
-                    {annualTotalsByUnit.length === 0 ? <span>0</span> : annualTotalsByUnit.map((total) => <span key={total.unit}>{total.quantity.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {total.unit}</span>)}
+                    {annualTotalsByUnit.sold.length === 0 ? <span>0</span> : annualTotalsByUnit.sold.map((total) => <span key={total.unit}>{formatQuantity(total.quantity)} {total.unit}</span>)}
+                    <span className="text-amber-700 dark:text-amber-300">İade {annualTotalsByUnit.returned.length === 0 ? '0' : annualTotalsByUnit.returned.map((total) => `${formatQuantity(total.quantity)} ${total.unit}`).join(', ')}</span>
                   </p>
                 )}
               </div>
@@ -1015,10 +1064,14 @@ if (selectedCustomerFilter !== 'all') {
                 return (
                   <details key={month.month} open={month.products.length > 0} className="overflow-hidden rounded-xl border border-emerald-100 bg-white/80 dark:border-emerald-900/50 dark:bg-slate-900/70">
                     <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-xs font-black capitalize text-slate-800 dark:text-slate-100">
-                      <span>{monthName}</span><span className="text-[10px] font-semibold text-slate-400">{month.products.length} ürün</span>
+                      <span>{monthName}</span>
+                      <span className="flex items-center gap-2 text-[10px] font-semibold normal-case text-slate-400">
+                        {month.returnedQuantity > 0 && <span className="font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(month.returnedQuantity)}</span>}
+                        <span>{month.products.length} ürün</span>
+                      </span>
                     </summary>
                     <div className="border-t border-emerald-100/70 px-3 py-2 dark:border-emerald-900/40">
-                      {month.products.length === 0 ? <p className="py-1 text-[11px] text-slate-400">Bu ay ürün satışı bulunamadı.</p> : <div className="space-y-1.5">{[...month.products].sort((a, b) => b.average - a.average).map((product) => <div key={product.productName} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950"><span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-300">{product.productName}</span><span className="shrink-0 font-black tabular-nums text-emerald-700 dark:text-emerald-300">{product.average.toFixed(2)} {product.unit}/gün</span></div>)}</div>}
+                      {month.products.length === 0 ? <p className="py-1 text-[11px] text-slate-400">Bu ay ürün satışı bulunamadı.</p> : <div className="space-y-1.5">{[...month.products].sort((a, b) => b.average - a.average).map((product) => <div key={product.productName} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs dark:bg-slate-950"><span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-300">{product.productName}</span><span className="flex shrink-0 items-center gap-2 tabular-nums">{product.returnedQuantity > 0 && <span className="font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(product.returnedQuantity)}</span>}<span className="font-black text-emerald-700 dark:text-emerald-300">{product.average.toFixed(2)} {product.unit}/gün</span></span></div>)}</div>}
                     </div>
                   </details>
                 );
@@ -1040,7 +1093,9 @@ if (selectedCustomerFilter !== 'all') {
                   const dailyYears = Array.from(new Set(dailyMonths.map((month) => Number(month.monthKey.slice(0, 4))))).sort((a, b) => b - a);
                   const storedDailyYear = dailyYearByCustomer[group.customerId] ?? null;
                   const selectedDailyYear = storedDailyYear !== null && dailyYears.includes(storedDailyYear) ? storedDailyYear : null;
-                  const selectedDailyYearTotal = selectedDailyYear === null ? null : dailyMonths.reduce((sum, month) => (Number(month.monthKey.slice(0, 4)) === selectedDailyYear ? sum + month.quantity : sum), 0);
+                  const selectedDailyYearMonths = selectedDailyYear === null ? null : dailyMonths.filter((month) => Number(month.monthKey.slice(0, 4)) === selectedDailyYear);
+                  const selectedDailyYearTotal = selectedDailyYearMonths === null ? null : selectedDailyYearMonths.reduce((sum, month) => sum + month.quantity, 0);
+                  const selectedDailyYearReturned = selectedDailyYearMonths === null ? 0 : selectedDailyYearMonths.reduce((sum, month) => sum + month.returned, 0);
                   return (
                     <div
                       key={group.customerId}
@@ -1064,12 +1119,18 @@ if (selectedCustomerFilter !== 'all') {
                                 <span className="text-xs font-normal text-slate-400">({group.customerPhone})</span>
                               )}
                             </h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-700 dark:text-slate-300">
                                 {group.products.length} farklı ürün aldı
                               </span>
                               <span>·</span>
                               <span>Toplam {group.totalQuantity} adet</span>
+                              {group.totalReturned > 0 && (
+                                <>
+                                  <span>·</span>
+                                  <span className="font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(group.totalReturned)} adet</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1109,6 +1170,9 @@ if (selectedCustomerFilter !== 'all') {
                                     </td>
                                     <td className="py-2.5 text-right font-black text-slate-900 dark:text-white tabular-nums">
                                       {p.totalQuantity} {p.unit}
+                                      {p.returnedQuantity > 0 && (
+                                        <span className="block text-[11px] font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(p.returnedQuantity)}</span>
+                                      )}
                                     </td>
                                     <td className="py-2.5 text-right text-slate-500 tabular-nums">
                                       {formatCurrency(p.avgPrice, settings.currency)}
@@ -1147,9 +1211,10 @@ if (selectedCustomerFilter !== 'all') {
                                     </select>
                                   </label>
                                   {selectedDailyYearTotal !== null && (
-                                    <p aria-live="polite" className="flex shrink-0 items-center gap-2 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
+                                    <p aria-live="polite" className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
                                       <span className="font-bold text-slate-500 dark:text-slate-400">Yıl toplamı</span>
-                                      <span>{selectedDailyYearTotal.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} adet</span>
+                                      <span>{formatQuantity(selectedDailyYearTotal)} adet</span>
+                                      <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(selectedDailyYearReturned)} adet</span>
                                     </p>
                                   )}
                                 </div>
@@ -1179,6 +1244,7 @@ if (selectedCustomerFilter !== 'all') {
                                       </button>
                                       <span className="flex shrink-0 items-center gap-2 pr-1 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100">
                                         <span>{month.quantity} adet</span>
+                                        {month.returned > 0 && <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(month.returned)}</span>}
                                         <span className="text-teal-700 dark:text-teal-300">{formatCurrency(month.amount, settings.currency)}</span>
                                       </span>
                                     </div>
@@ -1261,7 +1327,7 @@ if (selectedCustomerFilter !== 'all') {
           {/* Summary Banner for Customer Purchases */}
           <div className="print-hide grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Raporlanan Satış Tutarı</span><div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">{formatCurrency(customerProductReportSummary.totalSpent, settings.currency)}</div><span className="text-[11px] text-slate-400 mt-0.5 block">Toplam Harcama / Ciro</span></div>
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span><div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{customerProductReportSummary.totalQuantity} Adet/Birim</div><span className="text-[11px] text-slate-400 mt-0.5 block">Ürün teslimatı yapıldı</span></div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satılan Toplam Miktar</span><div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{customerProductReportSummary.totalQuantity} Adet/Birim</div><span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 mt-0.5 block tabular-nums">İade: {formatQuantity(customerProductReportSummary.totalReturned)} adet</span></div>
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Alışveriş Yapan Müşteri</span><div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueCustomers} Müşteri</div><span className="text-[11px] text-slate-400 mt-0.5 block">Farklı müşteri kaydı</span></div>
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"><span className="text-xs font-semibold text-slate-500">Satın Alınan Ürün Çeşidi</span><div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-1 tabular-nums">{customerProductReportSummary.uniqueProducts} Çeşit Ürün</div><span className="text-[11px] text-slate-400 mt-0.5 block">Hareket gören ürünler</span></div>
           </div>
@@ -1294,12 +1360,18 @@ if (selectedCustomerFilter !== 'all') {
                             <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
                               {group.productName}
                             </h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 mt-0.5">
                               <span className="font-semibold text-slate-700 dark:text-slate-300">
                                 {group.customers.length} farklı müşteri satın aldı
                               </span>
                               <span>·</span>
                               <span>Toplam {group.totalQuantity} {group.unit} satıldı</span>
+                              {group.totalReturned > 0 && (
+                                <>
+                                  <span>·</span>
+                                  <span className="font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(group.totalReturned)} {group.unit}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1339,6 +1411,9 @@ if (selectedCustomerFilter !== 'all') {
                                     </td>
                                     <td className="py-2.5 text-right font-black text-slate-900 dark:text-white tabular-nums">
                                       {c.totalQuantity} {c.unit}
+                                      {c.returnedQuantity > 0 && (
+                                        <span className="block text-[11px] font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(c.returnedQuantity)}</span>
+                                      )}
                                     </td>
                                     <td className="py-2.5 text-right text-slate-500 tabular-nums">
                                       {formatCurrency(c.avgPrice, settings.currency)}
@@ -1410,6 +1485,9 @@ if (selectedCustomerFilter !== 'all') {
                           </td>
                           <td className="py-3 px-4 text-right font-black text-slate-900 dark:text-white tabular-nums">
                             {r.totalQuantity} {r.unit}
+                            {r.returnedQuantity > 0 && (
+                              <span className="block text-[11px] font-bold text-amber-700 dark:text-amber-300">İade {formatQuantity(r.returnedQuantity)}</span>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-right text-slate-500 tabular-nums">
                             {formatCurrency(r.avgPrice, settings.currency)}
@@ -1438,11 +1516,17 @@ if (selectedCustomerFilter !== 'all') {
                 <span className="text-slate-600 dark:text-slate-300">
                   Toplam {customerProductPurchases.length} Müşteri - Ürün Satır Kaydı
                 </span>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <div>
                     <span className="text-slate-500 font-semibold mr-1">Toplam Satılan:</span>
                     <span className="font-black text-slate-900 dark:text-white tabular-nums">
                       {customerProductReportSummary.totalQuantity} Adet/Birim
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-semibold mr-1">Toplam İade:</span>
+                    <span className="font-black text-amber-700 dark:text-amber-300 tabular-nums">
+                      {formatQuantity(customerProductReportSummary.totalReturned)} Adet/Birim
                     </span>
                   </div>
                   <div>
@@ -1645,6 +1729,9 @@ if (selectedCustomerFilter !== 'all') {
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
                       <span>Kâr Katkısı: +{formatCurrency(prod.profit, settings.currency)}</span>
+                      {prod.returned > 0 && (
+                        <span className="font-bold tabular-nums text-amber-700 dark:text-amber-300">İade: {formatQuantity(prod.returned)} {prod.unit}</span>
+                      )}
                       <span>%{((prod.revenue / (totalRevenue || 1)) * 100).toFixed(1)} pay</span>
                     </div>
                   </div>
