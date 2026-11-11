@@ -82,6 +82,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [groupingMode, setGroupingMode] = useState<'customer' | 'product' | 'flat'>('customer');
   const [expandedCustomerIds, setExpandedCustomerIds] = useState<Record<string, boolean>>({});
   const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
+  const [expandedDailyMonths, setExpandedDailyMonths] = useState<Record<string, boolean>>({});
   const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
 
   // Filter sales by selected time range
@@ -349,8 +350,9 @@ if (selectedCustomerFilter !== 'all') {
     return Object.values(groups).sort((a, b) => b.totalSpent - a.totalSpent);
   }, [customerProductPurchases]);
 
-  const dailyTotalsByCustomer = useMemo(() => {
-    const totals: Record<string, { date: string; quantity: number; amount: number; orders: number }[]> = {};
+  const dailyMonthsByCustomer = useMemo(() => {
+    type DayTotal = { date: string; quantity: number; amount: number; orders: number };
+    const totals: Record<string, DayTotal[]> = {};
     filteredSales.forEach((sale) => {
       const customerId = sale.customerId || 'walk-in';
       const matchingItems = selectedProductFilter === 'all'
@@ -370,8 +372,23 @@ if (selectedCustomerFilter !== 'all') {
         totals[customerId] = [...(totals[customerId] || []), { date: dateKey, quantity, amount, orders: 1 }];
       }
     });
-    Object.values(totals).forEach((entries) => entries.sort((a, b) => b.date.localeCompare(a.date)));
-    return totals;
+    const months: Record<string, { monthKey: string; quantity: number; amount: number; days: DayTotal[] }[]> = {};
+    Object.entries(totals).forEach(([customerId, entries]) => {
+      entries.sort((a, b) => b.date.localeCompare(a.date));
+      months[customerId] = [];
+      entries.forEach((entry) => {
+        const monthKey = entry.date.slice(0, 7);
+        let month = months[customerId].find((item) => item.monthKey === monthKey);
+        if (!month) {
+          month = { monthKey, quantity: 0, amount: 0, days: [] };
+          months[customerId].push(month);
+        }
+        month.quantity += entry.quantity;
+        month.amount += entry.amount;
+        month.days.push(entry);
+      });
+    });
+    return months;
   }, [filteredSales, selectedProductFilter]);
 
   // Grouped by Product data structure
@@ -926,7 +943,7 @@ if (selectedCustomerFilter !== 'all') {
                 </div>
               ) : (
                 groupedByCustomer.map((group) => {
-                  const isExpanded = expandedCustomerIds[group.customerId] !== false; // expanded by default
+                  const isExpanded = expandedCustomerIds[group.customerId] === true;
                   return (
                     <div
                       key={group.customerId}
@@ -936,6 +953,7 @@ if (selectedCustomerFilter !== 'all') {
                       <button
                         type="button"
                         onClick={() => toggleCustomerAccordion(group.customerId)}
+                        aria-expanded={isExpanded}
                         className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -972,9 +990,8 @@ if (selectedCustomerFilter !== 'all') {
                         </div>
                       </button>
 
-                      {/* Products purchased by this customer */}
-                      {isExpanded && (
-                        <div className="px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      {/* Products purchased by this customer. Collapsed sections stay in the DOM so desktop window.print() still prints every customer. */}
+                        <div className={`${isExpanded ? '' : 'hidden print:block '}px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-800`}>
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead className="text-[11px] font-bold uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
@@ -1019,17 +1036,41 @@ if (selectedCustomerFilter !== 'all') {
                               <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                              {(dailyTotalsByCustomer[group.customerId] || []).map((day) => (
-                                <div key={day.date} className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2 text-xs dark:bg-slate-900/70">
-                                  <span className="font-bold text-slate-700 dark:text-slate-300">{formatDate(day.date)}</span>
-                                  <span className="flex items-center gap-2 font-black tabular-nums text-slate-900 dark:text-slate-100"><span>{day.quantity} adet</span><span className="text-teal-700 dark:text-teal-300">{formatCurrency(day.amount, settings.currency)}</span></span>
-                                </div>
-                              ))}
-                              {!dailyTotalsByCustomer[group.customerId]?.length && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
+                              {(dailyMonthsByCustomer[group.customerId] || []).map((month) => {
+                                const monthId = `${group.customerId}-${month.monthKey}`;
+                                const isMonthOpen = expandedDailyMonths[monthId] === true;
+                                const [monthYear, monthNumber] = month.monthKey.split('-').map(Number);
+                                const monthLabel = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(monthYear, monthNumber - 1, 1));
+                                return (
+                                  <div key={month.monthKey} className="overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/70">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedDailyMonths((prev) => ({ ...prev, [monthId]: !prev[monthId] }))}
+                                      aria-expanded={isMonthOpen}
+                                      className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+                                    >
+                                      <span className="min-w-0 truncate text-xs font-black capitalize text-slate-800 dark:text-slate-100">{monthLabel}</span>
+                                      <span className="flex shrink-0 items-center gap-2 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100">
+                                        <span>{month.quantity} adet</span>
+                                        <span className="text-teal-700 dark:text-teal-300">{formatCurrency(month.amount, settings.currency)}</span>
+                                        {isMonthOpen ? <ChevronUp className="h-4 w-4 text-slate-400" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden="true" />}
+                                      </span>
+                                    </button>
+                                    <div className={`${isMonthOpen ? 'flex' : 'hidden print:flex'} flex-col gap-1.5 border-t border-teal-100 px-3 py-2 dark:border-teal-900/40`}>
+                                      {month.days.map((day) => (
+                                        <div key={day.date} className="flex items-center justify-between gap-2 text-xs">
+                                          <span className="font-bold text-slate-600 dark:text-slate-300">{formatDate(day.date)}</span>
+                                          <span className="flex items-center gap-2 font-bold tabular-nums text-slate-800 dark:text-slate-200"><span>{day.quantity} adet</span><span className="text-teal-700 dark:text-teal-300">{formatCurrency(day.amount, settings.currency)}</span></span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {!dailyMonthsByCustomer[group.customerId]?.length && <span className="text-[11px] text-slate-500">Günlük satış bulunamadı.</span>}
                             </div>
                           </div>
                         </div>
-                      )}
                     </div>
                   );
                 })
