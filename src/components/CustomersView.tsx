@@ -21,6 +21,7 @@ import { Customer, Sale, SaleItem, CustomerPayment, AppSettings } from '../types
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { AppLanguage, translateText } from '../i18n';
 import { exportCustomersToCSV } from '../utils/export-utils';
+import { getSaleReturns, getSaleReturnedQuantity, formatQuantity } from '../utils/sale-returns';
 import { createPdfDocument } from '../utils/pdf-utils';
 import { downloadBlob, shareOrDownloadBlob } from '../utils/share-utils';
 
@@ -82,10 +83,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const formatMonth = (month: string) => new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T12:00:00`));
   const filteredHistorySales = selectedHistoryMonth ? customerSales.filter((sale) => sale.createdAt.slice(0, 7) === selectedHistoryMonth) : customerSales;
   const filteredHistoryPayments = historyCustomer ? payments.filter((payment) => payment.customerId === historyCustomer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth)) : [];
+  const selectedPeriodReturns = filteredHistorySales.reduce<Record<string, number>>((totals, sale) => {
+    getSaleReturns(sale).forEach((item) => { totals[item.productName] = (totals[item.productName] || 0) + item.quantity; });
+    return totals;
+  }, {});
+  const selectedPeriodReturnTotal = Object.values(selectedPeriodReturns).reduce((sum, quantity) => sum + quantity, 0);
   const selectedPeriodProductTotals = Object.entries(filteredHistorySales.reduce<Record<string, number>>((totals, sale) => {
     sale.items.forEach((item) => { totals[item.productName] = (totals[item.productName] || 0) + item.quantity; });
     return totals;
-  }, {})).sort(([, a], [, b]) => b - a);
+  }, Object.fromEntries(Object.keys(selectedPeriodReturns).map((productName) => [productName, 0])))).sort(([, a], [, b]) => b - a);
   const selectedPeriodLabel = selectedHistoryMonth ? formatMonth(selectedHistoryMonth) : 'Tüm dönem';
 
   const startEditingSale = (sale: Sale) => {
@@ -269,7 +275,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     const customerSalesForReport = sales.filter((sale) => sale.customerId === customer.id && sale.status === 'completed' && (!selectedHistoryMonth || sale.createdAt.slice(0, 7) === selectedHistoryMonth));
     const customerPaymentsForReport = payments.filter((payment) => payment.customerId === customer.id && (!selectedHistoryMonth || payment.createdAt.slice(0, 7) === selectedHistoryMonth));
     const events = [
-      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisyə Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: sale.items.reduce((sum, item) => sum + item.quantity, 0) })),
+      ...customerSalesForReport.map((sale) => ({ date: sale.createdAt, type: sale.paymentMethod === 'credit' ? 'Nisyə Satış' : sale.paymentMethod === 'cash' ? 'Nağd Satış' : 'Qarışıq Ödəniş', amount: formatCurrency(sale.total), subtotal: formatCurrency(sale.subtotal), product: sale.items.map((item) => item.productName).join(', '), quantity: `${sale.items.reduce((sum, item) => sum + item.quantity, 0)}${getSaleReturnedQuantity(sale) > 0 ? ` (İadə ${formatQuantity(getSaleReturnedQuantity(sale))})` : ''}` })),
       ...customerPaymentsForReport.map((payment) => ({ date: payment.createdAt, type: `Ödəniş (${payment.paymentMethod.charAt(0).toUpperCase()}${payment.paymentMethod.slice(1)})`, amount: `-${formatCurrency(payment.amount)}`, subtotal: '-', product: payment.notes || 'Ödəniş alındı', quantity: '-' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -349,8 +355,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     pdf.setFontSize(9);
     pdf.text(pdfSafeText('ÜMUMİ'), 17, y);
     pdf.text(pdfSafeText(`Ümumi Satış: ${formatCurrency(salesTotal)}`), 17, y + 7);
-    pdf.text(pdfSafeText(`Ümumi Ödəniş: ${formatCurrency(paymentsTotal)}`), 105, y + 7);
-    pdf.text(pdfSafeText(`Toplam Adet: ${quantityTotal}`), 17, y + 15);
+    pdf.text(pdfSafeText(`Ümumi Öd��niş: ${formatCurrency(paymentsTotal)}`), 105, y + 7);
+    const returnTotal = customerSalesForReport.reduce((sum, sale) => sum + getSaleReturnedQuantity(sale), 0);
+    pdf.text(pdfSafeText(`Toplam Adet: ${quantityTotal} | İade: ${formatQuantity(returnTotal)}`), 17, y + 15);
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.8);
     pdf.rect(tableLeft, y - 5, tableRight - tableLeft, 24, 'D');
@@ -693,7 +700,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 {selectedPeriodProductTotals.length > 0 && (
   <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
   <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">{selectedPeriodLabel} Toplamı</p>
-  <div className="space-y-1">{selectedPeriodProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet</span></p>)}</div>
+  <div className="space-y-1">{selectedPeriodProductTotals.map(([product, quantity]) => <p key={product} className="flex justify-between gap-3 text-[11px] text-slate-600 dark:text-slate-300"><span>{product}</span><span className="font-bold text-slate-900 dark:text-white">{quantity} adet{selectedPeriodReturns[product] > 0 && <span className="text-amber-700 dark:text-amber-300"> · İade {formatQuantity(selectedPeriodReturns[product])}</span>}</span></p>)}</div>
+  {selectedPeriodReturnTotal > 0 && <p className="mt-1.5 flex justify-between gap-3 border-t border-emerald-100 pt-1.5 text-[11px] font-bold text-amber-700 dark:border-emerald-900/40 dark:text-amber-300"><span>Toplam iade</span><span>{formatQuantity(selectedPeriodReturnTotal)} adet</span></p>}
     </div>
   )}
   </div>

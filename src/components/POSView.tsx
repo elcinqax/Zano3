@@ -49,6 +49,7 @@ interface POSViewProps {
       discount: number;
       total: number;
     }[];
+    returns?: Sale['returns'];
     subtotal: number;
     discount: number;
     taxRate: number;
@@ -74,6 +75,20 @@ interface POSViewProps {
   favoriteIds: string[];
   onToggleFavorite: (productId: string) => void;
 }
+
+const applyReturns = (cart: CartItem[], returns: Record<string, string>) =>
+  cart.map((item) => {
+    const parsed = parseFloat(returns[item.product.id] ?? '');
+    const returned = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, item.quantity) : 0;
+    const quantity = Number((item.quantity - returned).toFixed(3));
+    return {
+      ...item,
+      cartQuantity: item.quantity,
+      returned,
+      quantity,
+      total: Number((quantity * item.unitPrice).toFixed(2)),
+    };
+  });
 
 export const POSView: React.FC<POSViewProps> = ({
   products,
@@ -180,6 +195,8 @@ export const POSView: React.FC<POSViewProps> = ({
   const [mixedCash, setMixedCash] = useState<string>('');
   const [applyExcessToAccount, setApplyExcessToAccount] = useState<boolean>(true);
   const [saleNotes, setSaleNotes] = useState<string>('');
+  const [showReturnBox, setShowReturnBox] = useState<boolean>(false);
+  const [returnQuantities, setReturnQuantities] = useState<Record<string, string>>({});
   const [collectionAmount, setCollectionAmount] = useState<string>('');
   const [collectionMethod, setCollectionMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
   const [collectionNote, setCollectionNote] = useState<string>('');
@@ -329,6 +346,8 @@ export const POSView: React.FC<POSViewProps> = ({
     setCashGiven('');
     setMixedCash('');
     setSaleNotes('');
+    setReturnQuantities({});
+    setShowReturnBox(false);
     setNewCustName('');
     setNewCustPhone('');
     setShowPaymentModal(false);
@@ -401,15 +420,34 @@ export const POSView: React.FC<POSViewProps> = ({
   };
 
   // Calculations
+  // Returns only apply while the payment modal is open, so the cart itself always shows what was added.
+  const netCart = useMemo(
+    () => applyReturns(cart, showPaymentModal ? returnQuantities : {}),
+    [cart, showPaymentModal, returnQuantities]
+  );
+  const totalReturned = netCart.reduce((sum, item) => sum + item.returned, 0);
+  const hasItemsToSell = netCart.some((item) => item.quantity > 0);
+
   const totalAmount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.total, 0),
-    [cart]
+    () => netCart.reduce((sum, item) => sum + item.total, 0),
+    [netCart]
   );
 
   const costTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity * item.product.buyPrice, 0),
-    [cart]
+    () => netCart.reduce((sum, item) => sum + item.quantity * item.product.buyPrice, 0),
+    [netCart]
   );
+
+  const updateReturnQuantity = (productId: string, cartQuantity: number, value: string) => {
+    const parsed = parseFloat(value);
+    const nextValue = parsed > cartQuantity ? cartQuantity.toString() : parsed < 0 ? '' : value;
+    const nextReturns = { ...returnQuantities, [productId]: nextValue };
+    const nextTotal = Number(applyReturns(cart, nextReturns).reduce((sum, item) => sum + item.total, 0).toFixed(2));
+    const followsTotal = (amount: string) => Math.abs((parseFloat(amount) || 0) - totalAmount) < 0.005;
+    if (followsTotal(cashGiven)) setCashGiven(nextTotal.toString());
+    if (followsTotal(mixedCash)) setMixedCash(nextTotal.toFixed(2));
+    setReturnQuantities(nextReturns);
+  };
 
   const profit = Math.max(0, totalAmount - costTotal);
   const taxRate = 0;
@@ -425,13 +463,20 @@ export const POSView: React.FC<POSViewProps> = ({
     setMixedCash(totalAmount.toFixed(2));
     setApplyExcessToAccount(true);
     setSaleNotes('');
+    setReturnQuantities({});
+    setShowReturnBox(false);
     setShowPaymentModal(true);
   };
 
   // Execute sale
   const handleFinalizeSale = (e: React.FormEvent) => {
     e.preventDefault();
-    if (cart.length === 0) return;
+    const soldItems = netCart.filter((item) => item.quantity > 0);
+    if (soldItems.length === 0) return;
+    const returnedItems = netCart.filter((item) => item.returned > 0);
+    const returnNote = returnedItems
+      .map((item) => `${item.product.name} ${item.returned} ${item.product.unit}`)
+      .join(', ');
 
     let paidAmount = 0;
     let changeAmount = 0;
@@ -483,7 +528,7 @@ export const POSView: React.FC<POSViewProps> = ({
       customerId: selectedCustomerId || undefined,
       customerName: selectedCustomer ? selectedCustomer.name : 'Genel Müşteri',
       customerPhone: selectedCustomer?.phone,
-      items: cart.map((i) => ({
+      items: soldItems.map((i) => ({
         productId: i.product.id,
         productName: i.product.name,
         quantity: i.quantity,
@@ -492,6 +537,14 @@ export const POSView: React.FC<POSViewProps> = ({
         discount: i.discount,
         total: i.total,
       })),
+      returns: returnedItems.length > 0
+        ? returnedItems.map((item) => ({
+            productId: item.product.id,
+            productName: item.product.name,
+            quantity: item.returned,
+            unit: item.product.unit,
+          }))
+        : undefined,
       subtotal: totalAmount,
       discount: 0,
       taxRate,
@@ -504,7 +557,7 @@ export const POSView: React.FC<POSViewProps> = ({
       changeAmount,
       cashPaid: paymentMethod === 'mixed' ? cashPaid : undefined,
       customerBalanceDelta,
-      notes: saleNotes.trim() || undefined,
+      notes: [saleNotes.trim(), returnNote && `İade: ${returnNote}`].filter(Boolean).join(' · ') || undefined,
     });
 
     // Satış tamamlandığında tüm satış ekranını temizle
@@ -1339,6 +1392,56 @@ export const POSView: React.FC<POSViewProps> = ({
                 </span>
               </div>
 
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/60 dark:border-rose-900/60 dark:bg-rose-950/20">
+                <button
+                  type="button"
+                  onClick={() => setShowReturnBox((prev) => !prev)}
+                  aria-expanded={showReturnBox}
+                  aria-controls="sale-return-list"
+                  className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                >
+                  <span className="flex items-center gap-2 text-xs font-bold text-rose-700 dark:text-rose-300">
+                    <RotateCcw className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    İade
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs font-black tabular-nums text-rose-700 dark:text-rose-300">
+                    {totalReturned > 0 && <span>{`−${totalReturned}`}</span>}
+                    <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${showReturnBox ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </span>
+                </button>
+                {showReturnBox && (
+                  <ul id="sale-return-list" className="flex max-h-44 flex-col gap-2 overflow-y-auto border-t border-rose-200 p-3 dark:border-rose-900/60">
+                    {netCart.map((item) => (
+                      <li key={item.product.id} className="flex items-center justify-between gap-3">
+                        <label htmlFor={`return-${item.product.id}`} className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate text-xs font-bold text-slate-800 dark:text-slate-100">{item.product.name}</span>
+                          <span className="text-[11px] font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+                            {`${item.cartQuantity} − ${item.returned} = ${item.quantity} ${item.product.unit}`}
+                          </span>
+                        </label>
+                        <input
+                          id={`return-${item.product.id}`}
+                          type="number"
+                          inputMode="decimal"
+                          step="any"
+                          min="0"
+                          max={item.cartQuantity}
+                          placeholder="0"
+                          value={returnQuantities[item.product.id] ?? ''}
+                          onChange={(e) => updateReturnQuantity(item.product.id, item.cartQuantity, e.target.value)}
+                          className="h-10 w-20 shrink-0 rounded-xl border border-rose-200 bg-white px-2 text-center text-sm font-black tabular-nums text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-400 dark:border-rose-900 dark:bg-slate-950 dark:text-white"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {!hasItemsToSell && (
+                  <p role="alert" className="border-t border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:border-rose-900/60 dark:text-rose-300">
+                    Tüm ürünler iade edildi; satılacak ürün kalmadı.
+                  </p>
+                )}
+              </div>
+
               {/* Payment Methods */}
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
@@ -1467,7 +1570,8 @@ export const POSView: React.FC<POSViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
+                  disabled={!hasItemsToSell}
+                  className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-98 transition-all disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Satışı Tamamla
                 </button>

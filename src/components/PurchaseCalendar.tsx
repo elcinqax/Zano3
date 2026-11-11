@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { formatCurrency } from '../utils/formatters';
+import { formatQuantity } from '../utils/sale-returns';
 
 export interface PurchaseDayTotal {
   date: string;
   quantity: number;
   amount: number;
   orders: number;
+  returned: number;
 }
 
 interface PurchaseCalendarProps {
@@ -53,6 +55,7 @@ export const PurchaseCalendar: React.FC<PurchaseCalendarProps> = ({ monthKey, da
     return { cells: [...Array.from({ length: leadingBlanks }, () => null), ...dayCells], counts };
   }, [monthKey, days, scopeStartKey, scopeEndKey]);
 
+  const returnedTotal = days.reduce((sum, day) => sum + day.returned, 0);
   const selectedDay = days.find((day) => day.date === selectedDate);
   const selectedLabel = cells.find((cell) => cell?.dateKey === selectedDate)?.label;
 
@@ -73,11 +76,14 @@ export const PurchaseCalendar: React.FC<PurchaseCalendarProps> = ({ monthKey, da
                 type="button"
                 onClick={() => setSelectedDate(isSelected ? null : cell.dateKey)}
                 aria-pressed={isSelected}
-                aria-label={`${cell.label}: ${cell.total.quantity} adet, ${formatCurrency(cell.total.amount, currency)}`}
+                aria-label={`${cell.label}: ${cell.total.quantity} adet${cell.total.returned > 0 ? `, ${formatQuantity(cell.total.returned)} adet iade` : ''}, ${formatCurrency(cell.total.amount, currency)}`}
                 className={`${cellClasses} ${isSelected ? 'ring-2 ring-emerald-900 ring-offset-1 dark:ring-emerald-200 dark:ring-offset-slate-900' : ''}`}
               >
                 <span className="text-xs font-black leading-none">{cell.dayNumber}</span>
                 <span className="text-[10px] font-bold leading-none">{cell.total.quantity}</span>
+                {cell.total.returned > 0 && (
+                  <span className="text-[10px] font-bold leading-none text-amber-200">-{formatQuantity(cell.total.returned)}</span>
+                )}
               </button>
             );
           }
@@ -100,6 +106,9 @@ export const PurchaseCalendar: React.FC<PurchaseCalendarProps> = ({ monthKey, da
         {counts.outside > 0 && (
           <span className="flex items-center gap-1.5"><span className={`h-3 w-3 rounded ${STATUS_CLASSES.outside}`} aria-hidden="true" />Aralık dışı / gelecek</span>
         )}
+        {returnedTotal > 0 && (
+          <span className="font-bold text-amber-700 dark:text-amber-300">Eksi sayı = iade ({formatQuantity(returnedTotal)} adet)</span>
+        )}
       </div>
 
       <p aria-live="polite" className="print:hidden rounded-lg bg-slate-50 px-2.5 py-2 text-xs text-slate-600 dark:bg-slate-950/60 dark:text-slate-300">
@@ -108,6 +117,9 @@ export const PurchaseCalendar: React.FC<PurchaseCalendarProps> = ({ monthKey, da
             <span>{selectedLabel}</span>
             <span className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
               <span>{selectedDay.quantity} adet</span>
+              {selectedDay.returned > 0 && (
+                <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(selectedDay.returned)} adet</span>
+              )}
               <span className="text-teal-700 dark:text-teal-300">{formatCurrency(selectedDay.amount, currency)}</span>
             </span>
           </span>

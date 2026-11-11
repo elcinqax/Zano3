@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { Customer, Product, Sale, Expense, CustomerProductPurchaseSummary } from '../types';
 import { formatDate, formatDateTime } from './formatters';
+import { getSaleReturns, getSaleReturnedQuantity } from './sale-returns';
 import { downloadBlob, saveOrShareBlob, shareOrDownloadBlob, ShareOutcome } from './share-utils';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -28,6 +29,7 @@ export const exportToExcel = async (sales: Sale[], customers: Customer[], produc
         : 'Kart';
 
     const itemsSummary = s.items.map((i) => `${i.productName} (x${i.quantity})`).join(', ');
+    const saleReturns = getSaleReturns(s, products);
 
     return {
       'Fatura No': s.invoiceNo,
@@ -35,6 +37,8 @@ export const exportToExcel = async (sales: Sale[], customers: Customer[], produc
       'Müşteri': s.customerName,
       'Telefon': s.customerPhone || '-',
       'Satılan Kalemler': itemsSummary,
+      'İade Edilen Kalemler': saleReturns.map((r) => `${r.productName} (x${r.quantity})`).join(', '),
+      'İade Miktarı': saleReturns.reduce((sum, r) => sum + r.quantity, 0),
       'Ödeme Yöntemi': payLabel,
       'Ara Toplam (₺)': Number(s.subtotal.toFixed(2)),
       'İndirim (₺)': Number(s.discount.toFixed(2)),
@@ -93,6 +97,7 @@ export const exportToExcel = async (sales: Sale[], customers: Customer[], produc
     { 'Metrik': 'Raporu Hazırlayan Mağaza', 'Değer': storeName },
     { 'Metrik': 'Rapor Tarihi', 'Değer': formatDateTime(new Date().toISOString()) },
     { 'Metrik': 'Toplam Satış Sayısı', 'Değer': activeSales.length },
+    { 'Metrik': 'Toplam İade Miktarı', 'Değer': activeSales.reduce((sum, s) => sum + getSaleReturnedQuantity(s, products), 0) },
     { 'Metrik': 'Toplam Ciro (₺)', 'Değer': Number(totalRevenue.toFixed(2)) },
     { 'Metrik': 'Toplam Maliyet (₺)', 'Değer': Number(totalCost.toFixed(2)) },
     { 'Metrik': 'Toplam Net Kâr (₺)', 'Değer': Number(totalProfit.toFixed(2)) },
@@ -116,12 +121,13 @@ export const exportToCSV = async (content: string, filename: string) => {
 };
 
 export const exportSalesToCSV = (sales: Sale[]) => {
-  const headers = ['Fatura No', 'Tarih', 'Müşteri', 'Ödeme Yöntemi', 'Toplam (TL)', 'Maliyet (TL)', 'Kâr (TL)', 'Durum'];
+  const headers = ['Fatura No', 'Tarih', 'Müşteri', 'Ödeme Yöntemi', 'İade Miktarı', 'Toplam (TL)', 'Maliyet (TL)', 'Kâr (TL)', 'Durum'];
   const rows = sales.map((s) => [
     `"${s.invoiceNo}"`,
     `"${formatDateTime(s.createdAt)}"`,
     `"${s.customerName}"`,
     `"${s.paymentMethod}"`,
+    getSaleReturnedQuantity(s).toString(),
     s.total.toFixed(2),
     s.costTotal.toFixed(2),
     s.profit.toFixed(2),
@@ -192,6 +198,7 @@ export const exportCustomerPurchasesToExcel = async (
     'Satın Alınan Ürün': r.productName,
     'Kategori': r.category || '-',
     'Toplam Satın Alınan Miktar': r.totalQuantity,
+    'İade Miktarı': r.returnedQuantity,
     'Birim': r.unit || 'Adet',
     'Ortalama Birim Fiyat': Number(r.avgPrice.toFixed(2)),
     'Toplam Harcanan Tutar': Number(r.totalSpent.toFixed(2)),
@@ -206,13 +213,14 @@ export const exportCustomerPurchasesToExcel = async (
 };
 
 export const exportCustomerPurchasesToCSV = (items: CustomerProductPurchaseSummary[]) => {
-  const headers = ['Müşteri Adı', 'Telefon', 'Satın Alınan Ürün', 'Kategori', 'Toplam Miktar', 'Birim', 'Ortalama Birim Fiyat', 'Toplam Harcanan Tutar', 'Toplam Kâr', 'İşlem Sayısı', 'Son Satın Alma'];
+  const headers = ['Müşteri Adı', 'Telefon', 'Satın Alınan Ürün', 'Kategori', 'Toplam Miktar', 'İade Miktarı', 'Birim', 'Ortalama Birim Fiyat', 'Toplam Harcanan Tutar', 'Toplam Kâr', 'İşlem Sayısı', 'Son Satın Alma'];
   const rows = items.map((r) => [
     `"${r.customerName}"`,
     `"${r.customerPhone || ''}"`,
     `"${r.productName}"`,
     `"${r.category || ''}"`,
     r.totalQuantity.toString(),
+    r.returnedQuantity.toString(),
     `"${r.unit || 'Adet'}"`,
     r.avgPrice.toFixed(2),
     r.totalSpent.toFixed(2),

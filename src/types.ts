@@ -46,6 +46,13 @@ export interface SaleItem {
   total: number;
 }
 
+export interface SaleReturnItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface Sale {
   id: string;
   invoiceNo: string;
@@ -53,6 +60,7 @@ export interface Sale {
   customerName: string;
   customerPhone?: string;
   items: SaleItem[];
+  returns?: SaleReturnItem[];
   subtotal: number;
   discount: number;
   taxRate: number;
@@ -159,6 +167,7 @@ export interface CustomerProductPurchaseSummary {
   category?: string;
   unit: string;
   totalQuantity: number;
+  returnedQuantity: number;
   totalSpent: number;
   avgPrice: number;
   totalProfit: number;
