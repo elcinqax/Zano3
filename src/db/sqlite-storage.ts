@@ -787,6 +787,13 @@ class SQLiteStorageManager {
             type: 'debt_reminder',
             actionTab: 'customers',
           });
+        } else if (balanceDelta < 0 && newSale.total < 0) {
+          this.addNotification({
+            title: 'İade Hesaba İşlendi',
+            message: `${cust.name} için ${Math.abs(balanceDelta).toFixed(2)} ₺ iade fazlası hesaba işlendi. Güncel Bakiye: ${cust.balance.toFixed(2)} ₺`,
+            type: 'system',
+            actionTab: 'customers',
+          });
         } else if (balanceDelta < 0) {
           this.addNotification({
             title: 'Fazla Ödeme Hesaba Aktarıldı',
@@ -826,7 +833,7 @@ class SQLiteStorageManager {
     for (const item of sale.items) {
       const prod = this.memoryCache.products.find((p) => p.id === item.productId);
       if (prod) {
-        prod.stock += item.quantity;
+        prod.stock = Math.max(0, prod.stock + item.quantity);
       }
     }
 

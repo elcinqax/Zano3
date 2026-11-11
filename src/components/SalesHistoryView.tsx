@@ -529,7 +529,9 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                       <span>{formatDateTime(sale.createdAt)}</span>
                       <span aria-hidden="true">·</span>
                       <span className="capitalize font-medium text-slate-600 dark:text-slate-300">
-                        {sale.paymentMethod === 'cash'
+                        {sale.total < 0
+                          ? 'İade'
+                          : sale.paymentMethod === 'cash'
                           ? 'Nakit'
                           : sale.paymentMethod === 'mixed'
                           ? 'Karışık Ödeme'
@@ -547,7 +549,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                         }`}>
                           {sale.customerBalanceDelta > 0
                             ? `+${formatCurrency(sale.customerBalanceDelta)} Borca Eklendi`
-                            : `${formatCurrency(Math.abs(sale.customerBalanceDelta))} Avans Aktarıldı`}
+                            : `${formatCurrency(Math.abs(sale.customerBalanceDelta))} ${sale.total < 0 ? 'İade Hesaba İşlendi' : 'Avans Aktarıldı'}`}
                         </span>
                       )}
                     </div>
