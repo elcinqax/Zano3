@@ -48,7 +48,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`relative w-full bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] ${getPaddingTopClass()}`}>
+    <header className={`relative w-full bg-white/92 dark:bg-slate-950/94 backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_12px_32px_-22px_rgba(15,23,42,0.5)] ${getPaddingTopClass()}`}>
 
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-3">
         {/* Zone 1: Brand wordmark & emblem */}
@@ -62,10 +62,10 @@ export const TopBar: React.FC<TopBarProps> = ({
               M
             </div>
             <div className="leading-tight">
-              <span className="max-w-[11rem] truncate text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              <span className="max-w-[11rem] truncate text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
                 {storeName || 'Almalı Təndiri'}
               </span>
-              <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">
+              <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wide uppercase">
                 Mobil Satış & Kasa
               </span>
             </div>
@@ -73,14 +73,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Zone 2: Navigation Links (hidden on compact mobile thumb zone, visible on desktop/tablet) */}
-        <nav className="hidden md:flex items-center p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+        <nav className="hidden md:flex items-center gap-1" aria-label="Ana menü">
           <button
             type="button"
             onClick={() => onTabChange('pos')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm transition-all active:scale-95 ${
               activeTab === 'pos'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 ring-1 ring-teal-200/80 dark:ring-teal-800/60 shadow-xs font-extrabold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
             }`}
           >
             1. Satış
@@ -88,10 +88,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('customers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm transition-all active:scale-95 ${
               activeTab === 'customers'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 ring-1 ring-teal-200/80 dark:ring-teal-800/60 shadow-xs font-extrabold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
             }`}
           >
             2. Müşteriler
@@ -99,10 +99,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('products')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm transition-all active:scale-95 ${
               activeTab === 'products'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 ring-1 ring-teal-200/80 dark:ring-teal-800/60 shadow-xs font-extrabold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
             }`}
           >
             3. Ürünler
@@ -110,10 +110,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onTabChange('stock')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm transition-all active:scale-95 ${
               activeTab === 'stock'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 ring-1 ring-teal-200/80 dark:ring-teal-800/60 shadow-xs font-extrabold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
             }`}
           >
             4. Stok
@@ -142,12 +142,12 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             {isMobileFrame ? (
               <>
-                <Monitor className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Monitor className="w-4 h-4 text-teal-700 dark:text-teal-300" />
                 <span>Geniş Ekran</span>
               </>
             ) : (
               <>
-                <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Smartphone className="w-4 h-4 text-teal-700 dark:text-teal-300" />
                 <span>Android Önizleme</span>
               </>
             )}
