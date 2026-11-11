@@ -123,14 +123,14 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className="flex h-10 items-center gap-2 rounded-2xl border border-slate-300/70 bg-transparent px-2.5 dark:border-slate-700/70" aria-label="Anlık saat">
-            <span className="flex size-6 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm shadow-slate-900/20 dark:bg-slate-800"><Clock3 className="size-3.5" /></span>
-            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+          <div className="flex h-10 items-center gap-1.5 rounded-2xl bg-teal-50 px-2.5 text-teal-700 shadow-xs ring-1 ring-teal-200/80 transition-colors dark:bg-teal-950/40 dark:text-teal-300 dark:ring-teal-800/60" aria-label="Anlık saat">
+            <Clock3 className="size-4 stroke-[2.5]" aria-hidden="true" />
+            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
-          <button type="button" onClick={onToggleTheme} className="size-10 flex items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
-            {themeMode === 'dark' ? <Sun className="size-5 text-amber-400" /> : <Moon className="size-5 text-teal-700 dark:text-teal-300" />}
+          <button type="button" onClick={onToggleTheme} className="flex size-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 shadow-xs ring-1 ring-teal-200/80 transition-all hover:bg-teal-100 active:scale-95 dark:bg-teal-950/40 dark:text-teal-300 dark:ring-teal-800/60 dark:hover:bg-teal-900/50" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
+            {themeMode === 'dark' ? <Sun className="size-5 stroke-[2.5]" aria-hidden="true" /> : <Moon className="size-5 stroke-[2.5]" aria-hidden="true" />}
           </button>
 
           {/* Desktop Frame View Toggle */}
