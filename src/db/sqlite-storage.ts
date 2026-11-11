@@ -747,11 +747,10 @@ class SQLiteStorageManager {
       createdAt: now,
     };
 
-    // Deduct stock for all items
-    for (const item of newSale.items) {
-      const prod = this.memoryCache.products.find((p) => p.id === item.productId);
+    for (const deduction of newSale.stockDeductions ?? newSale.items) {
+      const prod = this.memoryCache.products.find((p) => p.id === deduction.productId);
       if (prod) {
-        prod.stock = Math.max(0, prod.stock - item.quantity);
+        prod.stock = Math.max(0, prod.stock - deduction.quantity);
         prod.updatedAt = now;
       }
     }
@@ -830,10 +829,10 @@ class SQLiteStorageManager {
     sale.status = 'cancelled';
 
     // Restore stock
-    for (const item of sale.items) {
-      const prod = this.memoryCache.products.find((p) => p.id === item.productId);
+    for (const deduction of sale.stockDeductions ?? sale.items) {
+      const prod = this.memoryCache.products.find((p) => p.id === deduction.productId);
       if (prod) {
-        prod.stock = Math.max(0, prod.stock + item.quantity);
+        prod.stock = Math.max(0, prod.stock + deduction.quantity);
       }
     }
 

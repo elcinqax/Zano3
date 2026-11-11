@@ -50,6 +50,7 @@ interface POSViewProps {
       total: number;
     }[];
     returns?: Sale['returns'];
+    stockDeductions?: Sale['stockDeductions'];
     subtotal: number;
     discount: number;
     taxRate: number;
@@ -477,10 +478,11 @@ export const POSView: React.FC<POSViewProps> = ({
   // Execute sale
   const handleFinalizeSale = (e: React.FormEvent) => {
     e.preventDefault();
+    // Lines returned in full drop out of the sale but are still recorded as returns.
     const saleLines = netCart.filter((item) => item.quantity !== 0);
-    if (saleLines.length === 0) return;
-    if (returnCredit > 0 && !selectedCustomer) return;
     const returnedItems = netCart.filter((item) => item.returned > 0);
+    if (saleLines.length === 0 && returnedItems.length === 0) return;
+    if (returnCredit > 0 && !selectedCustomer) return;
     const returnNote = returnedItems
       .map((item) => `${item.product.name} ${item.returned} ${item.product.unit}`)
       .join(', ');
@@ -557,6 +559,7 @@ export const POSView: React.FC<POSViewProps> = ({
             unit: item.product.unit,
           }))
         : undefined,
+      stockDeductions: netCart.map((item) => ({ productId: item.product.id, quantity: item.cartQuantity })),
       subtotal: totalAmount,
       discount: 0,
       taxRate,
@@ -1484,8 +1487,8 @@ export const POSView: React.FC<POSViewProps> = ({
                   </ul>
                 )}
                 {!hasSaleLines && (
-                  <p role="alert" className="border-t border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:border-rose-900/60 dark:text-rose-300">
-                    Tüm ürünler iade edildi; satılacak ürün kalmadı.
+                  <p role="status" className="border-t border-rose-200 px-3 py-2 text-xs font-semibold leading-relaxed text-rose-700 dark:border-rose-900/60 dark:text-rose-300">
+                    Verilen ve iade edilen miktar eşit. Verilen ürünler stoktan düşülür, iade rapora işlenir.
                   </p>
                 )}
               </div>
@@ -1622,7 +1625,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={!hasSaleLines || (returnCredit > 0 && !selectedCustomer)}
+                  disabled={returnCredit > 0 && !selectedCustomer}
                   className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-98 transition-all disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {returnCredit > 0 ? 'İadeyi Kaydet' : 'Satışı Tamamla'}

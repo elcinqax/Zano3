@@ -61,6 +61,9 @@ export interface Sale {
   customerPhone?: string;
   items: SaleItem[];
   returns?: SaleReturnItem[];
+  // What left the shelf. Differs from `items` (net of returns) because returned goods
+  // are not put back into stock. Sales saved before this field deducted `items`.
+  stockDeductions?: { productId: string; quantity: number }[];
   subtotal: number;
   discount: number;
   taxRate: number;

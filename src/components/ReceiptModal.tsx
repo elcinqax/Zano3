@@ -5,6 +5,7 @@ import { Sale, AppSettings } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { createPdfDocument } from '../utils/pdf-utils';
 import { shareOrDownloadBlob } from '../utils/share-utils';
+import { getSaleReturns, formatQuantity } from '../utils/sale-returns';
 
 interface ReceiptModalProps {
   sale: Sale;
@@ -27,6 +28,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   const [isSharing, setIsSharing] = useState(false);
   const money = (amount: number) => formatCurrency(amount, settings.currency);
+  const saleReturns = getSaleReturns(sale);
 
   const handlePrint = () => {
     window.print();
@@ -97,6 +99,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         doc.text(`@${money(item.unitPrice)}`, MARGIN, y);
         y += gap(7) + 1;
       });
+      saleReturns.forEach((item) => {
+        row(
+          String(doc.splitTextToSize(`İade: ${item.productName}`, 46)[0] ?? ''),
+          `-${formatQuantity(item.quantity)} ${item.unit}`
+        );
+      });
+      if (saleReturns.length > 0) y += 1;
       divider();
 
       row('Ara Toplam:', money(sale.subtotal));
@@ -242,6 +251,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                       {money(item.total)}
                     </span>
                   </div>
+                </div>
+              ))}
+              {saleReturns.map((item) => (
+                <div key={`return-${item.productId}`} className="flex justify-between items-start gap-2 text-[11px] text-rose-600 dark:text-rose-400">
+                  <p className="min-w-0 truncate font-medium">İade: {item.productName}</p>
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    −{formatQuantity(item.quantity)} {item.unit}
+                  </span>
                 </div>
               ))}
             </div>
