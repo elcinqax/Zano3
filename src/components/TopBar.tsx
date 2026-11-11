@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Smartphone, Monitor, Moon, Sun, Clock3 } from 'lucide-react';
 
-// Every button and section inside the top bar shares the bar's own surface; reuse this for new ones.
+// Controls stay transparent so the bar's single gradient runs through all of them instead of
+// repeating inside each one; reuse this for every new button or section added to the top bar.
 const TOP_BAR_SURFACE =
-  'border border-slate-200/80 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] text-slate-900 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] backdrop-blur-2xl dark:border-slate-800 dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] dark:text-slate-100';
+  'border border-slate-300/70 bg-transparent text-slate-900 dark:border-slate-700/70 dark:text-slate-100';
 
 interface TopBarProps {
   storeName: string;
@@ -133,7 +134,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
-          <button type="button" onClick={onToggleTheme} className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-slate-300 active:scale-95 dark:hover:border-slate-700 ${TOP_BAR_SURFACE}`} title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
+          <button type="button" onClick={onToggleTheme} className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-slate-400 active:scale-95 dark:hover:border-slate-500 ${TOP_BAR_SURFACE}`} title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
             {themeMode === 'dark' ? <Sun className="size-5 stroke-[2.5]" aria-hidden="true" /> : <Moon className="size-5 stroke-[2.5]" aria-hidden="true" />}
           </button>
 
@@ -141,7 +142,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onToggleMobileFrame}
-            className={`hidden lg:flex h-10 px-3 items-center gap-1.5 rounded-2xl text-xs font-bold transition-all hover:border-slate-300 active:scale-95 dark:hover:border-slate-700 ${TOP_BAR_SURFACE}`}
+            className={`hidden lg:flex h-10 px-3 items-center gap-1.5 rounded-2xl text-xs font-bold transition-all hover:border-slate-400 active:scale-95 dark:hover:border-slate-500 ${TOP_BAR_SURFACE}`}
             title="Telefon / Masaüstü Görünümünü Değiştir"
           >
             {isMobileFrame ? (
