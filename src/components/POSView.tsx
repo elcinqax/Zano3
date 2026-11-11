@@ -50,6 +50,7 @@ interface POSViewProps {
       total: number;
     }[];
     returns?: Sale['returns'];
+    stockDeductions?: Sale['stockDeductions'];
     subtotal: number;
     discount: number;
     taxRate: number;
@@ -76,10 +77,12 @@ interface POSViewProps {
   onToggleFavorite: (productId: string) => void;
 }
 
+// A return may exceed what is delivered in this sale (goods from earlier deliveries),
+// so a line — and the whole sale — can end up negative.
 const applyReturns = (cart: CartItem[], returns: Record<string, string>) =>
   cart.map((item) => {
     const parsed = parseFloat(returns[item.product.id] ?? '');
-    const returned = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, item.quantity) : 0;
+    const returned = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
     const quantity = Number((item.quantity - returned).toFixed(3));
     return {
       ...item,
@@ -426,21 +429,22 @@ export const POSView: React.FC<POSViewProps> = ({
     [cart, showPaymentModal, returnQuantities]
   );
   const totalReturned = netCart.reduce((sum, item) => sum + item.returned, 0);
-  const hasItemsToSell = netCart.some((item) => item.quantity > 0);
+  const hasSaleLines = netCart.some((item) => item.quantity !== 0);
+  const hasExcessReturn = netCart.some((item) => item.quantity < 0);
 
   const totalAmount = useMemo(
     () => netCart.reduce((sum, item) => sum + item.total, 0),
     [netCart]
   );
+  const returnCredit = totalAmount < 0 ? Number(Math.abs(totalAmount).toFixed(2)) : 0;
 
   const costTotal = useMemo(
     () => netCart.reduce((sum, item) => sum + item.quantity * item.product.buyPrice, 0),
     [netCart]
   );
 
-  const updateReturnQuantity = (productId: string, cartQuantity: number, value: string) => {
-    const parsed = parseFloat(value);
-    const nextValue = parsed > cartQuantity ? cartQuantity.toString() : parsed < 0 ? '' : value;
+  const updateReturnQuantity = (productId: string, value: string) => {
+    const nextValue = parseFloat(value) < 0 ? '' : value;
     const nextReturns = { ...returnQuantities, [productId]: nextValue };
     const nextTotal = Number(applyReturns(cart, nextReturns).reduce((sum, item) => sum + item.total, 0).toFixed(2));
     const followsTotal = (amount: string) => Math.abs((parseFloat(amount) || 0) - totalAmount) < 0.005;
@@ -449,7 +453,10 @@ export const POSView: React.FC<POSViewProps> = ({
     setReturnQuantities(nextReturns);
   };
 
-  const profit = Math.max(0, totalAmount - costTotal);
+  // Excess returns take back profit booked on earlier sales, so it may go negative.
+  const profit = hasExcessReturn
+    ? Number((totalAmount - costTotal).toFixed(2))
+    : Math.max(0, totalAmount - costTotal);
   const taxRate = 0;
   const taxAmount = 0;
 
@@ -471,9 +478,11 @@ export const POSView: React.FC<POSViewProps> = ({
   // Execute sale
   const handleFinalizeSale = (e: React.FormEvent) => {
     e.preventDefault();
-    const soldItems = netCart.filter((item) => item.quantity > 0);
-    if (soldItems.length === 0) return;
+    // Lines returned in full drop out of the sale but are still recorded as returns.
+    const saleLines = netCart.filter((item) => item.quantity !== 0);
     const returnedItems = netCart.filter((item) => item.returned > 0);
+    if (saleLines.length === 0 && returnedItems.length === 0) return;
+    if (returnCredit > 0 && !selectedCustomer) return;
     const returnNote = returnedItems
       .map((item) => `${item.product.name} ${item.returned} ${item.product.unit}`)
       .join(', ');
@@ -481,9 +490,14 @@ export const POSView: React.FC<POSViewProps> = ({
     let paidAmount = 0;
     let changeAmount = 0;
     let cashPaid = 0;
-      let customerBalanceDelta = 0;
+    let customerBalanceDelta = 0;
+    const saleMethod: PaymentMethod = returnCredit > 0 ? 'credit' : paymentMethod;
 
-    if (paymentMethod === 'cash') {
+    if (returnCredit > 0) {
+      // No money changes hands: the excess lowers the customer's debt, and anything
+      // beyond the debt leaves a negative balance (the store owes the customer).
+      customerBalanceDelta = -returnCredit;
+    } else if (paymentMethod === 'cash') {
       const given = parseFloat(cashGiven) || 0;
       if (given >= totalAmount) {
         paidAmount = totalAmount;
@@ -528,7 +542,7 @@ export const POSView: React.FC<POSViewProps> = ({
       customerId: selectedCustomerId || undefined,
       customerName: selectedCustomer ? selectedCustomer.name : 'Genel Müşteri',
       customerPhone: selectedCustomer?.phone,
-      items: soldItems.map((i) => ({
+      items: saleLines.map((i) => ({
         productId: i.product.id,
         productName: i.product.name,
         quantity: i.quantity,
@@ -545,6 +559,7 @@ export const POSView: React.FC<POSViewProps> = ({
             unit: item.product.unit,
           }))
         : undefined,
+      stockDeductions: netCart.map((item) => ({ productId: item.product.id, quantity: item.cartQuantity })),
       subtotal: totalAmount,
       discount: 0,
       taxRate,
@@ -552,10 +567,10 @@ export const POSView: React.FC<POSViewProps> = ({
       total: totalAmount,
       costTotal,
       profit,
-      paymentMethod,
+      paymentMethod: saleMethod,
       paidAmount,
       changeAmount,
-      cashPaid: paymentMethod === 'mixed' ? cashPaid : undefined,
+      cashPaid: saleMethod === 'mixed' ? cashPaid : undefined,
       customerBalanceDelta,
       notes: [saleNotes.trim(), returnNote && `İade: ${returnNote}`].filter(Boolean).join(' · ') || undefined,
     });
@@ -597,6 +612,43 @@ export const POSView: React.FC<POSViewProps> = ({
               : 'Para üstü müşteriye nakit verilecek'}
           </span>
         </label>
+      </div>
+    );
+  };
+
+  const renderReturnCreditInfo = () => {
+    if (!selectedCustomer) {
+      return (
+        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold leading-relaxed text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">
+          İade, verilen üründen fazla. Farkın hesaba işlenmesi için kayıtlı bir müşteri seçin.
+        </p>
+      );
+    }
+
+    const currentDebt = Math.max(0, selectedCustomer.balance);
+    const deductedFromDebt = Number(Math.min(currentDebt, returnCredit).toFixed(2));
+    const owedToCustomer = Number((returnCredit - deductedFromDebt).toFixed(2));
+    const nextBalance = Number((selectedCustomer.balance - returnCredit).toFixed(2));
+    const rows = [
+      { label: 'Müşteri borcundan düşülecek', amount: deductedFromDebt, visible: deductedFromDebt > 0 },
+      { label: 'Size borç olarak işlenecek', amount: owedToCustomer, visible: owedToCustomer > 0 },
+      { label: 'Kalan müşteri borcu', amount: nextBalance, visible: nextBalance > 0 },
+      { label: 'Müşteriye toplam borcunuz', amount: Math.abs(nextBalance), visible: nextBalance < 0 },
+    ].filter((row) => row.visible);
+
+    return (
+      <div className="flex flex-col gap-2 rounded-xl border border-blue-200/70 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300">
+        <p className="font-semibold leading-relaxed">
+          {`İade, verilen üründen fazla. Ödeme alınmaz; fark ${selectedCustomer.name} hesabına işlenir.`}
+        </p>
+        <dl className="flex flex-col gap-1">
+          {rows.map((row) => (
+            <div key={row.label} className="flex items-center justify-between gap-3">
+              <dt>{row.label}</dt>
+              <dd className="font-black tabular-nums">{formatCurrency(row.amount, settings.currency)}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     );
   };
@@ -1385,10 +1437,10 @@ export const POSView: React.FC<POSViewProps> = ({
               {/* Grand Total banner */}
               <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/20 flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                  Ödenecek Tutar:
+                  {returnCredit > 0 ? 'İade Fazlası:' : 'Ödenecek Tutar:'}
                 </span>
                 <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono tabular-nums">
-                  {formatCurrency(totalAmount)}
+                  {formatCurrency(returnCredit > 0 ? returnCredit : totalAmount)}
                 </span>
               </div>
 
@@ -1425,23 +1477,24 @@ export const POSView: React.FC<POSViewProps> = ({
                           inputMode="decimal"
                           step="any"
                           min="0"
-                          max={item.cartQuantity}
                           placeholder="0"
                           value={returnQuantities[item.product.id] ?? ''}
-                          onChange={(e) => updateReturnQuantity(item.product.id, item.cartQuantity, e.target.value)}
+                          onChange={(e) => updateReturnQuantity(item.product.id, e.target.value)}
                           className="h-10 w-20 shrink-0 rounded-xl border border-rose-200 bg-white px-2 text-center text-sm font-black tabular-nums text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-400 dark:border-rose-900 dark:bg-slate-950 dark:text-white"
                         />
                       </li>
                     ))}
                   </ul>
                 )}
-                {!hasItemsToSell && (
-                  <p role="alert" className="border-t border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:border-rose-900/60 dark:text-rose-300">
-                    Tüm ürünler iade edildi; satılacak ürün kalmadı.
+                {!hasSaleLines && (
+                  <p role="status" className="border-t border-rose-200 px-3 py-2 text-xs font-semibold leading-relaxed text-rose-700 dark:border-rose-900/60 dark:text-rose-300">
+                    Verilen ve iade edilen miktar eşit. Verilen ürünler stoktan düşülür, iade rapora işlenir.
                   </p>
                 )}
               </div>
 
+              {returnCredit > 0 ? renderReturnCreditInfo() : (
+                <>
               {/* Payment Methods */}
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
@@ -1544,6 +1597,8 @@ export const POSView: React.FC<POSViewProps> = ({
                   Tutarın tamamı ({formatCurrency(totalAmount)}) müşterinin açık hesap veresiye borcuna kaydedilecektir.
                 </div>
               )}
+                </>
+              )}
 
               {/* Note */}
               <div>
@@ -1570,10 +1625,10 @@ export const POSView: React.FC<POSViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={!hasItemsToSell}
+                  disabled={returnCredit > 0 && !selectedCustomer}
                   className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-98 transition-all disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Satışı Tamamla
+                  {returnCredit > 0 ? 'İadeyi Kaydet' : 'Satışı Tamamla'}
                 </button>
               </div>
             </form>

@@ -5,6 +5,7 @@ import { Sale, AppSettings } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { createPdfDocument } from '../utils/pdf-utils';
 import { shareOrDownloadBlob } from '../utils/share-utils';
+import { getSaleReturns, formatQuantity } from '../utils/sale-returns';
 
 interface ReceiptModalProps {
   sale: Sale;
@@ -27,6 +28,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   const [isSharing, setIsSharing] = useState(false);
   const money = (amount: number) => formatCurrency(amount, settings.currency);
+  const saleReturns = getSaleReturns(sale);
 
   const handlePrint = () => {
     window.print();
@@ -97,6 +99,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         doc.text(`@${money(item.unitPrice)}`, MARGIN, y);
         y += gap(7) + 1;
       });
+      saleReturns.forEach((item) => {
+        row(
+          String(doc.splitTextToSize(`İade: ${item.productName}`, 46)[0] ?? ''),
+          `-${formatQuantity(item.quantity)} ${item.unit}`
+        );
+      });
+      if (saleReturns.length > 0) y += 1;
       divider();
 
       row('Ara Toplam:', money(sale.subtotal));
@@ -106,7 +115,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       y += 1;
       divider();
 
-      row('Ödeme Yöntemi:', paymentLabels[sale.paymentMethod] ?? String(sale.paymentMethod));
+      row('Ödeme Yöntemi:', sale.total < 0 ? 'İade' : paymentLabels[sale.paymentMethod] ?? String(sale.paymentMethod));
       if (sale.paymentMethod === 'mixed') {
         row('Nakit:', money(sale.cashPaid || 0), 7.5);
         row('Havale / EFT:', money(sale.transferPaid || 0), 7.5);
@@ -119,6 +128,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       y += 1;
       if (sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta > 0) {
         wrappedCentered(`Kalan ${money(sale.customerBalanceDelta)} tutar müşteri veresiye borcuna eklenmiştir.`, 7);
+      } else if (sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta < 0 && sale.total < 0) {
+        wrappedCentered(`İade fazlası ${money(Math.abs(sale.customerBalanceDelta))} müşteri hesabına işlenmiştir.`, 7);
       } else if (sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta < 0) {
         wrappedCentered(`Fazla verilen ${money(Math.abs(sale.customerBalanceDelta))} tutar müşteri hesabına avans/alacak kaydedilmiştir.`, 7);
       } else if (sale.paymentMethod === 'credit') {
@@ -242,6 +253,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   </div>
                 </div>
               ))}
+              {saleReturns.map((item) => (
+                <div key={`return-${item.productId}`} className="flex justify-between items-start gap-2 text-[11px] text-rose-600 dark:text-rose-400">
+                  <p className="min-w-0 truncate font-medium">İade: {item.productName}</p>
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    −{formatQuantity(item.quantity)} {item.unit}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -267,7 +286,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="py-3 border-b border-dashed border-slate-300 dark:border-slate-700 space-y-1.5 text-[11px]">
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-400">Ödeme Yöntemi:</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{paymentLabels[sale.paymentMethod]}</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{sale.total < 0 ? 'İade' : paymentLabels[sale.paymentMethod]}</span>
             </div>
 
             {sale.paymentMethod === 'mixed' && (
@@ -311,7 +330,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
             {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta < 0 && (
               <div className="p-2 bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-lg text-center text-[10px] font-medium font-sans">
-                Fazla verilen <strong>{money(Math.abs(sale.customerBalanceDelta))}</strong> tutar müşteri hesabına avans/alacak kaydedilmiştir.
+                {sale.total < 0 ? 'İade fazlası' : 'Fazla verilen'} <strong>{money(Math.abs(sale.customerBalanceDelta))}</strong> {sale.total < 0 ? 'müşteri hesabına işlenmiştir.' : 'tutar müşteri hesabına avans/alacak kaydedilmiştir.'}
               </div>
             )}
 

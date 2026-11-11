@@ -747,11 +747,10 @@ class SQLiteStorageManager {
       createdAt: now,
     };
 
-    // Deduct stock for all items
-    for (const item of newSale.items) {
-      const prod = this.memoryCache.products.find((p) => p.id === item.productId);
+    for (const deduction of newSale.stockDeductions ?? newSale.items) {
+      const prod = this.memoryCache.products.find((p) => p.id === deduction.productId);
       if (prod) {
-        prod.stock = Math.max(0, prod.stock - item.quantity);
+        prod.stock = Math.max(0, prod.stock - deduction.quantity);
         prod.updatedAt = now;
       }
     }
@@ -785,6 +784,13 @@ class SQLiteStorageManager {
             title: newSale.paymentMethod === 'credit' ? 'Veresiye Satış' : 'Kalan Borç Hesaba Eklendi',
             message: `${cust.name} hesabına ${balanceDelta.toFixed(2)} ₺ veresiye eklendi. Güncel Bakiye: ${cust.balance.toFixed(2)} ₺`,
             type: 'debt_reminder',
+            actionTab: 'customers',
+          });
+        } else if (balanceDelta < 0 && newSale.total < 0) {
+          this.addNotification({
+            title: 'İade Hesaba İşlendi',
+            message: `${cust.name} için ${Math.abs(balanceDelta).toFixed(2)} ₺ iade fazlası hesaba işlendi. Güncel Bakiye: ${cust.balance.toFixed(2)} ₺`,
+            type: 'system',
             actionTab: 'customers',
           });
         } else if (balanceDelta < 0) {
@@ -823,10 +829,10 @@ class SQLiteStorageManager {
     sale.status = 'cancelled';
 
     // Restore stock
-    for (const item of sale.items) {
-      const prod = this.memoryCache.products.find((p) => p.id === item.productId);
+    for (const deduction of sale.stockDeductions ?? sale.items) {
+      const prod = this.memoryCache.products.find((p) => p.id === deduction.productId);
       if (prod) {
-        prod.stock += item.quantity;
+        prod.stock = Math.max(0, prod.stock + deduction.quantity);
       }
     }
 
