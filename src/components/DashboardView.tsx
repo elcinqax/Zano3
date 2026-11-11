@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Sale, Customer, Product, Expense, ExpenseItem, AppSettings, CustomerPayment, CustomerProductPurchaseSummary } from '../types';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
+import { PurchaseCalendar, PurchaseDayTotal } from './PurchaseCalendar';
 import {
   exportToExcel,
   exportSalesToCSV,
@@ -350,8 +351,31 @@ if (selectedCustomerFilter !== 'all') {
     return Object.values(groups).sort((a, b) => b.totalSpent - a.totalSpent);
   }, [customerProductPurchases]);
 
+  // Days outside the report's date range (or in the future) are not counted as "no purchase" days.
+  const calendarScope = useMemo(() => {
+    const toKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const now = new Date();
+    let startKey: string | null = null;
+    let endKey = toKey(now);
+    if (timeRange === 'today') {
+      startKey = endKey;
+    } else if (timeRange === '7days') {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      startKey = toKey(start);
+    } else if (timeRange === 'month') {
+      startKey = toKey(new Date(now.getFullYear(), now.getMonth(), 1));
+    } else if (timeRange === 'year') {
+      startKey = toKey(new Date(now.getFullYear(), 0, 1));
+    } else if (timeRange === 'custom') {
+      startKey = customStartDate || null;
+      if (customEndDate && customEndDate < endKey) endKey = customEndDate;
+    }
+    return { startKey, endKey };
+  }, [timeRange, customStartDate, customEndDate]);
+
   const dailyMonthsByCustomer = useMemo(() => {
-    type DayTotal = { date: string; quantity: number; amount: number; orders: number };
+    type DayTotal = PurchaseDayTotal;
     const totals: Record<string, DayTotal[]> = {};
     filteredSales.forEach((sale) => {
       const customerId = sale.customerId || 'walk-in';
@@ -1043,26 +1067,30 @@ if (selectedCustomerFilter !== 'all') {
                                 const monthLabel = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(monthYear, monthNumber - 1, 1));
                                 return (
                                   <div key={month.monthKey} className="overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/70">
-                                    <button
-                                      type="button"
-                                      onClick={() => setExpandedDailyMonths((prev) => ({ ...prev, [monthId]: !prev[monthId] }))}
-                                      aria-expanded={isMonthOpen}
-                                      className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
-                                    >
-                                      <span className="min-w-0 truncate text-xs font-black capitalize text-slate-800 dark:text-slate-100">{monthLabel}</span>
-                                      <span className="flex shrink-0 items-center gap-2 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 p-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpandedDailyMonths((prev) => ({ ...prev, [monthId]: !prev[monthId] }))}
+                                        aria-expanded={isMonthOpen}
+                                        className="flex min-h-10 items-center gap-1.5 rounded-xl bg-teal-700 px-3 py-2 text-left text-white shadow-sm transition-colors hover:bg-teal-800 active:bg-teal-900"
+                                      >
+                                        <Calendar className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                        <span className="text-xs font-black capitalize">{monthLabel}</span>
+                                        {isMonthOpen ? <ChevronUp className="h-4 w-4 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                                      </button>
+                                      <span className="flex shrink-0 items-center gap-2 pr-1 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100">
                                         <span>{month.quantity} adet</span>
                                         <span className="text-teal-700 dark:text-teal-300">{formatCurrency(month.amount, settings.currency)}</span>
-                                        {isMonthOpen ? <ChevronUp className="h-4 w-4 text-slate-400" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden="true" />}
                                       </span>
-                                    </button>
-                                    <div className={`${isMonthOpen ? 'flex' : 'hidden print:flex'} flex-col gap-1.5 border-t border-teal-100 px-3 py-2 dark:border-teal-900/40`}>
-                                      {month.days.map((day) => (
-                                        <div key={day.date} className="flex items-center justify-between gap-2 text-xs">
-                                          <span className="font-bold text-slate-600 dark:text-slate-300">{formatDate(day.date)}</span>
-                                          <span className="flex items-center gap-2 font-bold tabular-nums text-slate-800 dark:text-slate-200"><span>{day.quantity} adet</span><span className="text-teal-700 dark:text-teal-300">{formatCurrency(day.amount, settings.currency)}</span></span>
-                                        </div>
-                                      ))}
+                                    </div>
+                                    <div className={`${isMonthOpen ? '' : 'hidden print:block '}border-t border-teal-100 p-2 dark:border-teal-900/40`}>
+                                      <PurchaseCalendar
+                                        monthKey={month.monthKey}
+                                        days={month.days}
+                                        scopeStartKey={calendarScope.startKey}
+                                        scopeEndKey={calendarScope.endKey}
+                                        currency={settings.currency}
+                                      />
                                     </div>
                                   </div>
                                 );
