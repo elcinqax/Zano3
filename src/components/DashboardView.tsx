@@ -108,7 +108,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [dailyYearByCustomer, setDailyYearByCustomer] = useState<Record<string, number | null>>({});
   const [ledgerYear, setLedgerYear] = useState<number | null>(null);
   const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
-  const [annualTotalYear, setAnnualTotalYear] = useState<number | null>(null);
 
   // Filter sales by selected time range
   const filteredSales = useMemo(() => {
@@ -324,7 +323,7 @@ if (selectedCustomerFilter !== 'all') {
   }, [sales, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
 
   const annualTotalsByUnit = useMemo(() => {
-    const year = annualTotalYear;
+    const year = annualReportYear;
     if (year === null) return null;
     const totals = new Map<string, number>();
     sales.forEach((sale) => {
@@ -337,7 +336,7 @@ if (selectedCustomerFilter !== 'all') {
       });
     });
     return Array.from(totals, ([unit, quantity]) => ({ unit, quantity })).sort((a, b) => b.quantity - a.quantity);
-  }, [sales, productById, annualTotalYear, selectedCustomerFilter, selectedProductFilter]);
+  }, [sales, productById, annualReportYear, selectedCustomerFilter, selectedProductFilter]);
 
   const availableReportYears = useMemo(() => {
     const years = new Set(sales.filter((sale) => sale.status !== 'cancelled').map((sale) => new Date(sale.createdAt).getFullYear()));
@@ -985,38 +984,27 @@ if (selectedCustomerFilter !== 'all') {
 
           </div>
 
-          <section aria-label="Yıllık toplam" className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-3 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/10">
-            <label className="flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-              <span>Yıllık toplam</span>
-              <select value={annualTotalYear ?? ''} onChange={(event) => setAnnualTotalYear(event.target.value === '' ? null : Number(event.target.value))} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-900 dark:bg-slate-900 dark:text-slate-100">
-                <option value="">-</option>
-                {availableReportYears.map((year) => <option key={year} value={year}>{year}</option>)}
-              </select>
-            </label>
-            <p aria-live="polite" className="flex min-w-0 flex-wrap justify-end gap-x-2 gap-y-0.5 text-right text-sm font-black tabular-nums text-emerald-700 dark:text-emerald-300">
-              {annualTotalsByUnit === null ? (
-                <span className="text-slate-400">-</span>
-              ) : annualTotalsByUnit.length === 0 ? (
-                <span>0</span>
-              ) : (
-                annualTotalsByUnit.map((total) => <span key={total.unit}>{total.quantity.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {total.unit}</span>)
-              )}
-            </p>
-          </section>
-
           <section className="mb-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-3 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/10">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">Yıllık müşteri ürün ortalaması</h2>
                 <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Seçili müşterinin ay içinde aldığı ürünlerin günlük ortalamasını gösterir.</p>
               </div>
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                <span>Yıl</span>
-                <select value={annualReportYear ?? ''} onChange={(event) => setAnnualReportYear(event.target.value === '' ? null : Number(event.target.value))} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-900 dark:bg-slate-900 dark:text-slate-100">
-                  <option value="">-</option>
-                  {availableReportYears.map((year) => <option key={year} value={year}>{year}</option>)}
-                </select>
-              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <span>Yıl</span>
+                  <select value={annualReportYear ?? ''} onChange={(event) => setAnnualReportYear(event.target.value === '' ? null : Number(event.target.value))} className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-900 dark:bg-slate-900 dark:text-slate-100">
+                    <option value="">-</option>
+                    {availableReportYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </label>
+                {annualTotalsByUnit !== null && (
+                  <p aria-live="polite" className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-slate-900 dark:text-emerald-300">
+                    <span className="sr-only">Yıllık toplam:</span>
+                    {annualTotalsByUnit.length === 0 ? <span>0</span> : annualTotalsByUnit.map((total) => <span key={total.unit}>{total.quantity.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {total.unit}</span>)}
+                  </p>
+                )}
+              </div>
             </div>
             {annualMonthlyProductAverages === null && (
               <p className="mt-3 rounded-xl border border-dashed border-emerald-200 bg-white/70 px-3 py-2.5 text-[11px] font-semibold text-slate-500 dark:border-emerald-900/60 dark:bg-slate-900/60 dark:text-slate-400">Ayları görmek için bir yıl seçin.</p>
