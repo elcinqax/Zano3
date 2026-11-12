@@ -910,15 +910,7 @@ export const POSView: React.FC<POSViewProps> = ({
         </div>
       </div>
 
-      {/* BAŞLIK (satış akışının altında) */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
-        <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <span>Satış Yap</span>
-        </h1>
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          Hızlı perakende satış ekranı
-        </p>
-      </div>
+      <h1 className="sr-only">Satış Yap</h1>
 
       {/* MODAL: SATIŞ İÇİN MÜŞTERİ SEÇ */}
       {showCustomerPicker && (
