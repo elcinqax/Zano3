@@ -287,198 +287,6 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
 
   return (
     <div className="space-y-4 pb-20 md:pb-8">
-      {/* 1. ÜST SIRA: BUGÜN, DÜN, SON 7 GÜN, SON 30 GÜN, SON 1 YIL, ÖZEL ARALIK TUŞLARI */}
-      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-              Tarih Filtresi
-            </span>
-          </div>
-
-          {onBackToPOS && (
-            <button
-              type="button"
-              onClick={onBackToPOS}
-              className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Satış Ekranına Dön</span>
-            </button>
-          )}
-        </div>
-
-        {/* Üst Sıradaki Butonlar (Yatay Kaydırılabilir ve Kolay Dokunmatik) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-          {dateFilterButtons.map((btn) => {
-            const isSelected = dateFilter === btn.id;
-            return (
-              <button
-                key={btn.id}
-                type="button"
-                onClick={() => setDateFilter(btn.id)}
-                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95 ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25 ring-2 ring-emerald-500/20'
-                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700'
-                }`}
-              >
-                <span>{btn.label}</span>
-                {btn.count !== undefined && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono tabular-nums leading-none ${
-                      isSelected
-                        ? 'bg-white/25 text-white'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                    }`}
-                  >
-                    {btn.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Özel Aralık Seçimi Açıldığında Gösterilecek Tarih Kutuları */}
-        {dateFilter === 'custom' && (
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/70 dark:bg-slate-950/50 p-3 rounded-xl border">
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Başlangıç Tarihi
-              </label>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Bitiş Tarihi
-              </label>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Satış Geçmişi & Faturalar
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Tamamlanan ve iptal edilen tüm perakende satış makbuzları
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => exportToExcel(filteredSales, customers, products, settings.storeName)}
-            className="px-3 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Excel (.xlsx)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => exportSalesToCSV(filteredSales)}
-            className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-50 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>CSV İndir</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Summary Chips */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-600 dark:text-slate-400">
-        <span>Filtrelenen Satış: <strong className="text-slate-900 dark:text-white tabular-nums">{filteredSales.length}</strong></span>
-        <span aria-hidden="true">·</span>
-        <span>Satılan Ürün: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums">{totalFilteredItemCount} adet</strong></span>
-        <span aria-hidden="true">·</span>
-        <span>İade: <strong className="text-amber-700 dark:text-amber-300 tabular-nums">{formatQuantity(totalFilteredReturnCount)} adet</strong></span>
-        <span aria-hidden="true">·</span>
-        <span>Toplam Ciro: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(totalFilteredAmount)}</strong></span>
-        <span aria-hidden="true">·</span>
-        <span>Toplam Kâr: <strong className="text-indigo-600 dark:text-indigo-400 tabular-nums">{formatCurrency(totalFilteredProfit)}</strong></span>
-      </div>
-
-      {/* Tab Switcher: Faturalar vs Müşteri Bazında Alınan Ürünler */}
-      <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl self-start">
-        <button
-          type="button"
-          onClick={() => setViewMode('invoices')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            viewMode === 'invoices'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          Faturalar ({filteredSales.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode('customers')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-            viewMode === 'customers'
-              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Müşteri Ürün Dağılımı ({customerPurchases.length})</span>
-        </button>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Fatura No, Müşteri Adı veya ürün ile ara..."
-            className="w-full h-11 pl-9 pr-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-          />
-        </div>
-
-        {/* Method filter buttons */}
-        <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl overflow-x-auto self-start sm:self-auto">
-          {[
-            { id: 'all', label: 'Tüm Ödemeler' },
-            { id: 'cash', label: 'Nakit' },
-            { id: 'mixed', label: 'Karışık' },
-            { id: 'credit', label: 'Veresiye' },
-            { id: 'transfer', label: 'Havale' },
-          ].map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setMethodFilter(m.id)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
-                methodFilter === m.id
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Sales List Table (Invoices view) */}
       {viewMode === 'invoices' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -695,6 +503,198 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           )}
         </div>
       )}
+
+      {/* TARİH ARALIĞI (listenin altında): BUGÜN, DÜN, SON 7 GÜN, SON 30 GÜN, SON 1 YIL, ÖZEL ARALIK TUŞLARI */}
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+              Tarih Filtresi
+            </span>
+          </div>
+
+          {onBackToPOS && (
+            <button
+              type="button"
+              onClick={onBackToPOS}
+              className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Satış Ekranına Dön</span>
+            </button>
+          )}
+        </div>
+
+        {/* Üst Sıradaki Butonlar (Yatay Kaydırılabilir ve Kolay Dokunmatik) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+          {dateFilterButtons.map((btn) => {
+            const isSelected = dateFilter === btn.id;
+            return (
+              <button
+                key={btn.id}
+                type="button"
+                onClick={() => setDateFilter(btn.id)}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25 ring-2 ring-emerald-500/20'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700'
+                }`}
+              >
+                <span>{btn.label}</span>
+                {btn.count !== undefined && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono tabular-nums leading-none ${
+                      isSelected
+                        ? 'bg-white/25 text-white'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {btn.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Özel Aralık Seçimi Açıldığında Gösterilecek Tarih Kutuları */}
+        {dateFilter === 'custom' && (
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/70 dark:bg-slate-950/50 p-3 rounded-xl border">
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Başlangıç Tarihi
+              </label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Bitiş Tarihi
+              </label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Satış Geçmişi & Faturalar
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Tamamlanan ve iptal edilen tüm perakende satış makbuzları
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exportToExcel(filteredSales, customers, products, settings.storeName)}
+            className="px-3 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Excel (.xlsx)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => exportSalesToCSV(filteredSales)}
+            className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-50 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>CSV İndir</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Chips */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-600 dark:text-slate-400">
+        <span>Filtrelenen Satış: <strong className="text-slate-900 dark:text-white tabular-nums">{filteredSales.length}</strong></span>
+        <span aria-hidden="true">·</span>
+        <span>Satılan Ürün: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums">{totalFilteredItemCount} adet</strong></span>
+        <span aria-hidden="true">·</span>
+        <span>İade: <strong className="text-amber-700 dark:text-amber-300 tabular-nums">{formatQuantity(totalFilteredReturnCount)} adet</strong></span>
+        <span aria-hidden="true">·</span>
+        <span>Toplam Ciro: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(totalFilteredAmount)}</strong></span>
+        <span aria-hidden="true">·</span>
+        <span>Toplam Kâr: <strong className="text-indigo-600 dark:text-indigo-400 tabular-nums">{formatCurrency(totalFilteredProfit)}</strong></span>
+      </div>
+
+      {/* Tab Switcher: Faturalar vs Müşteri Bazında Alınan Ürünler */}
+      <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl self-start">
+        <button
+          type="button"
+          onClick={() => setViewMode('invoices')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            viewMode === 'invoices'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          Faturalar ({filteredSales.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('customers')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            viewMode === 'customers'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Müşteri Ürün Dağılımı ({customerPurchases.length})</span>
+        </button>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Fatura No, Müşteri Adı veya ürün ile ara..."
+            className="w-full h-11 pl-9 pr-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          />
+        </div>
+
+        {/* Method filter buttons */}
+        <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl overflow-x-auto self-start sm:self-auto">
+          {[
+            { id: 'all', label: 'Tüm Ödemeler' },
+            { id: 'cash', label: 'Nakit' },
+            { id: 'mixed', label: 'Karışık' },
+            { id: 'credit', label: 'Veresiye' },
+            { id: 'transfer', label: 'Havale' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setMethodFilter(m.id)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
+                methodFilter === m.id
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {editingSale && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
