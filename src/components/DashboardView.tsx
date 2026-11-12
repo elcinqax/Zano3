@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { createPdfDocument } from '../utils/pdf-utils';
-import { shareOrDownloadBlob } from '../utils/share-utils';
+import { shareOrDownloadBlob, downloadBlob, isMobileDevice, printPdfBlob } from '../utils/share-utils';
+import { buildCustomerDailyPdf, type CustomerDailyMonth } from '../utils/customer-daily-pdf';
+import { DailyPrintButton } from './DailyPrintButton';
 import {
   FileSpreadsheet,
   Download,
@@ -109,6 +111,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [dailyYearByCustomer, setDailyYearByCustomer] = useState<Record<string, number | null>>({});
   const [ledgerYear, setLedgerYear] = useState<number | null>(null);
   const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
+  const [printingDailyKey, setPrintingDailyKey] = useState<string | null>(null);
 
   // Filter sales by selected time range
   const filteredSales = useMemo(() => {
@@ -610,6 +613,63 @@ if (selectedCustomerFilter !== 'all') {
   );
   const selectedLedgerYear = ledgerYear !== null && ledgerYears.includes(ledgerYear) ? ledgerYear : null;
 
+  const rangeLabel = timeRange === 'custom'
+    ? `${customStartDate ? formatDateInput(customStartDate) : 'Başlangıç'} - ${customEndDate ? formatDateInput(customEndDate) : 'Bugün'}`
+    : TIME_RANGE_LABELS[timeRange];
+
+  const getDailyPrintKey = (customerId: string, monthKey?: string): string =>
+    monthKey ? `month:${customerId}:${monthKey}` : `year:${customerId}`;
+
+  const handlePrintCustomerDaily = async (
+    customer: { customerId: string; customerName: string; customerPhone?: string },
+    year: number,
+    months: CustomerDailyMonth[],
+    monthKey?: string,
+  ) => {
+    if (printingDailyKey !== null) return;
+    setPrintingDailyKey(getDailyPrintKey(customer.customerId, monthKey));
+    try {
+      const productName = selectedProductFilter === 'all' ? null : productById.get(selectedProductFilter)?.name;
+      const blob = await buildCustomerDailyPdf({
+        storeName: settings.storeName || 'Mobil Satış',
+        customerName: customer.customerName,
+        customerPhone: customer.customerPhone,
+        year,
+        monthKey,
+        months,
+        filterLabel: [rangeLabel, productName ?? 'Tüm ürünler'].join(' · '),
+        scopeStartKey: calendarScope.startKey,
+        scopeEndKey: calendarScope.endKey,
+        currency: settings.currency,
+      });
+      const periodLabel = monthKey
+        ? new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(year, Number(monthKey.slice(5, 7)) - 1, 1))
+        : String(year);
+      const fileName = `${customer.customerName.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-${monthKey ?? year}-gunluk-dagilim.pdf`;
+
+      if (isMobileDevice() || window.matchMedia('(max-width: 768px)').matches) {
+        const outcome = await shareOrDownloadBlob(blob, fileName, {
+          title: `${customer.customerName} - ${periodLabel} günlük dağılım`,
+          text: 'PDF raporunu yazdırın veya bir uygulamayla paylaşın',
+        });
+        if (outcome === 'downloaded') {
+          window.alert('Bu cihaz paylaşım menüsünü desteklemiyor, PDF indirildi. Dosyalar uygulamasından açıp yazdırabilirsiniz.');
+        }
+        return;
+      }
+
+      await printPdfBlob(blob).catch((error: unknown) => {
+        console.error('PDF yazdırma penceresi açılamadı, indirmeye geçiliyor:', error);
+        downloadBlob(blob, fileName);
+      });
+    } catch (error) {
+      console.error('Müşteri günlük dağılım PDF raporu oluşturulamadı:', error);
+      window.alert('PDF oluşturulamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+    } finally {
+      setPrintingDailyKey(null);
+    }
+  };
+
   // Print Report Handler
   const handlePrint = async () => {
     const hasNativeShare = Boolean((window as unknown as { AndroidShare?: unknown }).AndroidShare);
@@ -632,9 +692,6 @@ if (selectedCustomerFilter !== 'all') {
     };
 
     let y = 16;
-    const rangeLabel = timeRange === 'custom'
-      ? `${customStartDate ? formatDateInput(customStartDate) : 'Başlangıç'} - ${customEndDate ? formatDateInput(customEndDate) : 'Bugün'}`
-      : TIME_RANGE_LABELS[timeRange];
     addLine('Müşteri ve Ürün Raporu', y, 16, true);
     y += 8;
     addLine(`Tarih: ${rangeLabel}`, y, 9);
@@ -1192,14 +1249,14 @@ if (selectedCustomerFilter !== 'all') {
                             </table>
                           </div>
                           <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
-                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex min-w-0 flex-col">
-                                <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
-                                <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
-                              </div>
-                              {dailyYears.length > 0 && (
-                                <div className="print:hidden flex min-w-0 flex-wrap items-center gap-2">
-                                  <label className="flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                            <div className="mb-2 flex flex-col gap-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex min-w-0 flex-col">
+                                  <span className="text-xs font-black text-teal-900 dark:text-teal-200">Günlük dağılım</span>
+                                  <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300">Filtrelenmiş satışlar</span>
+                                </div>
+                                {dailyYears.length > 0 && (
+                                  <label className="print:hidden flex shrink-0 items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
                                     <span>Yıl</span>
                                     <select
                                       value={selectedDailyYear ?? ''}
@@ -1210,13 +1267,21 @@ if (selectedCustomerFilter !== 'all') {
                                       {dailyYears.map((year) => <option key={year} value={year}>{year}</option>)}
                                     </select>
                                   </label>
-                                  {selectedDailyYearTotal !== null && (
-                                    <p aria-live="polite" className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
-                                      <span className="font-bold text-slate-500 dark:text-slate-400">Yıl toplamı</span>
-                                      <span>{formatQuantity(selectedDailyYearTotal)} adet</span>
-                                      <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(selectedDailyYearReturned)} adet</span>
-                                    </p>
-                                  )}
+                                )}
+                              </div>
+                              {selectedDailyYear !== null && selectedDailyYearMonths !== null && selectedDailyYearTotal !== null && (
+                                <div className="print:hidden flex items-center justify-between gap-2">
+                                  <p aria-live="polite" className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-teal-700 dark:border-teal-900 dark:bg-slate-900 dark:text-teal-300">
+                                    <span className="font-bold text-slate-500 dark:text-slate-400">Yıl toplamı</span>
+                                    <span>{formatQuantity(selectedDailyYearTotal)} adet</span>
+                                    <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(selectedDailyYearReturned)} adet</span>
+                                  </p>
+                                  <DailyPrintButton
+                                    label={`${group.customerName} ${selectedDailyYear} yılı günlük dağılımını yazdır veya PDF olarak paylaş`}
+                                    isBusy={printingDailyKey === getDailyPrintKey(group.customerId)}
+                                    disabled={printingDailyKey !== null}
+                                    onClick={() => handlePrintCustomerDaily(group, selectedDailyYear, selectedDailyYearMonths)}
+                                  />
                                 </div>
                               )}
                             </div>
@@ -1242,7 +1307,16 @@ if (selectedCustomerFilter !== 'all') {
                                         <span className="text-xs font-black capitalize">{monthLabel}</span>
                                         {isMonthOpen ? <ChevronUp className="h-4 w-4 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />}
                                       </button>
-                                      <span className="flex shrink-0 items-center gap-2 pr-1 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100">
+                                      {isMonthOpen && (
+                                        <DailyPrintButton
+                                          label={`${group.customerName} ${monthLabel} günlük dağılımını yazdır veya PDF olarak paylaş`}
+                                          isBusy={printingDailyKey === getDailyPrintKey(group.customerId, month.monthKey)}
+                                          disabled={printingDailyKey !== null}
+                                          onClick={() => handlePrintCustomerDaily(group, monthYear, [month], month.monthKey)}
+                                          className="sm:order-last"
+                                        />
+                                      )}
+                                      <span className={`${isMonthOpen ? 'basis-full justify-end sm:ml-auto sm:basis-auto ' : ''}flex shrink-0 items-center gap-2 pr-1 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100`}>
                                         <span>{month.quantity} adet</span>
                                         {month.returned > 0 && <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(month.returned)}</span>}
                                         <span className="text-teal-700 dark:text-teal-300">{formatCurrency(month.amount, settings.currency)}</span>

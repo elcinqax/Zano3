@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Smartphone, Monitor, Moon, Sun, Clock3 } from 'lucide-react';
 
+// Controls stay transparent so the bar's single gradient runs through all of them instead of
+// repeating inside each one; reuse this for every new button or section added to the top bar.
+const TOP_BAR_SURFACE =
+  'border border-slate-300/70 bg-transparent text-slate-900 dark:border-slate-700/70 dark:text-slate-100';
+
 interface TopBarProps {
   storeName: string;
   onLockApp: () => void;
@@ -73,7 +78,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Zone 2: Navigation Links (hidden on compact mobile thumb zone, visible on desktop/tablet) */}
-        <nav className="hidden md:flex items-center p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+        <nav className={`hidden md:flex items-center p-1 rounded-2xl transition-colors ${TOP_BAR_SURFACE}`}>
           <button
             type="button"
             onClick={() => onTabChange('pos')}
@@ -123,21 +128,21 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className="flex h-10 items-center gap-2 rounded-2xl border border-slate-300/70 bg-transparent px-2.5 dark:border-slate-700/70" aria-label="Anlık saat">
-            <span className="flex size-6 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm shadow-slate-900/20 dark:bg-slate-800"><Clock3 className="size-3.5" /></span>
-            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+          <div className={`flex h-10 items-center gap-1.5 rounded-2xl px-2.5 transition-colors ${TOP_BAR_SURFACE}`} aria-label="Anlık saat">
+            <Clock3 className="size-4 stroke-[2.5]" aria-hidden="true" />
+            <span className="font-mono text-[11px] font-black tabular-nums tracking-tight">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
-          <button type="button" onClick={onToggleTheme} className="size-10 flex items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800" title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
-            {themeMode === 'dark' ? <Sun className="size-5 text-amber-400" /> : <Moon className="size-5 text-teal-700 dark:text-teal-300" />}
+          <button type="button" onClick={onToggleTheme} className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-slate-400 active:scale-95 dark:hover:border-slate-500 ${TOP_BAR_SURFACE}`} title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
+            {themeMode === 'dark' ? <Sun className="size-5 stroke-[2.5]" aria-hidden="true" /> : <Moon className="size-5 stroke-[2.5]" aria-hidden="true" />}
           </button>
 
           {/* Desktop Frame View Toggle */}
           <button
             type="button"
             onClick={onToggleMobileFrame}
-            className="hidden lg:flex min-w-[36px] h-9 px-3 items-center gap-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800"
+            className={`hidden lg:flex h-10 px-3 items-center gap-1.5 rounded-2xl text-xs font-bold transition-all hover:border-slate-400 active:scale-95 dark:hover:border-slate-500 ${TOP_BAR_SURFACE}`}
             title="Telefon / Masaüstü Görünümünü Değiştir"
           >
             {isMobileFrame ? (
@@ -160,7 +165,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <button
               type="button"
               onClick={onLockApp}
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50"
+              className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-rose-300 active:scale-95 dark:hover:border-rose-800 ${TOP_BAR_SURFACE}`}
               title="Uygulamayı Kilitle"
               aria-label="Kilitle"
             >

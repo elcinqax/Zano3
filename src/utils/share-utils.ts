@@ -91,6 +91,39 @@ export const shareOrDownloadBlob = async (
   return 'downloaded';
 };
 
+/** PDF'i gizli bir çerçevede açıp tarayıcının yazdırma penceresini gösterir (bilgisayar tarayıcıları için). */
+export const printPdfBlob = (blob: Blob): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const frame = document.createElement('iframe');
+    const cleanup = () => {
+      frame.remove();
+      URL.revokeObjectURL(url);
+    };
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.tabIndex = -1;
+    frame.onload = () => {
+      try {
+        const target = frame.contentWindow;
+        if (!target) throw new Error('Yazdırma çerçevesi açılamadı');
+        target.focus();
+        target.print();
+        window.setTimeout(cleanup, 60_000);
+        resolve();
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+    frame.onerror = () => {
+      cleanup();
+      reject(new Error('PDF yazdırma için yüklenemedi'));
+    };
+    frame.src = url;
+    document.body.appendChild(frame);
+  });
+
 /** Telefonda paylaşım menüsünü, bilgisayarda doğrudan indirmeyi kullanır (Excel/CSV/yedek için). */
 export const saveOrShareBlob = async (
   blob: Blob,
