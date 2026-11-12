@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { createPdfDocument } from '../utils/pdf-utils';
 import { shareOrDownloadBlob, downloadBlob, isMobileDevice, printPdfBlob } from '../utils/share-utils';
-import { buildCustomerYearPdf, type CustomerYearMonth } from '../utils/customer-year-pdf';
+import { buildCustomerDailyPdf, type CustomerDailyMonth } from '../utils/customer-daily-pdf';
+import { DailyPrintButton } from './DailyPrintButton';
 import {
-  Loader2,
   FileSpreadsheet,
   Download,
   Users,
@@ -111,7 +111,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [dailyYearByCustomer, setDailyYearByCustomer] = useState<Record<string, number | null>>({});
   const [ledgerYear, setLedgerYear] = useState<number | null>(null);
   const [annualReportYear, setAnnualReportYear] = useState<number | null>(null);
-  const [printingYearCustomerId, setPrintingYearCustomerId] = useState<string | null>(null);
+  const [printingDailyKey, setPrintingDailyKey] = useState<string | null>(null);
 
   // Filter sales by selected time range
   const filteredSales = useMemo(() => {
@@ -617,31 +617,39 @@ if (selectedCustomerFilter !== 'all') {
     ? `${customStartDate ? formatDateInput(customStartDate) : 'Başlangıç'} - ${customEndDate ? formatDateInput(customEndDate) : 'Bugün'}`
     : TIME_RANGE_LABELS[timeRange];
 
-  const handlePrintCustomerYear = async (
+  const getDailyPrintKey = (customerId: string, monthKey?: string): string =>
+    monthKey ? `month:${customerId}:${monthKey}` : `year:${customerId}`;
+
+  const handlePrintCustomerDaily = async (
     customer: { customerId: string; customerName: string; customerPhone?: string },
     year: number,
-    months: CustomerYearMonth[],
+    months: CustomerDailyMonth[],
+    monthKey?: string,
   ) => {
-    if (printingYearCustomerId !== null) return;
-    setPrintingYearCustomerId(customer.customerId);
+    if (printingDailyKey !== null) return;
+    setPrintingDailyKey(getDailyPrintKey(customer.customerId, monthKey));
     try {
       const productName = selectedProductFilter === 'all' ? null : productById.get(selectedProductFilter)?.name;
-      const blob = await buildCustomerYearPdf({
+      const blob = await buildCustomerDailyPdf({
         storeName: settings.storeName || 'Mobil Satış',
         customerName: customer.customerName,
         customerPhone: customer.customerPhone,
         year,
+        monthKey,
         months,
         filterLabel: [rangeLabel, productName ?? 'Tüm ürünler'].join(' · '),
         scopeStartKey: calendarScope.startKey,
         scopeEndKey: calendarScope.endKey,
         currency: settings.currency,
       });
-      const fileName = `${customer.customerName.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-${year}-gunluk-dagilim.pdf`;
+      const periodLabel = monthKey
+        ? new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(year, Number(monthKey.slice(5, 7)) - 1, 1))
+        : String(year);
+      const fileName = `${customer.customerName.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '') || 'musteri'}-${monthKey ?? year}-gunluk-dagilim.pdf`;
 
       if (isMobileDevice() || window.matchMedia('(max-width: 768px)').matches) {
         const outcome = await shareOrDownloadBlob(blob, fileName, {
-          title: `${customer.customerName} - ${year} günlük dağılım`,
+          title: `${customer.customerName} - ${periodLabel} günlük dağılım`,
           text: 'PDF raporunu yazdırın veya bir uygulamayla paylaşın',
         });
         if (outcome === 'downloaded') {
@@ -655,10 +663,10 @@ if (selectedCustomerFilter !== 'all') {
         downloadBlob(blob, fileName);
       });
     } catch (error) {
-      console.error('Yıllık müşteri PDF raporu oluşturulamadı:', error);
+      console.error('Müşteri günlük dağılım PDF raporu oluşturulamadı:', error);
       window.alert('PDF oluşturulamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.');
     } finally {
-      setPrintingYearCustomerId(null);
+      setPrintingDailyKey(null);
     }
   };
 
@@ -1268,20 +1276,12 @@ if (selectedCustomerFilter !== 'all') {
                                     <span>{formatQuantity(selectedDailyYearTotal)} adet</span>
                                     <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(selectedDailyYearReturned)} adet</span>
                                   </p>
-                                  <button
-                                    type="button"
-                                    onClick={() => handlePrintCustomerYear(group, selectedDailyYear, selectedDailyYearMonths)}
-                                    disabled={printingYearCustomerId !== null}
-                                    aria-busy={printingYearCustomerId === group.customerId}
-                                    aria-label={`${group.customerName} ${selectedDailyYear} yılı günlük dağılımını yazdır veya PDF olarak paylaş`}
-                                    title="Yazdır veya PDF olarak paylaş"
-                                    className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl bg-teal-700 px-3 py-2 text-white shadow-sm transition-colors hover:bg-teal-800 active:bg-teal-900 disabled:opacity-60"
-                                  >
-                                    {printingYearCustomerId === group.customerId
-                                      ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
-                                      : <Printer className="h-4 w-4 shrink-0" aria-hidden="true" />}
-                                    <span className="text-xs font-black">Yazdır</span>
-                                  </button>
+                                  <DailyPrintButton
+                                    label={`${group.customerName} ${selectedDailyYear} yılı günlük dağılımını yazdır veya PDF olarak paylaş`}
+                                    isBusy={printingDailyKey === getDailyPrintKey(group.customerId)}
+                                    disabled={printingDailyKey !== null}
+                                    onClick={() => handlePrintCustomerDaily(group, selectedDailyYear, selectedDailyYearMonths)}
+                                  />
                                 </div>
                               )}
                             </div>
@@ -1307,7 +1307,16 @@ if (selectedCustomerFilter !== 'all') {
                                         <span className="text-xs font-black capitalize">{monthLabel}</span>
                                         {isMonthOpen ? <ChevronUp className="h-4 w-4 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />}
                                       </button>
-                                      <span className="flex shrink-0 items-center gap-2 pr-1 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100">
+                                      {isMonthOpen && (
+                                        <DailyPrintButton
+                                          label={`${group.customerName} ${monthLabel} günlük dağılımını yazdır veya PDF olarak paylaş`}
+                                          isBusy={printingDailyKey === getDailyPrintKey(group.customerId, month.monthKey)}
+                                          disabled={printingDailyKey !== null}
+                                          onClick={() => handlePrintCustomerDaily(group, monthYear, [month], month.monthKey)}
+                                          className="sm:order-last"
+                                        />
+                                      )}
+                                      <span className={`${isMonthOpen ? 'basis-full justify-end sm:ml-auto sm:basis-auto ' : ''}flex shrink-0 items-center gap-2 pr-1 text-xs font-black tabular-nums text-slate-900 dark:text-slate-100`}>
                                         <span>{month.quantity} adet</span>
                                         {month.returned > 0 && <span className="text-amber-700 dark:text-amber-300">İade {formatQuantity(month.returned)}</span>}
                                         <span className="text-teal-700 dark:text-teal-300">{formatCurrency(month.amount, settings.currency)}</span>
