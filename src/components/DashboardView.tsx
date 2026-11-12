@@ -830,194 +830,7 @@ if (selectedCustomerFilter !== 'all') {
 
   return (
     <div className="space-y-6 pb-20 md:pb-8">
-      {/* 1. Pure Report Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <span>Raporlar & Analizler</span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Mü������teri satın alma raporları, ürün satış dağılımları ve finansal özet
-          </p>
-        </div>
-
-        {/* Global Export & Print Buttons */}
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
-            title="Raporu Yazdır"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
-            <span>Yazdır</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => exportCustomerPurchasesToExcel(customerProductPurchases, settings.storeName)}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
-            title="Müşteri-Ürün Satın Alma Raporunu Excel Olarak İndir"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Excel (.xlsx) İndir</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => exportCustomerPurchasesToCSV(customerProductPurchases)}
-            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>CSV</span>
-          </button>
-
-
-        </div>
-      </div>
-
-      {/* Report center */}
-      <section aria-labelledby="report-center-title" className="rounded-3xl border border-slate-200/80 bg-white/80 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950/40 sm:p-4">
-        <div className="mb-3 flex items-end justify-between gap-3 px-1">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">Rapor merkezi</p>
-            <h2 id="report-center-title" className="mt-1 text-base font-black tracking-tight text-slate-900 dark:text-slate-100">İhtiyacın olan raporu seç</h2>
-          </div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{reportCatalog.length} rapor</span>
-        </div>
-        {(() => {
-          const selectedReport = reportCatalog.find((report) => report.id === expandedReportId) || reportCatalog.find((report) => report.id === activeReportTab) || reportCatalog[0];
-          const SelectedIcon = selectedReport.icon;
-          return (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900/80">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white"><SelectedIcon className="size-4" /></span>
-                <select
-                  aria-label="Rapor seç"
-                  value={selectedReport.id}
-                  onChange={(event) => {
-                    const nextReport = reportCatalog.find((report) => report.id === event.target.value);
-                    if (nextReport) {
-                      setExpandedReportId(nextReport.id);
-                      nextReport.action();
-                    }
-                  }}
-                  className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm font-black text-slate-800 outline-none dark:text-slate-100"
-                >
-                  {reportCatalog.map((report) => <option key={report.id} value={report.id}>{report.title}</option>)}
-                </select>
-                <span className="shrink-0 px-2 text-[10px] font-bold text-slate-400">{reportCatalog.length} seçenek</span>
-              </div>
-              <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900 dark:bg-teal-950/20">
-                <p className="mb-3 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
-                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-                  <label className="flex min-w-0 items-center gap-2">
-                    <span className="shrink-0 font-bold text-slate-500">Müşteri:</span>
-                    <select value={selectedCustomerFilter} onChange={(e) => setSelectedCustomerFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
-                      <option value="all">Tüm Müşteriler ({customers.length})</option>
-                      <option value="general">Genel Müşteri</option>
-                      {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="flex min-w-0 items-center gap-2">
-                    <span className="shrink-0 font-bold text-slate-500">Ürün:</span>
-                    <select value={selectedProductFilter} onChange={(e) => setSelectedProductFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
-                      <option value="all">Tüm Ürünler ({products.length})</option>
-                      {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="flex min-w-0 items-center gap-2 sm:col-span-2">
-                    <span className="shrink-0 font-bold text-slate-500">Tarih:</span>
-                    <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as typeof timeRange)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
-                      <option value="today">Bugün</option><option value="7days">Son 7 Gün</option><option value="month">Bu Ay</option><option value="year">Bu Yıl</option><option value="all">Tüm Zamanlar</option><option value="custom">Özel Tarih Aralığı</option>
-                    </select>
-                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak paylaş"><Download className="inline-block size-3.5" /> PDF paylaş</button>
-                  </label>
-                </div>
-                {timeRange === 'custom' && (
-                  <div className="mt-2 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 text-xs">
-                    <span className="font-bold text-slate-500">Aralık:</span>
-                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
-                    <span className="text-slate-400">-</span>
-                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-      </section>
-
-      {/* Report detail navigation and time filters */}
-      <div className="hidden p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1 overflow-x-auto max-w-full">
-          <button
-            type="button"
-            onClick={() => setActiveSubReportTab('customerProducts')}
-            className={`px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeReportTab === 'customerProducts'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Müşteri & Ürün Satış Raporu</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubReportTab('financialSummary')}
-            className={`px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeReportTab === 'financialSummary'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Finansal Gelir-Gider Özeti</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubReportTab('topProducts')}
-            className={`px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeReportTab === 'topProducts'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>En Çok Satan Ürünler</span>
-          </button>
-        </div>
-
-        {/* Time Period Filter Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto max-w-full">
-          {[
-            { id: 'today', label: 'Bugün' },
-            { id: '7days', label: 'Son 7 Gün' },
-            { id: 'month', label: 'Bu Ay' },
-            { id: 'year', label: 'Bu Yıl' },
-            { id: 'all', label: 'Tüm Zamanlar' },
-            { id: 'custom', label: 'Özel Tarih' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setTimeRange(tab.id as any)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
-                timeRange === tab.id
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. REPORT TAB 1: MÜŞTERİ & ÜRÜN SATIN ALMA RAPORU (Hangi müşteri hangi üründen ne kadar almış) */}
+      {/* REPORT TAB 1: MÜŞTERİ & ÜRÜN SATIN ALMA RAPORU (Hangi müşteri hangi üründen ne kadar almış) */}
       {activeReportTab === 'customerProducts' && (
         <div className="report-print-content space-y-4">
           <div className="print-only mb-4 border-b border-slate-300 pb-3">
@@ -1617,7 +1430,7 @@ if (selectedCustomerFilter !== 'all') {
         </div>
       )}
 
-      {/* 4. REPORT TAB 2: FİNANSAL GELİR-GİDER ÖZETİ (Ciro, Maliyet, Giderler, Net Kâr) */}
+      {/* REPORT TAB 2: FİNANSAL GELİR-GİDER ÖZETİ (Ciro, Maliyet, Giderler, Net Kâr) */}
       {activeReportTab === 'financialSummary' && (
         <div className="space-y-6">
           {/* Financial Cards Grid */}
@@ -1754,7 +1567,7 @@ if (selectedCustomerFilter !== 'all') {
         </div>
       )}
 
-      {/* 5. REPORT TAB 3: EN ÇOK SATAN ÜRÜNLER RAPORU */}
+      {/* REPORT TAB 3: EN ÇOK SATAN ÜRÜNLER RAPORU */}
       {activeReportTab === 'topProducts' && (
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -1815,6 +1628,193 @@ if (selectedCustomerFilter !== 'all') {
           )}
         </div>
       )}
+
+      {/* Pure Report Header (below the report content) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <span>Raporlar & Analizler</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+            Mü������teri satın alma raporları, ürün satış dağılımları ve finansal özet
+          </p>
+        </div>
+
+        {/* Global Export & Print Buttons */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            title="Raporu Yazdır"
+          >
+            <Printer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+            <span>Yazdır</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => exportCustomerPurchasesToExcel(customerProductPurchases, settings.storeName)}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            title="Müşteri-Ürün Satın Alma Raporunu Excel Olarak İndir"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Excel (.xlsx) İndir</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => exportCustomerPurchasesToCSV(customerProductPurchases)}
+            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>CSV</span>
+          </button>
+
+
+        </div>
+      </div>
+
+      {/* Report center */}
+      <section aria-labelledby="report-center-title" className="rounded-3xl border border-slate-200/80 bg-white/80 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950/40 sm:p-4">
+        <div className="mb-3 flex items-end justify-between gap-3 px-1">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">Rapor merkezi</p>
+            <h2 id="report-center-title" className="mt-1 text-base font-black tracking-tight text-slate-900 dark:text-slate-100">İhtiyacın olan raporu seç</h2>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{reportCatalog.length} rapor</span>
+        </div>
+        {(() => {
+          const selectedReport = reportCatalog.find((report) => report.id === expandedReportId) || reportCatalog.find((report) => report.id === activeReportTab) || reportCatalog[0];
+          const SelectedIcon = selectedReport.icon;
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900/80">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white"><SelectedIcon className="size-4" /></span>
+                <select
+                  aria-label="Rapor seç"
+                  value={selectedReport.id}
+                  onChange={(event) => {
+                    const nextReport = reportCatalog.find((report) => report.id === event.target.value);
+                    if (nextReport) {
+                      setExpandedReportId(nextReport.id);
+                      nextReport.action();
+                    }
+                  }}
+                  className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm font-black text-slate-800 outline-none dark:text-slate-100"
+                >
+                  {reportCatalog.map((report) => <option key={report.id} value={report.id}>{report.title}</option>)}
+                </select>
+                <span className="shrink-0 px-2 text-[10px] font-bold text-slate-400">{reportCatalog.length} seçenek</span>
+              </div>
+              <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-3 dark:border-teal-900 dark:bg-teal-950/20">
+                <p className="mb-3 text-[11px] leading-4 text-slate-600 dark:text-slate-300">{selectedReport.description}</p>
+                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                  <label className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-bold text-slate-500">Müşteri:</span>
+                    <select value={selectedCustomerFilter} onChange={(e) => setSelectedCustomerFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="all">Tüm Müşteriler ({customers.length})</option>
+                      <option value="general">Genel Müşteri</option>
+                      {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-bold text-slate-500">Ürün:</span>
+                    <select value={selectedProductFilter} onChange={(e) => setSelectedProductFilter(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="all">Tüm Ürünler ({products.length})</option>
+                      {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 items-center gap-2 sm:col-span-2">
+                    <span className="shrink-0 font-bold text-slate-500">Tarih:</span>
+                    <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as typeof timeRange)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="today">Bugün</option><option value="7days">Son 7 Gün</option><option value="month">Bu Ay</option><option value="year">Bu Yıl</option><option value="all">Tüm Zamanlar</option><option value="custom">Özel Tarih Aralığı</option>
+                    </select>
+                    <button type="button" onClick={handlePrint} className="shrink-0 rounded-xl bg-teal-600 px-3 py-2 text-xs font-black text-white" title="Filtrelenmiş rapor fişini PDF olarak paylaş"><Download className="inline-block size-3.5" /> PDF paylaş</button>
+                  </label>
+                </div>
+                {timeRange === 'custom' && (
+                  <div className="mt-2 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 text-xs">
+                    <span className="font-bold text-slate-500">Aralık:</span>
+                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                    <span className="text-slate-400">-</span>
+                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 font-semibold dark:border-slate-700 dark:bg-slate-950" />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </section>
+
+      {/* Report detail navigation and time filters */}
+      <div className="hidden p-1.5 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+          <button
+            type="button"
+            onClick={() => setActiveSubReportTab('customerProducts')}
+            className={`px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              activeReportTab === 'customerProducts'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Müşteri & Ürün Satış Raporu</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubReportTab('financialSummary')}
+            className={`px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              activeReportTab === 'financialSummary'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Finansal Gelir-Gider Özeti</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubReportTab('topProducts')}
+            className={`px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              activeReportTab === 'topProducts'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>En Çok Satan Ürünler</span>
+          </button>
+        </div>
+
+        {/* Time Period Filter Pills */}
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+          {[
+            { id: 'today', label: 'Bugün' },
+            { id: '7days', label: 'Son 7 Gün' },
+            { id: 'month', label: 'Bu Ay' },
+            { id: 'year', label: 'Bu Yıl' },
+            { id: 'all', label: 'Tüm Zamanlar' },
+            { id: 'custom', label: 'Özel Tarih' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setTimeRange(tab.id as any)}
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+                timeRange === tab.id
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

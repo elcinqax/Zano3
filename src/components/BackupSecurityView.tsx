@@ -300,18 +300,9 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
 
   return (
     <div className="space-y-6 pb-20 md:pb-8">
-      {/* 1. Header & Quick Status */}
+      {/* Quick settings & one-click backup */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-            <Cloud className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <span>Yedekleme & Sistem Ayarları</span>
-          </h1>
-  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-  Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
-  </p>
-  </div>
-  <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+  <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
     <button type="button" onClick={() => setShowLanguages((open) => !open)} className="flex w-full items-center justify-between text-left">
       <span><span className="block text-sm font-black text-indigo-800 dark:text-indigo-200">Diller</span><span className="mt-1 block text-[11px] text-indigo-700/80 dark:text-indigo-300/70">Program dilini seçin</span></span>
       <span className="text-xs font-bold text-indigo-600">{showLanguages ? 'Kapat' : 'Aç'}</span>
@@ -783,6 +774,16 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
         </details>
       </div>
 
+      {/* Page title (below the settings) */}
+      <div>
+        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+          <Cloud className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+          <span>Yedekleme & Sistem Ayarları</span>
+        </h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Telefona yerel yedek, WhatsApp&apos;a gönderim ve SQLite güvenlik yönetimi
+        </p>
+      </div>
     </div>
   );
 };

@@ -133,6 +133,154 @@ export const StockView: React.FC<StockViewProps> = ({
 
   return (
     <div className="space-y-5 pb-20">
+      {/* Products Stock Cards List */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+        {filteredProducts.length === 0 ? (
+          <div className="p-12 text-center">
+            <Boxes className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Filtreye Uygun Stok Kaydı Bulunamadı
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+              Arama kriterlerinizi değiştirebilir veya yeni ürün ekleyerek stok takibine başlayabilirsiniz.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {filteredProducts.map((p) => {
+              const isOut = p.stock <= 0;
+              const isLow = !isOut && p.stock <= p.minStock;
+              const costValue = p.stock * p.buyPrice;
+              const saleValue = p.stock * p.sellPrice;
+
+              return (
+                <div
+                  key={p.id}
+                  className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                    isOut
+                      ? 'bg-rose-50/30 dark:bg-rose-950/10'
+                      : isLow
+                      ? 'bg-amber-50/30 dark:bg-amber-950/10'
+                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                  }`}
+                >
+                  {/* Left: Product Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {p.name}
+                      </span>
+                      {p.category && (
+                        <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                          {p.category}
+                        </span>
+                      )}
+
+                      {/* Stock Status Badge */}
+                      {isOut ? (
+                        <span className="text-[10px] font-bold text-rose-600 bg-rose-100/80 dark:bg-rose-950 px-2 py-0.5 rounded flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          Stok Tükendi
+                        </span>
+                      ) : isLow ? (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100/80 dark:bg-amber-950 px-2 py-0.5 rounded flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Kritik Seviye (Min: {p.minStock})
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-emerald-600 bg-emerald-100/80 dark:bg-emerald-950 px-2 py-0.5 rounded flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Stok Yeterli
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                      <span>Alış: <strong className="text-slate-700 dark:text-slate-300 font-mono">{formatCurrency(p.buyPrice)}</strong></span>
+                      <span aria-hidden="true">·</span>
+                      <span>Satış: <strong className="text-slate-900 dark:text-slate-100 font-mono">{formatCurrency(p.sellPrice)}</strong></span>
+                      <span aria-hidden="true">·</span>
+                      <span>Stok Değeri: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(costValue)}</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Right: Quick Stock Count Controls & Manual Input */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
+                    {/* Inline Stepper: -1, Stock Number, +1 */}
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => onAdjustStock(p.id, -1)}
+                        disabled={p.stock <= 0}
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors active:scale-95 shadow-xs"
+                        title="1 Adet Çıkar"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="px-3 text-center min-w-[50px]">
+                        <span className={`text-xs font-black tabular-nums ${
+                          isOut
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : isLow
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-900 dark:text-white'
+                        }`}>
+                          {p.stock}
+                        </span>
+                        <span className="text-[9px] text-slate-400 block -mt-0.5">
+                          {p.unit || 'adet'}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onAdjustStock(p.id, 1)}
+                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors active:scale-95 shadow-xs"
+                        title="1 Adet Ekle"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Quick +5 and +10 chips */}
+                    <div className="hidden sm:flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onAdjustStock(p.id, 5)}
+                        className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-600 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+                        title="5 Adet Ekle"
+                      >
+                        +5
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onAdjustStock(p.id, 10)}
+                        className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-600 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+                        title="10 Adet Ekle"
+                      >
+                        +10
+                      </button>
+                    </div>
+
+                    {/* Manual Count & Threshold Modal trigger */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(p)}
+                      className="h-8 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1 transition-colors border border-slate-200 dark:border-slate-700"
+                      title="Sayım Düzeltmesi Yap"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Sayım</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Header & Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -325,154 +473,6 @@ export const StockView: React.FC<StockViewProps> = ({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Products Stock Cards List */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-        {filteredProducts.length === 0 ? (
-          <div className="p-12 text-center">
-            <Boxes className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              Filtreye Uygun Stok Kaydı Bulunamadı
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-              Arama kriterlerinizi değiştirebilir veya yeni ürün ekleyerek stok takibine başlayabilirsiniz.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredProducts.map((p) => {
-              const isOut = p.stock <= 0;
-              const isLow = !isOut && p.stock <= p.minStock;
-              const costValue = p.stock * p.buyPrice;
-              const saleValue = p.stock * p.sellPrice;
-
-              return (
-                <div
-                  key={p.id}
-                  className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                    isOut
-                      ? 'bg-rose-50/30 dark:bg-rose-950/10'
-                      : isLow
-                      ? 'bg-amber-50/30 dark:bg-amber-950/10'
-                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
-                  }`}
-                >
-                  {/* Left: Product Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                        {p.name}
-                      </span>
-                      {p.category && (
-                        <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                          {p.category}
-                        </span>
-                      )}
-
-                      {/* Stock Status Badge */}
-                      {isOut ? (
-                        <span className="text-[10px] font-bold text-rose-600 bg-rose-100/80 dark:bg-rose-950 px-2 py-0.5 rounded flex items-center gap-1">
-                          <XCircle className="w-3 h-3" />
-                          Stok Tükendi
-                        </span>
-                      ) : isLow ? (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100/80 dark:bg-amber-950 px-2 py-0.5 rounded flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          Kritik Seviye (Min: {p.minStock})
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-emerald-600 bg-emerald-100/80 dark:bg-emerald-950 px-2 py-0.5 rounded flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Stok Yeterli
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
-                      <span>Alış: <strong className="text-slate-700 dark:text-slate-300 font-mono">{formatCurrency(p.buyPrice)}</strong></span>
-                      <span aria-hidden="true">·</span>
-                      <span>Satış: <strong className="text-slate-900 dark:text-slate-100 font-mono">{formatCurrency(p.sellPrice)}</strong></span>
-                      <span aria-hidden="true">·</span>
-                      <span>Stok Değeri: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(costValue)}</strong></span>
-                    </div>
-                  </div>
-
-                  {/* Right: Quick Stock Count Controls & Manual Input */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
-                    {/* Inline Stepper: -1, Stock Number, +1 */}
-                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-                      <button
-                        type="button"
-                        onClick={() => onAdjustStock(p.id, -1)}
-                        disabled={p.stock <= 0}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors active:scale-95 shadow-xs"
-                        title="1 Adet Çıkar"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-
-                      <div className="px-3 text-center min-w-[50px]">
-                        <span className={`text-xs font-black tabular-nums ${
-                          isOut
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : isLow
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-slate-900 dark:text-white'
-                        }`}>
-                          {p.stock}
-                        </span>
-                        <span className="text-[9px] text-slate-400 block -mt-0.5">
-                          {p.unit || 'adet'}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => onAdjustStock(p.id, 1)}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors active:scale-95 shadow-xs"
-                        title="1 Adet Ekle"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Quick +5 and +10 chips */}
-                    <div className="hidden sm:flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => onAdjustStock(p.id, 5)}
-                        className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-600 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
-                        title="5 Adet Ekle"
-                      >
-                        +5
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onAdjustStock(p.id, 10)}
-                        className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-600 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
-                        title="10 Adet Ekle"
-                      >
-                        +10
-                      </button>
-                    </div>
-
-                    {/* Manual Count & Threshold Modal trigger */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(p)}
-                      className="h-8 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1 transition-colors border border-slate-200 dark:border-slate-700"
-                      title="Sayım Düzeltmesi Yap"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Sayım</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Manual Count / Stock Adjustment Modal */}

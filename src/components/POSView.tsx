@@ -668,39 +668,26 @@ export const POSView: React.FC<POSViewProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-20">
-      {/* 1. TOP BAR: TITLE & TOP-CORNER SATIŞ GEÇMİŞİ BUTTON */}
-      <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
-        <div>
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <span>Satış Yap</span>
-          </h1>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Hızlı perakende satış ekranı
-          </p>
-        </div>
-
-        {/* Üst Köşede İşlem Butonları */}
-        <div className="flex items-center gap-2">
-          {/* Satış Geçmişi Tuşu */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenSalesHistory) {
-                onOpenSalesHistory();
-              } else {
-                setShowSalesHistoryModal(true);
-              }
-            }}
-            className="h-11 px-3.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer"
-            title="Satış Geçmişi ve Faturalar"
-          >
-            <History className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Satış Geçmişi</span>
-          </button>
-        </div>
+      {/* SATIŞ GEÇMİŞİ TUŞU (üst köşe) */}
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenSalesHistory) {
+              onOpenSalesHistory();
+            } else {
+              setShowSalesHistoryModal(true);
+            }
+          }}
+          className="h-11 px-3.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer"
+          title="Satış Geçmişi ve Faturalar"
+        >
+          <History className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Satış Geçmişi</span>
+        </button>
       </div>
 
-      {/* 2. MÜŞTERİ SEÇME BÖLÜMÜ */}
+      {/* MÜŞTERİ SEÇME BÖLÜMÜ */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -765,7 +752,7 @@ export const POSView: React.FC<POSViewProps> = ({
         )}
       </div>
 
-      {/* 3. FAVORİLERE EKLENEN ÜRÜN İSİMLERİ */}
+      {/* FAVORİLERE EKLENEN ÜRÜN İSİMLERİ */}
       <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -921,6 +908,16 @@ export const POSView: React.FC<POSViewProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* BAŞLIK (satış akışının altında) */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <span>Satış Yap</span>
+        </h1>
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          Hızlı perakende satış ekranı
+        </p>
       </div>
 
       {/* MODAL: SATIŞ İÇİN MÜŞTERİ SEÇ */}
