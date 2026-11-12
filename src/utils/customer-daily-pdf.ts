@@ -98,10 +98,50 @@ const INK: Rgb = [15, 23, 42];
 const MUTED: Rgb = [100, 116, 139];
 const RETURN_ON_GREEN: Rgb = [253, 230, 138];
 
-const DAY_STYLES: Record<'purchased' | 'none' | 'outside', { fill: Rgb; text: Rgb; label: string }> = {
+const BORDER: Rgb = [203, 213, 225];
+
+type DayStatus = 'purchased' | 'none' | 'outside';
+type ReportScope = Pick<CustomerDailyPdfInput, 'scopeStartKey' | 'scopeEndKey'>;
+
+const DAY_STYLES: Record<DayStatus, { fill: Rgb; text: Rgb; label: string }> = {
   purchased: { fill: [4, 120, 87], text: WHITE, label: 'Alışveriş var' },
   none: { fill: [254, 202, 202], text: [153, 27, 27], label: 'Alışveriş yok' },
   outside: { fill: [241, 245, 249], text: [148, 163, 184], label: 'Aralık dışı / gelecek' },
+};
+
+const EXPLANATION = {
+  padding: 3.5,
+  titleSize: 9,
+  titleBaseline: 6.5,
+  textSize: 8,
+  legendOffset: 5.5,
+  sentenceOffset: 5.4,
+  lineHeight: 4.4,
+  swatchSize: 3.2,
+  swatchGap: 1.4,
+  itemGap: 6,
+};
+
+const getDateKey = (monthKey: string, dayNumber: number): string => `${monthKey}-${String(dayNumber).padStart(2, '0')}`;
+
+const getDayStatus = (dateKey: string, hasPurchase: boolean, scope: ReportScope): DayStatus => {
+  if (hasPurchase) return 'purchased';
+  const isOutsideScope = (scope.scopeStartKey !== null && dateKey < scope.scopeStartKey) || dateKey > scope.scopeEndKey;
+  return isOutsideScope ? 'outside' : 'none';
+};
+
+const countDayStatuses = (months: CustomerDailyMonth[], scope: ReportScope): Record<DayStatus, number> => {
+  const counts: Record<DayStatus, number> = { purchased: 0, none: 0, outside: 0 };
+  months.forEach((month) => {
+    const [year, monthNumber] = month.monthKey.split('-').map(Number);
+    const purchasedDates = new Set(month.days.map((day) => day.date));
+    const daysInMonth = new Date(year, monthNumber, 0).getDate();
+    for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
+      const dateKey = getDateKey(month.monthKey, dayNumber);
+      counts[getDayStatus(dateKey, purchasedDates.has(dateKey), scope)] += 1;
+    }
+  });
+  return counts;
 };
 
 const monthLabelFormatter = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' });
@@ -183,10 +223,9 @@ const drawMonth = (
   const textWidth = cellWidth - layout.cellPadding * 2;
 
   for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
-    const dateKey = `${month.monthKey}-${String(dayNumber).padStart(2, '0')}`;
+    const dateKey = getDateKey(month.monthKey, dayNumber);
     const total = totalsByDate.get(dateKey);
-    const isOutsideScope = (input.scopeStartKey !== null && dateKey < input.scopeStartKey) || dateKey > input.scopeEndKey;
-    const style = DAY_STYLES[total ? 'purchased' : isOutsideScope ? 'outside' : 'none'];
+    const style = DAY_STYLES[getDayStatus(dateKey, total !== undefined, input)];
     const position = leadingBlanks + dayNumber - 1;
     const cellX = x + (position % 7) * cellWidth;
     const cellY = gridTop + Math.floor(position / 7) * layout.cellHeight;
@@ -214,21 +253,64 @@ const drawMonth = (
   }
 };
 
-const drawLegend = (doc: jsPDF, y: number, hasReturns: boolean): void => {
-  let x = MARGIN;
-  doc.setFontSize(7.5);
-  (Object.keys(DAY_STYLES) as Array<keyof typeof DAY_STYLES>).forEach((status) => {
-    const style = DAY_STYLES[status];
-    doc.setFillColor(...style.fill);
-    doc.roundedRect(x, y - 2.7, 3.2, 3.2, 0.6, 0.6, 'F');
-    doc.setTextColor(...MUTED);
-    doc.text(style.label, x + 4.6, y);
-    x += 4.6 + doc.getTextWidth(style.label) + 6;
-  });
-  if (hasReturns) {
-    doc.setTextColor(180, 83, 9);
-    doc.text('Eksi sayı = iade', x, y);
+const getExplanationSentences = (counts: Record<DayStatus, number>, returned: number, showsAmounts: boolean): string[] => [
+  `Yeşil kutudaki büyük sayı o gün alınan adedi${showsAmounts ? ', altındaki tutar o günün toplamını' : ''} gösterir.`,
+  ...(returned > 0
+    ? [`Kutunun sağ üstündeki eksi sayı o gün iade edilen adettir (toplam ${formatQuantity(returned)} adet).`]
+    : []),
+  ...(counts.outside > 0
+    ? ['Gri günler rapor aralığının dışında ya da ileri tarihte olduğu için "alışveriş yok" sayılmaz.']
+    : []),
+];
+
+/** Draws the explanation box under the calendars and moves to a new page when it does not fit. */
+const drawExplanation = (
+  doc: jsPDF,
+  y: number,
+  counts: Record<DayStatus, number>,
+  sentences: string[],
+): void => {
+  const { padding, swatchSize, swatchGap } = EXPLANATION;
+  doc.setFontSize(EXPLANATION.textSize);
+  const lines = sentences.flatMap((sentence) => doc.splitTextToSize(sentence, CONTENT_WIDTH - padding * 2) as string[]);
+  const lastBaselineOffset =
+    EXPLANATION.titleBaseline + EXPLANATION.legendOffset + EXPLANATION.sentenceOffset + (lines.length - 1) * EXPLANATION.lineHeight;
+  const height = lastBaselineOffset + padding;
+
+  let top = y;
+  if (top + height > PAGE_BOTTOM) {
+    doc.addPage();
+    top = PAGE_TOP;
   }
+
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(MARGIN, top, CONTENT_WIDTH, height, 2, 2, 'S');
+
+  const textX = MARGIN + padding;
+  doc.setTextColor(...TEAL);
+  doc.setFontSize(EXPLANATION.titleSize);
+  doc.text('Açıklama', textX, top + EXPLANATION.titleBaseline);
+
+  const legendBaseline = top + EXPLANATION.titleBaseline + EXPLANATION.legendOffset;
+  doc.setTextColor(...INK);
+  doc.setFontSize(EXPLANATION.textSize);
+  let x = textX;
+  (Object.keys(DAY_STYLES) as DayStatus[])
+    .filter((status) => status !== 'outside' || counts.outside > 0)
+    .forEach((status) => {
+      const style = DAY_STYLES[status];
+      const label = `${style.label} (${counts[status]} gün)`;
+      doc.setFillColor(...style.fill);
+      doc.roundedRect(x, legendBaseline - swatchSize + 0.5, swatchSize, swatchSize, 0.6, 0.6, 'F');
+      doc.text(label, x + swatchSize + swatchGap, legendBaseline);
+      x += swatchSize + swatchGap + doc.getTextWidth(label) + EXPLANATION.itemGap;
+    });
+
+  doc.setTextColor(...MUTED);
+  lines.forEach((line, index) => {
+    doc.text(line, textX, legendBaseline + EXPLANATION.sentenceOffset + index * EXPLANATION.lineHeight);
+  });
 };
 
 export const buildCustomerDailyPdf = async (input: CustomerDailyPdfInput): Promise<Blob> => {
@@ -279,9 +361,7 @@ export const buildCustomerDailyPdf = async (input: CustomerDailyPdfInput): Promi
   fitFontSize(doc, periodTotals, CONTENT_WIDTH - 34, 11);
   doc.text(periodTotals, MARGIN + CONTENT_WIDTH - 4, y + 7.7, { align: 'right' });
 
-  y += 19;
-  drawLegend(doc, y, totalReturned > 0);
-  y += 6;
+  y += 12 + BLOCK_GAP;
 
   if (months.length === 0) {
     doc.setTextColor(...MUTED);
@@ -302,6 +382,11 @@ export const buildCustomerDailyPdf = async (input: CustomerDailyPdfInput): Promi
       drawMonth(doc, month, MARGIN + column * (layout.width + COLUMN_GAP), y, layout, note, input);
     });
     y += blockHeight + BLOCK_GAP;
+  }
+
+  if (months.length > 0) {
+    const counts = countDayStatuses(months, input);
+    drawExplanation(doc, y, counts, getExplanationSentences(counts, totalReturned, layout.amount !== null));
   }
 
   const pageCount = doc.getNumberOfPages();
