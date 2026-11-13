@@ -1,13 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Users, Package, Boxes, Settings, History, type LucideIcon } from 'lucide-react';
-
-interface NavTab {
-  id: string;
-  label: string;
-  ariaLabel?: string;
-  icon: LucideIcon;
-  badge?: number;
-}
+import { ShoppingCart, Users, Package, Boxes, Settings } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -27,7 +19,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   // 4. Stok
   // 5. Giderler
   // 6. Raporlar
-  const tabs: NavTab[] = [
+  const tabs = [
     {
       id: 'pos',
       label: 'Satış',
@@ -50,12 +42,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       icon: Boxes,
     },
     {
-      id: 'sales',
-      label: 'Geçmiş',
-      ariaLabel: 'Satış Geçmişi',
-      icon: History,
-    },
-    {
       id: 'settings',
       label: 'Ayarlar',
       icon: Settings,
@@ -64,7 +50,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <nav className="sticky bottom-0 z-40 w-full bg-white/92 dark:bg-slate-950/94 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_-12px_32px_-22px_rgba(15,23,42,0.5)] shrink-0 select-none pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="grid grid-cols-6 h-[4.5rem] items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
+      <div className="grid grid-cols-5 h-[4.5rem] items-center px-1.5 max-w-lg mx-auto sm:max-w-none">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =
@@ -83,8 +69,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                     : 'text-teal-700 dark:text-teal-300 font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
-              aria-label={tab.ariaLabel ?? tab.label}
-              aria-current={isActive ? 'page' : undefined}
+              aria-label={tab.label}
             >
               {/* Active Tab indicator pill */}
               <div
