@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  History,
   User,
   UserPlus,
   Star,
@@ -29,7 +28,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Product, Customer, CartItem, PaymentMethod, AppSettings, Sale } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters';
 
 interface POSViewProps {
   products: Product[];
@@ -68,8 +67,6 @@ interface POSViewProps {
   }) => void;
   onQuickAddCustomer: (customerData: { name: string; phone?: string; address?: string }) => Customer;
   onAddPayment?: (customerId: string, amount: number, paymentMethod: 'cash' | 'card' | 'credit' | 'transfer', notes?: string) => void;
-  onOpenSalesHistory?: () => void;
-  onSelectSaleForReceipt?: (sale: Sale) => void;
   onCancelSale?: (saleId: string) => void;
   productToAdd?: Product | null;
   onProductAddedToCart?: () => void;
@@ -101,8 +98,6 @@ export const POSView: React.FC<POSViewProps> = ({
   onCompleteSale,
   onQuickAddCustomer,
   onAddPayment,
-  onOpenSalesHistory,
-  onSelectSaleForReceipt,
   onCancelSale,
   productToAdd,
   onProductAddedToCart,
@@ -119,16 +114,6 @@ export const POSView: React.FC<POSViewProps> = ({
   const [newCustPhone, setNewCustPhone] = useState<string>('');
 
   const [showManageFavoritesModal, setShowManageFavoritesModal] = useState<boolean>(false);
-  const [showSalesHistoryModal, setShowSalesHistoryModal] = useState<boolean>(false);
-  const [modalDateFilter, setModalDateFilter] = useState<'today' | 'yesterday' | 'last7days' | 'last30days' | 'last1year' | 'custom' | 'all'>('today');
-  const [modalCustomStartDate, setModalCustomStartDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().split('T')[0];
-  });
-  const [modalCustomEndDate, setModalCustomEndDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
 
   const [posCustomerSearch, setPosCustomerSearch] = useState<string>('');
   const [showCustomerPicker, setShowCustomerPicker] = useState<boolean>(false);
@@ -146,45 +131,6 @@ export const POSView: React.FC<POSViewProps> = ({
       a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' })
     );
   }, [customers, posCustomerSearch]);
-
-  const modalFilteredSales = useMemo(() => {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-    const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-    const startOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
-    const startOf30Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
-    const startOf1Year = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 0, 0, 0, 0);
-
-    return sales.filter((s) => {
-      const saleDate = new Date(s.createdAt);
-      if (modalDateFilter === 'today') {
-        return saleDate >= startOfToday && saleDate <= endOfToday;
-      } else if (modalDateFilter === 'yesterday') {
-        return saleDate >= startOfYesterday && saleDate <= endOfYesterday;
-      } else if (modalDateFilter === 'last7days') {
-        return saleDate >= startOf7Days && saleDate <= endOfToday;
-      } else if (modalDateFilter === 'last30days') {
-        return saleDate >= startOf30Days && saleDate <= endOfToday;
-      } else if (modalDateFilter === 'last1year') {
-        return saleDate >= startOf1Year && saleDate <= endOfToday;
-      } else if (modalDateFilter === 'custom') {
-        if (modalCustomStartDate) {
-          const [sy, sm, sd] = modalCustomStartDate.split('-').map(Number);
-          const cStart = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-          if (saleDate < cStart) return false;
-        }
-        if (modalCustomEndDate) {
-          const [ey, em, ed] = modalCustomEndDate.split('-').map(Number);
-          const cEnd = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-          if (saleDate > cEnd) return false;
-        }
-        return true;
-      }
-      return true;
-    });
-  }, [sales, modalDateFilter, modalCustomStartDate, modalCustomEndDate]);
 
   // Quantity Input Modal State (Ürün seçerken sayıyı el ile yazma)
   const [quantityModalProduct, setQuantityModalProduct] = useState<Product | null>(null);
@@ -668,25 +614,6 @@ export const POSView: React.FC<POSViewProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-20">
-      {/* SATIŞ GEÇMİŞİ TUŞU (üst köşe) */}
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => {
-            if (onOpenSalesHistory) {
-              onOpenSalesHistory();
-            } else {
-              setShowSalesHistoryModal(true);
-            }
-          }}
-          className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer"
-          title="Satış Geçmişi ve Faturalar"
-        >
-          <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>Satış Geçmişi</span>
-        </button>
-      </div>
-
       {/* MÜŞTERİ SEÇME BÖLÜMÜ */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
@@ -1255,155 +1182,6 @@ export const POSView: React.FC<POSViewProps> = ({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: INLINE SATIŞ GEÇMİŞİ MODALI */}
-      {showSalesHistoryModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-5 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[88vh]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  Satış Geçmişi & Faturalar
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSalesHistoryModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Üst Sırada Tarih Filtre Tuşları */}
-            <div className="pt-3 pb-2 space-y-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                {[
-                  { id: 'today', label: 'Bugün' },
-                  { id: 'yesterday', label: 'Dün' },
-                  { id: 'last7days', label: 'Son 7 gün' },
-                  { id: 'last30days', label: 'Son 30 gün' },
-                  { id: 'last1year', label: 'Son 1 yıl' },
-                  { id: 'custom', label: 'Özel aralık' },
-                  { id: 'all', label: 'Tümü' },
-                ].map((btn) => {
-                  const isSelected = modalDateFilter === btn.id;
-                  return (
-                    <button
-                      key={btn.id}
-                      type="button"
-                      onClick={() => setModalDateFilter(btn.id as any)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0 active:scale-95 ${
-                        isSelected
-                          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {btn.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {modalDateFilter === 'custom' && (
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div>
-                    <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
-                      Başlangıç
-                    </label>
-                    <input
-                      type="date"
-                      value={modalCustomStartDate}
-                      onChange={(e) => setModalCustomStartDate(e.target.value)}
-                      className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
-                      Bitiş
-                    </label>
-                    <input
-                      type="date"
-                      value={modalCustomEndDate}
-                      onChange={(e) => setModalCustomEndDate(e.target.value)}
-                      className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 my-2">
-              {modalFilteredSales.length === 0 ? (
-                <div className="py-8 text-center space-y-2">
-                  <p className="text-xs text-slate-400">
-                    Seçili zaman aralığında satış bulunamadı.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setModalDateFilter('all')}
-                    className="text-xs font-semibold text-emerald-600 hover:underline"
-                  >
-                    Tüm Satışları Göster
-                  </button>
-                </div>
-              ) : (
-                modalFilteredSales.map((sale) => (
-                  <div
-                    key={sale.id}
-                    onClick={() => {
-                      if (onSelectSaleForReceipt) onSelectSaleForReceipt(sale);
-                    }}
-                    className="py-3 px-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-xl cursor-pointer transition-colors"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                          {sale.customerName}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400">
-                          {sale.invoiceNo}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
-                        <span>{formatDateTime(sale.createdAt)}</span>
-                        <span>·</span>
-                        <span className="capitalize">
-                          {sale.paymentMethod === 'mixed'
-                            ? 'Karışık'
-                            : sale.paymentMethod === 'credit'
-                            ? 'Veresiye'
-                            : sale.paymentMethod === 'transfer'
-                            ? 'Havale'
-                            : 'Nakit'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white tabular-nums block">
-                        {formatCurrency(sale.total)}
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-semibold tabular-nums">
-                        +{formatCurrency(sale.profit)} kâr
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowSalesHistoryModal(false)}
-              className="w-full h-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 mt-2"
-            >
-              Kapat
-            </button>
           </div>
         </div>
       )}
