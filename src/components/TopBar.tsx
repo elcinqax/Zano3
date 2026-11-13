@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Lock, Smartphone, Monitor, Moon, Sun, Clock3 } from 'lucide-react';
+import { Lock, Smartphone, Monitor, Moon, Sun, Clock3, History } from 'lucide-react';
 
 // Controls stay transparent so the bar's single gradient runs through all of them instead of
 // repeating inside each one; reuse this for every new button or section added to the top bar.
@@ -55,19 +55,19 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header className={`relative w-full bg-[linear-gradient(to_bottom,rgba(15,23,42,0.62),rgba(255,255,255,0.96)_78%)] dark:bg-[linear-gradient(to_bottom,rgba(2,6,23,0.98),rgba(2,6,23,0.9)_72%)] backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-[0_8px_28px_-18px_rgba(15,23,42,0.4)] ${getPaddingTopClass()}`}>
 
-      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-[4.25rem] flex items-center justify-between gap-2 sm:gap-3">
         {/* Zone 1: Brand wordmark & emblem */}
         <div className="min-w-0 flex-1 flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => onTabChange('pos')}
-            className="flex items-center gap-3 text-left group transition-transform active:scale-98"
+            className="flex min-w-0 items-center gap-2 sm:gap-3 text-left group transition-transform active:scale-98"
           >
-            <div className="size-10 rounded-[0.9rem] bg-teal-700 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-teal-900/20 ring-4 ring-teal-50 dark:ring-teal-950/40">
+            <div className="size-10 shrink-0 rounded-[0.9rem] bg-teal-700 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-teal-900/20 ring-4 ring-teal-50 dark:ring-teal-950/40">
               M
             </div>
-            <div className="leading-tight">
-              <span className="max-w-[11rem] truncate text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            <div className="min-w-0 leading-tight">
+              <span className="block max-w-[11rem] truncate text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 {storeName || 'Almalı Təndiri'}
               </span>
               <span className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">
@@ -127,13 +127,26 @@ export const TopBar: React.FC<TopBarProps> = ({
         </nav>
 
         {/* Zone 3: Primary Actions */}
-        <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <div className={`flex h-10 items-center gap-1.5 rounded-2xl px-2.5 transition-colors ${TOP_BAR_SURFACE}`} aria-label="Anlık saat">
-            <Clock3 className="size-4 stroke-[2.5]" aria-hidden="true" />
+        <div className="shrink-0 flex items-center gap-1 sm:gap-2">
+          <div className={`flex h-10 items-center gap-1.5 rounded-2xl px-2 sm:px-2.5 transition-colors ${TOP_BAR_SURFACE}`} aria-label="Anlık saat">
+            <Clock3 className="hidden size-4 stroke-[2.5] sm:block" aria-hidden="true" />
             <span className="font-mono text-[11px] font-black tabular-nums tracking-tight">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => onTabChange('sales')}
+            className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-slate-400 active:scale-95 dark:hover:border-slate-500 ${TOP_BAR_SURFACE}`}
+            title="Satış Geçmişi"
+            aria-label="Satış Geçmişi"
+            aria-current={activeTab === 'sales' ? 'page' : undefined}
+          >
+            <History
+              className={`size-5 stroke-[2.5] ${activeTab === 'sales' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
+              aria-hidden="true"
+            />
+          </button>
           <button type="button" onClick={onToggleTheme} className={`flex size-10 items-center justify-center rounded-2xl transition-all hover:border-slate-400 active:scale-95 dark:hover:border-slate-500 ${TOP_BAR_SURFACE}`} title={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'} aria-label={themeMode === 'dark' ? 'Işık moduna geç' : 'Gece moduna geç'}>
             {themeMode === 'dark' ? <Sun className="size-5 stroke-[2.5]" aria-hidden="true" /> : <Moon className="size-5 stroke-[2.5]" aria-hidden="true" />}
           </button>

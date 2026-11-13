@@ -347,7 +347,7 @@ export const StockView: React.FC<StockViewProps> = ({
           <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block">
             Potansiyel Satış Değeri
           </span>
-          <div className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1 tabular-nums">
             {formatCurrency(stats.totalSaleValue)}
           </div>
           <span className="text-[10px] text-slate-400 mt-0.5 block">

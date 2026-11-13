@@ -281,10 +281,8 @@ export default function App() {
                 return sqliteStorage.addCustomer(custData);
               }}
               onAddPayment={(customerId, amount, paymentMethod, notes) => sqliteStorage.addCustomerPayment(customerId, amount, paymentMethod, notes)}
-              onOpenSalesHistory={() => setActiveTab('sales')}
               productToAdd={productToAdd}
               onProductAddedToCart={() => setProductToAdd(null)}
-              onSelectSaleForReceipt={setReceiptSale}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
             />
           )}

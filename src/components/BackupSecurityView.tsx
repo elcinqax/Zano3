@@ -30,6 +30,11 @@ import {
   Check,
   AlertCircle,
   HelpCircle,
+  Languages,
+  Palette,
+  Wallet,
+  BarChart3,
+  ChevronRight,
 } from 'lucide-react';
 import { AppSettings, DatabaseDump, Sale, Customer, Product } from '../types';
 import { SQLITE_SCHEMA_DDL, sqliteStorage } from '../db/sqlite-storage';
@@ -301,33 +306,47 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       {/* Quick settings & one-click backup */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-  <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/20">
-    <button type="button" onClick={() => setShowLanguages((open) => !open)} className="flex w-full items-center justify-between text-left">
-      <span><span className="block text-sm font-black text-indigo-800 dark:text-indigo-200">Diller</span><span className="mt-1 block text-[11px] text-indigo-700/80 dark:text-indigo-300/70">Program dilini seçin</span></span>
-      <span className="text-xs font-bold text-indigo-600">{showLanguages ? 'Kapat' : 'Aç'}</span>
+      <div className="flex flex-col gap-3">
+  <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <button type="button" onClick={() => setShowLanguages((open) => !open)} aria-expanded={showLanguages} className="flex w-full items-center gap-3 text-left">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" aria-hidden="true"><Languages className="size-5" /></span>
+      <span className="min-w-0 flex-1"><span className="block text-sm font-extrabold text-slate-900 dark:text-slate-100">Diller</span><span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Program dilini seçin</span></span>
+      <ChevronDown className={`size-5 shrink-0 text-slate-400 transition-transform ${showLanguages ? 'rotate-180' : ''}`} aria-hidden="true" />
     </button>
-    {showLanguages && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{LANGUAGE_OPTIONS.map((option) => <button key={option.id} type="button" onClick={() => onSelectLanguage(option.id)} className={`rounded-xl border px-3 py-2 text-left text-xs font-bold ${language === option.id ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-indigo-200 bg-white text-indigo-700 dark:border-indigo-800 dark:bg-slate-800 dark:text-indigo-200'}`}><span className="block">{option.nativeLabel}</span><span className="mt-0.5 block text-[10px] font-medium opacity-75">{option.label}</span></button>)}</div>}
+    {showLanguages && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{LANGUAGE_OPTIONS.map((option) => <button key={option.id} type="button" onClick={() => onSelectLanguage(option.id)} className={`rounded-xl border px-3 py-2 text-left text-xs font-bold ${language === option.id ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'}`}><span className="block">{option.nativeLabel}</span><span className="mt-0.5 block text-[10px] font-medium opacity-75">{option.label}</span></button>)}</div>}
   </div>
 
-  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60">
-    <button type="button" onClick={() => setShowThemes((open) => !open)} className="flex w-full items-center justify-between text-left">
-      <span><span className="block text-sm font-black text-slate-800 dark:text-slate-100">Tema</span><span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">Işık veya gece modunu seçin</span></span>
-      <span className="text-xs font-bold text-emerald-600">{showThemes ? 'Kapat' : 'Aç'}</span>
+  <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <button type="button" onClick={() => setShowThemes((open) => !open)} aria-expanded={showThemes} className="flex w-full items-center gap-3 text-left">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" aria-hidden="true"><Palette className="size-5" /></span>
+      <span className="min-w-0 flex-1"><span className="block text-sm font-extrabold text-slate-900 dark:text-slate-100">Tema</span><span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Işık veya gece modunu seçin</span></span>
+      <ChevronDown className={`size-5 shrink-0 text-slate-400 transition-transform ${showThemes ? 'rotate-180' : ''}`} aria-hidden="true" />
     </button>
     {showThemes && <div className="mt-3 grid grid-cols-2 gap-2">{[
       { id: 'light' as ThemeMode, label: 'Işık modu', color: '#f6f8f7' }, { id: 'dark' as ThemeMode, label: 'Gece modu', color: '#0f172a' },
     ].map((option) => <button key={option.id} type="button" onClick={() => onSelectTheme(option.id)} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold ${themeMode === option.id ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300' : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}><span className="size-4 rounded-full ring-2 ring-white shadow-sm" style={{ backgroundColor: option.color }} />{option.label}</button>)} </div>}
   </div>
   {onNavigateTab && (
-    <div className="mt-5 grid grid-cols-2 gap-3">
-      <button type="button" onClick={() => onNavigateTab('expenses')} className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40">
-        <span className="block text-sm font-black text-rose-700 dark:text-rose-300">Giderler</span>
-        <span className="mt-1 block text-[11px] text-rose-600/80 dark:text-rose-300/70">Gider kayıtları ve gider raporları</span>
+    <div className="grid grid-cols-2 gap-3">
+      <button type="button" onClick={() => onNavigateTab('expenses')} className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-sm transition-all hover:border-emerald-500 active:scale-98 dark:border-slate-800 dark:bg-slate-900">
+        <span className="flex items-center justify-between">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300" aria-hidden="true"><Wallet className="size-5" /></span>
+          <ChevronRight className="size-5 text-slate-300 dark:text-slate-600" aria-hidden="true" />
+        </span>
+        <span>
+          <span className="block text-sm font-extrabold text-slate-900 dark:text-slate-100">Giderler</span>
+          <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400 text-pretty">Gider kayıtları ve gider raporları</span>
+        </span>
       </button>
-      <button type="button" onClick={() => onNavigateTab('reports')} className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left transition-colors hover:bg-sky-100 dark:border-sky-900/50 dark:bg-sky-950/20 dark:hover:bg-sky-950/40">
-        <span className="block text-sm font-black text-sky-700 dark:text-sky-300">Raporlar</span>
-        <span className="mt-1 block text-[11px] text-sky-600/80 dark:text-sky-300/70">Satış ve işletme raporları</span>
+      <button type="button" onClick={() => onNavigateTab('reports')} className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-sm transition-all hover:border-emerald-500 active:scale-98 dark:border-slate-800 dark:bg-slate-900">
+        <span className="flex items-center justify-between">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" aria-hidden="true"><BarChart3 className="size-5" /></span>
+          <ChevronRight className="size-5 text-slate-300 dark:text-slate-600" aria-hidden="true" />
+        </span>
+        <span>
+          <span className="block text-sm font-extrabold text-slate-900 dark:text-slate-100">Raporlar</span>
+          <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400 text-pretty">Satış ve işletme raporları</span>
+        </span>
       </button>
     </div>
   )}
@@ -337,7 +356,7 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
           type="button"
           disabled={isOneClickBackingUp}
           onClick={handleOneClickBackup}
-          className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25 transition-all self-start sm:self-auto cursor-pointer"
+          className="h-12 w-full px-5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-60 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
         >
           {isOneClickBackingUp ? (
             <>
@@ -377,9 +396,11 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
 
       {/* Settings operations as collapsible cards */}
       <div className="space-y-3">
-        <details className="group rounded-3xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-black text-slate-900 marker:hidden dark:text-slate-100">
-            <span className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-emerald-600" />Yedekleme İşlemleri</span><span className="text-xs text-slate-400 transition-transform group-open:rotate-180">⌄</span>
+        <details className="group rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-4 text-sm font-extrabold text-slate-900 marker:hidden dark:text-slate-100 [&::-webkit-details-marker]:hidden">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" aria-hidden="true"><Smartphone className="size-5" /></span>
+            <span className="min-w-0 flex-1">Yedekleme İşlemleri</span>
+            <ChevronDown className="size-5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
           </summary>
           <div className="grid grid-cols-1 gap-6 border-t border-slate-100 p-4 dark:border-slate-800 lg:grid-cols-2">
         {/* Left Column: Backup Solutions */}
