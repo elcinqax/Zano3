@@ -4,7 +4,47 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  /* The sans face follows the mono one so currency signs missing from JetBrains Mono (₼) still render. */
+  --font-mono: "JetBrains Mono", "Plus Jakarta Sans", ui-monospace, SFMono-Regular, monospace;
+
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: calc(1.125 / 0.8125);
+
+  --font-weight-extrabold: 750;
+  --font-weight-black: 800;
+
+  /* One accent: every emerald utility resolves to the brand teal used by the logo and the navigation. */
+  --color-emerald-50: #f0fdfa;
+  --color-emerald-100: #d3f8ef;
+  --color-emerald-200: #a4eee0;
+  --color-emerald-300: #5eead4;
+  --color-emerald-400: #2dd4bf;
+  --color-emerald-500: #0d9488;
+  --color-emerald-600: #0f766e;
+  --color-emerald-700: #115e59;
+  --color-emerald-800: #134e4a;
+  --color-emerald-900: #0f3f3c;
+  --color-emerald-950: #042f2e;
+
+  /* Light neutrals carry the same green-grey cast as the canvas instead of slate's blue. */
+  --color-slate-50: #f7f9f8;
+  --color-slate-100: #eff3f1;
+  --color-slate-200: #e0e7e4;
+  --color-slate-300: #c8d2ce;
+
+  --shadow-xs: 0 1px 2px 0 rgb(16 42 38 / 0.05);
+  --shadow-sm: 0 1px 2px 0 rgb(16 42 38 / 0.04), 0 8px 20px -12px rgb(16 42 38 / 0.14);
+  --shadow-md: 0 2px 4px -1px rgb(16 42 38 / 0.05), 0 14px 28px -14px rgb(16 42 38 / 0.18);
+  --shadow-lg: 0 4px 8px -2px rgb(16 42 38 / 0.05), 0 22px 40px -18px rgb(16 42 38 / 0.22);
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--app-accent) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  button:disabled { cursor: not-allowed; }
 }
 
 html[data-theme="light"] { --theme-font: "Plus Jakarta Sans", system-ui, sans-serif; --theme-heading: 750; }
@@ -202,7 +242,6 @@ html[data-theme="plum"] .text-emerald-400 { color: #e9a8ff !important; }
 html[data-theme="forest"] .text-emerald-400 { color: #86efac !important; }
 html[data-theme="sand"] .text-emerald-400 { color: #fbbf77 !important; }
 
-button, input, select, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 .print-only { display: none; }
 @media print { .print-hide { display: none !important; } }

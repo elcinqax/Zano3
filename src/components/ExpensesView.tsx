@@ -423,7 +423,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 onClick={() => handleOpenAddProduct()}
                 className="mt-4 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
               >
-                + İlk Gider Ürünün�� Tanımla
+                + İlk Gider Ürününü Tanımla
               </button>
             </div>
           ) : (

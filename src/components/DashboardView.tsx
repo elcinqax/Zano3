@@ -1636,7 +1636,7 @@ if (selectedCustomerFilter !== 'all') {
             <span>Raporlar & Analizler</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Mü������teri satın alma raporları, ürün satış dağılımları ve finansal özet
+            Müşteri satın alma raporları, ürün satış dağılımları ve finansal özet
           </p>
         </div>
 

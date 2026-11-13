@@ -364,7 +364,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
             onClick={() => setSelectedCategory(cat)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
               selectedCategory === cat
-                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800'
             }`}
           >

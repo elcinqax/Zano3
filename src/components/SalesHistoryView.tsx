@@ -672,7 +672,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         </div>
 
         {/* Method filter buttons */}
-        <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl overflow-x-auto self-start sm:self-auto">
+        <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl overflow-x-auto max-w-full self-start sm:self-auto">
           {[
             { id: 'all', label: 'Tüm Ödemeler' },
             { id: 'cash', label: 'Nakit' },
