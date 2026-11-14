@@ -1,7 +1,9 @@
 import { preloadPdfFont } from './utils/pdf-utils';
 import React, { useState, useEffect } from 'react';
 import { sqliteStorage } from './db/sqlite-storage';
-import { Customer, Product, Sale, AppNotification, AppSettings, DatabaseDump, Expense, ExpenseItem } from './types';
+import { Customer, Product, Sale, AppNotification, AppSettings, DatabaseDump, Expense, ExpenseItem, Reminder } from './types';
+import { getPendingReminders, isDue, toDateKey } from './utils/reminders';
+import { DueRemindersModal } from './components/DueRemindersModal';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
 import { LockScreen } from './components/LockScreen';
@@ -21,6 +23,7 @@ import { AppLanguage, translateDocument } from './i18n';
 
 export type ThemeMode = 'light' | 'dark' | 'ocean' | 'plum' | 'forest' | 'sand';
 const THEME_ORDER: ThemeMode[] = ['light', 'dark', 'ocean', 'plum', 'forest', 'sand'];
+const DUE_ALERT_SEEN_KEY = 'reminder_due_alert_seen_day';
 const THEME_COLORS: Record<ThemeMode, string> = {
   light: '#f4f1e8', dark: '#0f110d', ocean: '#071a2d', plum: '#1b1027', forest: '#0c1c18', sand: '#2a2117',
 };
@@ -34,6 +37,9 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [reminderToLoad, setReminderToLoad] = useState<Reminder | null>(null);
+  const [isDueAlertOpen, setIsDueAlertOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<AppSettings>(sqliteStorage.getSettings());
 
   // Navigation & View mode - Starts on 1. Satış as requested
@@ -104,6 +110,7 @@ export default function App() {
       setExpenses(sqliteStorage.getExpenses());
       setExpenseItems(sqliteStorage.getExpenseItems());
       setNotifications(sqliteStorage.getNotifications());
+      setReminders(sqliteStorage.getReminders());
       const s = sqliteStorage.getSettings();
       setSettings(s);
       if (s.isPinEnabled) {
@@ -124,6 +131,7 @@ export default function App() {
       setExpenses(sqliteStorage.getExpenses());
       setExpenseItems(sqliteStorage.getExpenseItems());
       setNotifications(sqliteStorage.getNotifications());
+      setReminders(sqliteStorage.getReminders());
       setSettings(sqliteStorage.getSettings());
     });
 
@@ -185,6 +193,35 @@ export default function App() {
 
   // Cart count for BottomNav badge
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const todayKey = toDateKey(new Date());
+  const dueReminders = getPendingReminders(reminders).filter((reminder) => isDue(reminder, todayKey));
+
+  // Checked once per day on open (and again if the app stays open past midnight), so saving a
+  // reminder for today does not immediately pop the alert back up.
+  useEffect(() => {
+    if (!isInitialized) return;
+    let seenDay: string | null = null;
+    try {
+      seenDay = localStorage.getItem(DUE_ALERT_SEEN_KEY);
+    } catch {
+      // Local storage may be unavailable in restricted browser contexts.
+    }
+    if (seenDay === todayKey) return;
+    const hasDueReminder = sqliteStorage
+      .getReminders()
+      .some((reminder) => reminder.status === 'pending' && isDue(reminder, todayKey));
+    if (hasDueReminder) setIsDueAlertOpen(true);
+  }, [isInitialized, todayKey]);
+
+  const dismissDueAlert = () => {
+    setIsDueAlertOpen(false);
+    try {
+      localStorage.setItem(DUE_ALERT_SEEN_KEY, todayKey);
+    } catch {
+      // Local storage may be unavailable in restricted browser contexts.
+    }
+  };
 
   if (!isInitialized) {
     return (
@@ -284,6 +321,13 @@ export default function App() {
               productToAdd={productToAdd}
               onProductAddedToCart={() => setProductToAdd(null)}
               onCancelSale={(saleId) => sqliteStorage.cancelSale(saleId)}
+              reminders={reminders}
+              todayKey={todayKey}
+              onAddReminder={(draft) => sqliteStorage.addReminder(draft)}
+              onUpdateReminder={(id, updates) => sqliteStorage.updateReminder(id, updates)}
+              onDeleteReminders={(ids) => sqliteStorage.deleteReminders(ids)}
+              reminderToLoad={reminderToLoad}
+              onReminderLoaded={() => setReminderToLoad(null)}
             />
           )}
 
@@ -422,6 +466,7 @@ export default function App() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           cartItemCount={0}
+          dueReminderCount={dueReminders.length}
         />
 
         {/* Modals */}
@@ -444,6 +489,24 @@ export default function App() {
               setActiveTab(tab);
               setIsNotificationsOpen(false);
             }}
+          />
+        )}
+
+        {isDueAlertOpen && dueReminders.length > 0 && !(isLocked && settings.isPinEnabled) && (
+          <DueRemindersModal
+            reminders={dueReminders}
+            products={products}
+            todayKey={todayKey}
+            onLoad={(reminder) => {
+              dismissDueAlert();
+              setActiveTab('pos');
+              setReminderToLoad(reminder);
+            }}
+            onComplete={(reminder) => {
+              sqliteStorage.updateReminder(reminder.id, { status: 'done' });
+              if (dueReminders.length <= 1) dismissDueAlert();
+            }}
+            onClose={dismissDueAlert}
           />
         )}
 

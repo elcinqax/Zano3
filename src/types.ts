@@ -102,6 +102,24 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface Reminder {
+  id: string;
+  customerId?: string;
+  customerName: string;
+  productId: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  // Local calendar day as YYYY-MM-DD, so the day never shifts with the time zone.
+  dueDate: string;
+  notes?: string;
+  status: 'pending' | 'done';
+  completedAt?: string;
+  createdAt: string;
+}
+
+export type ReminderDraft = Omit<Reminder, 'id' | 'status' | 'completedAt' | 'createdAt'>;
+
 export interface AppSettings {
   storeName: string;
   storePhone: string;
@@ -158,6 +176,7 @@ export interface DatabaseDump {
     settings: AppSettings;
     expenses?: Expense[];
     expenseItems?: ExpenseItem[];
+    reminders?: Reminder[];
   };
 }
 
