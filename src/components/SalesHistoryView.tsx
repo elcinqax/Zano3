@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Edit2,
   Trash2,
+  ChevronDown,
 } from 'lucide-react';
 import { Sale, Customer, Product, AppSettings } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -54,6 +55,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   const [methodFilter, setMethodFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
   const [viewMode, setViewMode] = useState<'invoices' | 'customers'>('invoices');
+  const [isSalesListOpen, setIsSalesListOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editingItems, setEditingItems] = useState<Sale['items']>([]);
 
@@ -289,8 +291,46 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
     <div className="space-y-4 pb-20 md:pb-8">
       {/* Sales List Table (Invoices view) */}
       {viewMode === 'invoices' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <h2>
+            <button
+              type="button"
+              onClick={() => setIsSalesListOpen((open) => !open)}
+              aria-expanded={isSalesListOpen}
+              aria-controls="sales-history-list"
+              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/70 active:bg-slate-100/70 dark:hover:bg-slate-800/40 dark:active:bg-slate-800/60"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  <FileText className="size-4" aria-hidden="true" />
+                </span>
+                <span className="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Kayıtlı Satış İşlemleri
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  {filteredSales.length}
+                </span>
+                <ChevronDown
+                  className={`size-5 text-slate-500 transition-transform duration-300 motion-reduce:transition-none dark:text-slate-400 ${
+                    isSalesListOpen ? 'rotate-180' : ''
+                  }`}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+          </h2>
+
+          {/* Collapsed rows stay mounted for the height animation; `invisible` keeps their buttons out of tab order. */}
+          <div
+            id="sales-history-list"
+            className={`grid transition-[grid-template-rows,visibility] duration-300 ease-out motion-reduce:transition-none ${
+              isSalesListOpen ? 'visible grid-rows-[1fr]' : 'invisible grid-rows-[0fr]'
+            }`}
+          >
+          <div className="min-h-0 overflow-hidden">
+          <div className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
             {filteredSales.map((sale) => {
               const isCancelled = sale.status === 'cancelled';
               const saleItemCount = sale.items.reduce((acc, i) => acc + i.quantity, 0);
@@ -411,7 +451,9 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
               </div>
             )}
           </div>
-        </div>
+          </div>
+          </div>
+        </section>
       )}
 
       {/* Customer Purchases Breakdown View */}

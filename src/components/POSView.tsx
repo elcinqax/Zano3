@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   User,
   UserPlus,
@@ -27,8 +27,11 @@ import {
   ShoppingBag,
   XCircle,
 } from 'lucide-react';
-import { Product, Customer, CartItem, PaymentMethod, AppSettings, Sale } from '../types';
+import { Product, Customer, CartItem, PaymentMethod, AppSettings, Sale, Reminder, ReminderDraft } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import { getPendingReminders } from '../utils/reminders';
+import { RemindersCard } from './RemindersCard';
+import { ReminderRow } from './ReminderRow';
 
 interface POSViewProps {
   products: Product[];
@@ -72,6 +75,13 @@ interface POSViewProps {
   onProductAddedToCart?: () => void;
   favoriteIds: string[];
   onToggleFavorite: (productId: string) => void;
+  reminders: Reminder[];
+  todayKey: string;
+  onAddReminder: (draft: ReminderDraft) => void;
+  onUpdateReminder: (id: string, updates: Partial<Reminder>) => void;
+  onDeleteReminders: (ids: string[]) => void;
+  reminderToLoad?: Reminder | null;
+  onReminderLoaded?: () => void;
 }
 
 // A return may exceed what is delivered in this sale (goods from earlier deliveries),
@@ -103,9 +113,18 @@ export const POSView: React.FC<POSViewProps> = ({
   onProductAddedToCart,
   favoriteIds,
   onToggleFavorite,
+  reminders,
+  todayKey,
+  onAddReminder,
+  onUpdateReminder,
+  onDeleteReminders,
+  reminderToLoad,
+  onReminderLoaded,
 }) => {
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [loadedReminderIds, setLoadedReminderIds] = useState<string[]>([]);
+  const handledReminderRef = useRef<Reminder | null>(null);
 
   // Customer State
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -263,6 +282,39 @@ export const POSView: React.FC<POSViewProps> = ({
     onProductAddedToCart?.();
   }, [productToAdd]);
 
+  const isReminderInCart = (reminder: Reminder) =>
+    loadedReminderIds.includes(reminder.id) && cart.some((item) => item.product.id === reminder.productId);
+
+  const loadReminder = (reminder: Reminder) => {
+    const product = products.find((p) => p.id === reminder.productId);
+    if (!product || isReminderInCart(reminder)) return;
+    if (reminder.customerId && customers.some((c) => c.id === reminder.customerId)) {
+      selectCustomer(reminder.customerId);
+    }
+    addToCart(product, reminder.quantity);
+    setLoadedReminderIds((prev) => (prev.includes(reminder.id) ? prev : [...prev, reminder.id]));
+  };
+
+  // The ref keeps a re-run of this effect from adding the same order to the cart twice.
+  useEffect(() => {
+    if (!reminderToLoad) {
+      handledReminderRef.current = null;
+      return;
+    }
+    if (handledReminderRef.current === reminderToLoad) return;
+    handledReminderRef.current = reminderToLoad;
+    loadReminder(reminderToLoad);
+    onReminderLoaded?.();
+  }, [reminderToLoad]);
+
+  const selectedCustomerReminders = useMemo(
+    () =>
+      selectedCustomerId
+        ? getPendingReminders(reminders).filter((reminder) => reminder.customerId === selectedCustomerId)
+        : [],
+    [reminders, selectedCustomerId]
+  );
+
   const updateItemQuantity = (productId: string, newQty: number) => {
     if (newQty <= 0) {
       setCart((prev) => prev.filter((i) => i.product.id !== productId));
@@ -287,6 +339,7 @@ export const POSView: React.FC<POSViewProps> = ({
 
   const resetPosScreen = () => {
     setCart([]);
+    setLoadedReminderIds([]);
     setSelectedCustomerId('');
     setPosCustomerSearch('');
     setQuantityModalProduct(null);
@@ -521,6 +574,14 @@ export const POSView: React.FC<POSViewProps> = ({
       notes: [saleNotes.trim(), returnNote && `İade: ${returnNote}`].filter(Boolean).join(' · ') || undefined,
     });
 
+    reminders
+      .filter(
+        (reminder) =>
+          loadedReminderIds.includes(reminder.id) &&
+          saleLines.some((line) => line.product.id === reminder.productId)
+      )
+      .forEach((reminder) => onUpdateReminder(reminder.id, { status: 'done' }));
+
     // Satış tamamlandığında tüm satış ekranını temizle
     resetPosScreen();
   };
@@ -681,6 +742,25 @@ export const POSView: React.FC<POSViewProps> = ({
             <div className="grid grid-cols-[1fr_auto] gap-2"><input type="number" step="0.01" value={collectionAmount} onChange={(event) => setCollectionAmount(event.target.value)} placeholder="Tutar" aria-label="Tahsilat tutarı" className="h-10 rounded-lg border border-amber-200 bg-white px-3 text-sm dark:border-amber-800 dark:bg-slate-900" /><select value={collectionMethod} onChange={(event) => setCollectionMethod(event.target.value as 'cash' | 'card' | 'transfer')} aria-label="Tahsilat yöntemi" className="h-10 rounded-lg border border-amber-200 bg-white px-2 text-xs dark:border-amber-800 dark:bg-slate-900"><option value="cash">Nakit</option><option value="card">Kart</option><option value="transfer">Havale</option></select></div>
             <input type="text" value={collectionNote} onChange={(event) => setCollectionNote(event.target.value)} placeholder="Not (isteğe bağlı)" className="mt-2 h-9 w-full rounded-lg border border-amber-200 bg-white px-3 text-xs dark:border-amber-800 dark:bg-slate-900" />
             <button type="button" onClick={submitCollection} disabled={!collectionAmount || Number(collectionAmount) === 0} className="mt-2 h-10 w-full rounded-lg bg-amber-600 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Tahsilatı kaydet</button>
+          </div>
+        )}
+        {selectedCustomerReminders.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Bu müşterinin bekleyen siparişi</p>
+            <ul className="flex flex-col gap-2">
+              {selectedCustomerReminders.map((reminder) => (
+                <ReminderRow
+                  key={reminder.id}
+                  reminder={reminder}
+                  todayKey={todayKey}
+                  hideCustomer
+                  canLoad={products.some((product) => product.id === reminder.productId)}
+                  isLoaded={isReminderInCart(reminder)}
+                  onLoad={() => loadReminder(reminder)}
+                  onComplete={() => onUpdateReminder(reminder.id, { status: 'done' })}
+                />
+              ))}
+            </ul>
           </div>
         )}
       </div>
@@ -844,6 +924,19 @@ export const POSView: React.FC<POSViewProps> = ({
           )}
         </div>
       </div>
+
+      <RemindersCard
+        reminders={reminders}
+        customers={customers}
+        products={products}
+        todayKey={todayKey}
+        defaultCustomerId={selectedCustomerId || undefined}
+        isReminderInCart={isReminderInCart}
+        onLoad={loadReminder}
+        onAdd={onAddReminder}
+        onUpdate={onUpdateReminder}
+        onDelete={onDeleteReminders}
+      />
 
       <h1 className="sr-only">Satış Yap</h1>
 

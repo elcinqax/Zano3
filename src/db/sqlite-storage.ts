@@ -1,4 +1,4 @@
-import { Customer, Product, Sale, SaleItem, CustomerPayment, AppNotification, AppSettings, DatabaseDump, PaymentMethod, Expense, ExpenseItem } from '../types';
+import { Customer, Product, Sale, SaleItem, CustomerPayment, AppNotification, AppSettings, DatabaseDump, PaymentMethod, Expense, ExpenseItem, Reminder, ReminderDraft } from '../types';
 
 const DB_NAME = 'mobilsatis_sqlite_db';
 const DB_VERSION = 1;
@@ -148,6 +148,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   lastPhoneBackupDate: new Date().toISOString(),
   autoBackupReminder: 'daily',
   autoBackupOnDayEnd: true,
+  saleSoundEnabled: true,
 };
 
 const SEED_CUSTOMERS: Customer[] = [
@@ -380,6 +381,7 @@ class SQLiteStorageManager {
     settings: AppSettings;
     expenses: Expense[];
     expenseItems: ExpenseItem[];
+    reminders: Reminder[];
   } = {
     customers: [],
     products: [],
@@ -389,6 +391,7 @@ class SQLiteStorageManager {
     settings: DEFAULT_SETTINGS,
     expenses: [],
     expenseItems: [],
+    reminders: [],
   };
 
   private isInitialized = false;
@@ -422,6 +425,9 @@ class SQLiteStorageManager {
         const storedSettings = localStorage.getItem('sqlite_table_settings');
         const storedExpenses = localStorage.getItem('sqlite_table_expenses');
         const storedExpenseItems = localStorage.getItem('sqlite_table_expense_items');
+        const storedReminders = localStorage.getItem('sqlite_table_reminders');
+        const parsedReminders = storedReminders ? JSON.parse(storedReminders) : [];
+        this.memoryCache.reminders = Array.isArray(parsedReminders) ? parsedReminders : [];
 
         if (storedCustomers && storedProducts) {
           this.memoryCache.customers = JSON.parse(storedCustomers);
@@ -513,6 +519,7 @@ class SQLiteStorageManager {
         localStorage.setItem('sqlite_table_settings', JSON.stringify(this.memoryCache.settings));
         localStorage.setItem('sqlite_table_expenses', JSON.stringify(this.memoryCache.expenses));
         localStorage.setItem('sqlite_table_expense_items', JSON.stringify(this.memoryCache.expenseItems));
+        localStorage.setItem('sqlite_table_reminders', JSON.stringify(this.memoryCache.reminders));
       }
     } catch (e) {
       console.error('SQLite persist failed:', e);
@@ -907,6 +914,43 @@ class SQLiteStorageManager {
     this.notify();
   }
 
+  // --- Reminders ---
+  public getReminders(): Reminder[] {
+    return [...this.memoryCache.reminders];
+  }
+
+  public addReminder(draft: ReminderDraft): Reminder {
+    const reminder: Reminder = {
+      ...draft,
+      id: 'rem-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    this.memoryCache.reminders = [...this.memoryCache.reminders, reminder];
+    this.persistAll();
+    this.notify();
+    return reminder;
+  }
+
+  public updateReminder(id: string, updates: Partial<Omit<Reminder, 'id' | 'createdAt'>>): void {
+    this.memoryCache.reminders = this.memoryCache.reminders.map((reminder) => {
+      if (reminder.id !== id) return reminder;
+      const next: Reminder = { ...reminder, ...updates };
+      if (updates.status) {
+        next.completedAt = updates.status === 'done' ? new Date().toISOString() : undefined;
+      }
+      return next;
+    });
+    this.persistAll();
+    this.notify();
+  }
+
+  public deleteReminders(ids: string[]): void {
+    this.memoryCache.reminders = this.memoryCache.reminders.filter((reminder) => !ids.includes(reminder.id));
+    this.persistAll();
+    this.notify();
+  }
+
   private refreshStockNotifications() {
     // Kritik stok uyarısı kullanıcı isteğiyle kaldırıldı
     return;
@@ -1062,6 +1106,7 @@ class SQLiteStorageManager {
         settings: this.memoryCache.settings,
         expenses: this.memoryCache.expenses,
         expenseItems: this.memoryCache.expenseItems,
+        reminders: this.memoryCache.reminders,
       },
     };
   }
@@ -1147,6 +1192,7 @@ class SQLiteStorageManager {
       if (Array.isArray(dump.tables.notifications)) this.memoryCache.notifications = dump.tables.notifications;
       if (Array.isArray(dump.tables.expenses)) this.memoryCache.expenses = dump.tables.expenses;
       if (Array.isArray(dump.tables.expenseItems)) this.memoryCache.expenseItems = dump.tables.expenseItems;
+      if (Array.isArray(dump.tables.reminders)) this.memoryCache.reminders = dump.tables.reminders;
       if (dump.tables.settings) {
         this.memoryCache.settings = { ...DEFAULT_SETTINGS, ...dump.tables.settings, lastBackupDate: new Date().toISOString() };
       }
@@ -1182,6 +1228,7 @@ class SQLiteStorageManager {
     this.memoryCache.settings = DEFAULT_SETTINGS;
     this.memoryCache.expenses = SEED_EXPENSES;
     this.memoryCache.expenseItems = SEED_EXPENSE_ITEMS;
+    this.memoryCache.reminders = [];
     this.persistAll();
     this.notify();
   }

@@ -5,13 +5,16 @@ interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   cartItemCount?: number;
+  dueReminderCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
   cartItemCount = 0,
+  dueReminderCount = 0,
 }) => {
+  const posBadge = cartItemCount > 0 ? cartItemCount : dueReminderCount > 0 ? dueReminderCount : undefined;
   // Ordered strictly as requested:
   // 1. Satış
   // 2. Müşteriler
@@ -24,7 +27,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       id: 'pos',
       label: 'Satış',
       icon: ShoppingCart,
-      badge: cartItemCount > 0 ? cartItemCount : undefined,
+      badge: posBadge,
+      ariaLabel:
+        cartItemCount === 0 && dueReminderCount > 0 ? `Satış, günü gelen ${dueReminderCount} hatırlatıcı` : undefined,
     },
     {
       id: 'customers',
@@ -69,7 +74,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                     : 'text-teal-700 dark:text-teal-300 font-extrabold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold'
               }`}
-              aria-label={tab.label}
+              aria-label={tab.ariaLabel ?? tab.label}
             >
               {/* Active Tab indicator pill */}
               <div
