@@ -138,6 +138,7 @@ export interface AppSettings {
   backupWhatsappNumber?: string;
   autoBackupReminder?: 'daily' | 'weekly' | 'never';
   autoBackupOnDayEnd?: boolean;
+  saleSoundEnabled?: boolean;
 }
 
 export interface ExpenseItem {

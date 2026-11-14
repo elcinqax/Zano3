@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { sqliteStorage } from './db/sqlite-storage';
 import { Customer, Product, Sale, AppNotification, AppSettings, DatabaseDump, Expense, ExpenseItem, Reminder } from './types';
 import { getPendingReminders, isDue, toDateKey } from './utils/reminders';
+import { playSaleBeep } from './utils/sound';
 import { DueRemindersModal } from './components/DueRemindersModal';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
@@ -311,6 +312,7 @@ export default function App() {
               }}
               onCompleteSale={(saleData) => {
                 const created = sqliteStorage.createSale(saleData);
+                if (settings.saleSoundEnabled !== false) playSaleBeep();
   setReceiptSale(created);
 
               }}

@@ -148,6 +148,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   lastPhoneBackupDate: new Date().toISOString(),
   autoBackupReminder: 'daily',
   autoBackupOnDayEnd: true,
+  saleSoundEnabled: true,
 };
 
 const SEED_CUSTOMERS: Customer[] = [

@@ -35,7 +35,10 @@ import {
   Wallet,
   BarChart3,
   ChevronRight,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import { playSaleBeep } from '../utils/sound';
 import { AppSettings, DatabaseDump, Sale, Customer, Product } from '../types';
 import { SQLITE_SCHEMA_DDL, sqliteStorage } from '../db/sqlite-storage';
 import {
@@ -281,6 +284,14 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
     showNotification('Ekran ve üst panel ayarları güncellendi.', 'success');
   };
 
+  const isSaleSoundEnabled = settings.saleSoundEnabled !== false;
+
+  const handleToggleSaleSound = () => {
+    const enabled = !isSaleSoundEnabled;
+    onUpdateSettings({ saleSoundEnabled: enabled });
+    if (enabled) playSaleBeep();
+  };
+
   const handleTogglePin = (enabled: boolean) => {
     setIsPinEnabled(enabled);
     onUpdateSettings({ isPinEnabled: enabled });
@@ -325,6 +336,15 @@ export const BackupSecurityView: React.FC<BackupSecurityViewProps> = ({
     {showThemes && <div className="mt-3 grid grid-cols-2 gap-2">{[
       { id: 'light' as ThemeMode, label: 'Işık modu', color: '#f6f8f7' }, { id: 'dark' as ThemeMode, label: 'Gece modu', color: '#0f172a' },
     ].map((option) => <button key={option.id} type="button" onClick={() => onSelectTheme(option.id)} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold ${themeMode === option.id ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300' : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}><span className="size-4 rounded-full ring-2 ring-white shadow-sm" style={{ backgroundColor: option.color }} />{option.label}</button>)} </div>}
+  </div>
+  <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <button type="button" role="switch" aria-checked={isSaleSoundEnabled} onClick={handleToggleSaleSound} className="flex w-full items-center gap-3 text-left">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" aria-hidden="true">{isSaleSoundEnabled ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}</span>
+      <span className="min-w-0 flex-1"><span className="block text-sm font-extrabold text-slate-900 dark:text-slate-100">Ses</span><span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Satış sonrası bip sesi</span></span>
+      <span className={`flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors ${isSaleSoundEnabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'}`} aria-hidden="true">
+        <span className={`size-6 rounded-full bg-white shadow-sm transition-transform ${isSaleSoundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+      </span>
+    </button>
   </div>
   {onNavigateTab && (
     <div className="grid grid-cols-2 gap-3">
