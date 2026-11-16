@@ -437,6 +437,27 @@ export const POSView: React.FC<POSViewProps> = ({
   );
   const returnCredit = totalAmount < 0 ? Number(Math.abs(totalAmount).toFixed(2)) : 0;
 
+  const customerBalance = selectedCustomer?.balance ?? 0;
+  const totalDebt = Number((customerBalance + totalAmount).toFixed(2));
+  const activeCashInput = paymentMethod === 'mixed' ? mixedCash : cashGiven;
+  const isCollectingFullDebt =
+    paymentMethod !== 'credit' &&
+    totalDebt > 0 &&
+    Math.abs((parseFloat(activeCashInput) || 0) - totalDebt) < 0.005;
+
+  // Paying more than the sale total is how the earlier debt gets settled: the
+  // excess is written to the customer's account in handleFinalizeSale.
+  const collectFullDebt = () => {
+    const amount = Math.max(0, totalDebt);
+    setApplyExcessToAccount(true);
+    if (paymentMethod === 'mixed') {
+      setMixedCash(amount.toFixed(2));
+      return;
+    }
+    setPaymentMethod('cash');
+    setCashGiven(amount.toString());
+  };
+
   const costTotal = useMemo(
     () => netCart.reduce((sum, item) => sum + item.quantity * item.product.buyPrice, 0),
     [netCart]
@@ -446,9 +467,12 @@ export const POSView: React.FC<POSViewProps> = ({
     const nextValue = parseFloat(value) < 0 ? '' : value;
     const nextReturns = { ...returnQuantities, [productId]: nextValue };
     const nextTotal = Number(applyReturns(cart, nextReturns).reduce((sum, item) => sum + item.total, 0).toFixed(2));
-    const followsTotal = (amount: string) => Math.abs((parseFloat(amount) || 0) - totalAmount) < 0.005;
-    if (followsTotal(cashGiven)) setCashGiven(nextTotal.toString());
-    if (followsTotal(mixedCash)) setMixedCash(nextTotal.toFixed(2));
+    const nextDebt = Math.max(0, Number((customerBalance + nextTotal).toFixed(2)));
+    const follows = (amount: string, target: number) => Math.abs((parseFloat(amount) || 0) - target) < 0.005;
+    if (follows(cashGiven, totalAmount)) setCashGiven(nextTotal.toString());
+    else if (follows(cashGiven, totalDebt)) setCashGiven(nextDebt.toString());
+    if (follows(mixedCash, totalAmount)) setMixedCash(nextTotal.toFixed(2));
+    else if (follows(mixedCash, totalDebt)) setMixedCash(nextDebt.toFixed(2));
     setReturnQuantities(nextReturns);
   };
 
@@ -600,6 +624,15 @@ export const POSView: React.FC<POSViewProps> = ({
       );
     }
 
+    const debtPaid = Number(Math.min(excess, Math.max(0, selectedCustomer.balance)).toFixed(2));
+    const advance = Number((excess - debtPaid).toFixed(2));
+    const accountText = [
+      debtPaid > 0 && `${formatCurrency(debtPaid, settings.currency)} önceki borçtan düşülecek`,
+      advance > 0 && `${formatCurrency(advance, settings.currency)} ${selectedCustomer.name} hesabına alacak olarak işlenecek`,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
     return (
       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-800/60 text-[11px] text-blue-800 dark:text-blue-300 space-y-2">
         <div className="flex items-center justify-between gap-2">
@@ -614,9 +647,7 @@ export const POSView: React.FC<POSViewProps> = ({
             className="mt-0.5 w-4 h-4 rounded accent-emerald-600 shrink-0"
           />
           <span className="font-semibold leading-snug">
-            {applyExcessToAccount
-              ? `${formatCurrency(excess, settings.currency)} ${selectedCustomer.name} hesabına alacak olarak işlenecek`
-              : 'Para üstü müşteriye nakit verilecek'}
+            {applyExcessToAccount ? accountText : 'Para üstü müşteriye nakit verilecek'}
           </span>
         </label>
       </div>
@@ -1282,7 +1313,7 @@ export const POSView: React.FC<POSViewProps> = ({
       {/* MODAL 4: ÖDEME AL (NAKİT / KARIŞIK / VERESİYE / HAVALE) */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 border border-slate-200 dark:border-slate-800 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 border border-slate-200 dark:border-slate-800 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
@@ -1311,6 +1342,53 @@ export const POSView: React.FC<POSViewProps> = ({
                   {formatCurrency(returnCredit > 0 ? returnCredit : totalAmount)}
                 </span>
               </div>
+
+              {selectedCustomer && returnCredit === 0 && (
+                <section
+                  aria-label="Toplam Borç"
+                  className="flex flex-col gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/30"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                      {totalDebt < 0 ? 'Kalan Avans' : 'Toplam Borç'}
+                    </span>
+                    <span className="text-xl font-black font-mono tabular-nums text-amber-900 dark:text-amber-100">
+                      {formatCurrency(Math.abs(totalDebt), settings.currency)}
+                    </span>
+                  </div>
+                  <dl className="flex flex-col gap-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt>{customerBalance < 0 ? 'Avans' : 'Önceki borç'}</dt>
+                      <dd className="tabular-nums">
+                        {`${customerBalance < 0 ? '−' : ''}${formatCurrency(Math.abs(customerBalance), settings.currency)}`}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt>Bu satış</dt>
+                      <dd className="tabular-nums">{formatCurrency(totalAmount, settings.currency)}</dd>
+                    </div>
+                  </dl>
+                  {totalDebt > 0 && (
+                    <button
+                      type="button"
+                      onClick={collectFullDebt}
+                      aria-pressed={isCollectingFullDebt}
+                      className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-xs font-bold transition-all active:scale-98 ${
+                        isCollectingFullDebt
+                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                          : 'border-amber-300 bg-white text-amber-900 dark:border-amber-800 dark:bg-slate-900 dark:text-amber-200'
+                      }`}
+                    >
+                      {isCollectingFullDebt ? (
+                        <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      ) : (
+                        <Wallet className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      )}
+                      Tüm Ödemeyi Al
+                    </button>
+                  )}
+                </section>
+              )}
 
               <div className="rounded-2xl border border-rose-200 bg-rose-50/60 dark:border-rose-900/60 dark:bg-rose-950/20">
                 <button
