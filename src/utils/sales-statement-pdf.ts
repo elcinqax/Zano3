@@ -2,7 +2,7 @@ import type { jsPDF } from 'jspdf';
 import { createPdfDocument } from './pdf-utils';
 import { formatCurrency, formatDate } from './formatters';
 import { formatQuantity, getSaleReturns } from './sale-returns';
-import type { Product, Sale } from '../types';
+import type { CustomerPayment, PaymentMethod, Product, Sale } from '../types';
 
 export interface SalesStatementPdfInput {
   storeName: string;
@@ -15,6 +15,8 @@ export interface SalesStatementPdfInput {
   periodLabel: string;
   filterNotes: string[];
   sales: Sale[];
+  /** Debt collections recorded outside a sale ("Tahsilat Al") for the same customer and period. */
+  payments: CustomerPayment[];
   products: Product[];
   currency: string;
 }
@@ -48,6 +50,7 @@ const FIRST_LINE_BASELINE = 4.6;
 const ROW_EXTRA_HEIGHT = 3;
 const BODY_SIZE = 8;
 const SECTION_GAP = 9;
+const SUMMARY_LABEL_WIDTH = 28;
 
 const TEAL: Rgb = [15, 118, 110];
 const WHITE: Rgb = [255, 255, 255];
@@ -59,11 +62,12 @@ const STRIPE: Rgb = [241, 245, 249];
 const BORDER: Rgb = [203, 213, 225];
 
 const SALE_COLUMNS: Column[] = [
-  { title: 'Tarih', width: 26, align: 'left' },
-  { title: 'Fiş', width: 30, align: 'left' },
-  { title: 'Ürünler', width: 76, align: 'left' },
-  { title: 'Ödeme', width: 22, align: 'left' },
-  { title: 'Tutar', width: 28, align: 'right' },
+  { title: 'Tarih', width: 24, align: 'left' },
+  { title: 'Fiş', width: 28, align: 'left' },
+  { title: 'Ürünler', width: 62, align: 'left' },
+  { title: 'Ödeme', width: 20, align: 'left' },
+  { title: 'Tutar', width: 24, align: 'right' },
+  { title: 'Tahsilat', width: 24, align: 'right' },
 ];
 
 const PRODUCT_COLUMNS: Column[] = [
@@ -73,19 +77,38 @@ const PRODUCT_COLUMNS: Column[] = [
   { title: 'Tutar', width: 32, align: 'right' },
 ];
 
+const PAYMENT_COLUMNS: Column[] = [
+  { title: 'Tarih', width: 24, align: 'left' },
+  { title: 'Açıklama', width: 110, align: 'left' },
+  { title: 'Ödeme', width: 24, align: 'left' },
+  { title: 'Tahsilat', width: 24, align: 'right' },
+];
+
 const timeFormatter = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
 // DejaVu Sans has no manat glyph; swapping it here keeps measured widths equal to what is drawn.
 const createMoneyFormatter = (currency: string) => (amount: number): string =>
   formatCurrency(amount, currency).replace(/\u20BC/g, 'AZN');
 
-const getPaymentLabel = (sale: Sale): string => {
-  if (sale.total < 0) return 'İade';
-  if (sale.paymentMethod === 'cash') return 'Nakit';
-  if (sale.paymentMethod === 'mixed') return 'Karışık';
-  if (sale.paymentMethod === 'credit') return 'Veresiye';
-  if (sale.paymentMethod === 'transfer') return 'Havale';
+const getMethodLabel = (method: PaymentMethod): string => {
+  if (method === 'cash') return 'Nakit';
+  if (method === 'mixed') return 'Karışık';
+  if (method === 'credit') return 'Veresiye';
+  if (method === 'transfer') return 'Havale';
   return 'Kart';
+};
+
+const getSalePaymentLabel = (sale: Sale): string => (sale.total < 0 ? 'İade' : getMethodLabel(sale.paymentMethod));
+
+/**
+ * Money taken at the till for a sale: the sale total minus the part written to the customer's
+ * account. A negative account change (overpayment against old debt) raises it above the total.
+ */
+const getSaleCollectedAmount = (sale: Sale): number => {
+  const paid = sale.paidAmount || (sale.cashPaid ?? 0) + (sale.transferPaid ?? 0);
+  // Sales without a stored account change follow the rule sqliteStorage.updateSale uses.
+  const fallbackDebt = sale.paymentMethod === 'credit' ? sale.total : sale.paymentMethod === 'mixed' ? sale.total - paid : 0;
+  return Number((sale.total - (sale.customerBalanceDelta ?? fallbackDebt)).toFixed(2));
 };
 
 const getBalanceLabel = (balance: number, money: (amount: number) => string): string => {
@@ -109,6 +132,17 @@ const wrapCell = (doc: jsPDF, text: string, column: Column, color: Rgb): CellLin
   return lines.map((line) => ({ text: line, color }));
 };
 
+const buildDateCell = (doc: jsPDF, isoDate: string, column: Column, color: Rgb): CellLine[] => {
+  const date = new Date(isoDate);
+  return [
+    ...wrapCell(doc, formatDate(isoDate), column, color),
+    ...(Number.isNaN(date.getTime()) ? [] : wrapCell(doc, timeFormatter.format(date), column, MUTED)),
+  ];
+};
+
+const getRowHeight = (row: Row): number =>
+  Math.max(1, ...row.map((cell) => cell.length)) * LINE_HEIGHT + ROW_EXTRA_HEIGHT;
+
 const getColumnTextX = (column: Column, left: number): number =>
   column.align === 'right' ? left + column.width - CELL_PADDING : left + CELL_PADDING;
 
@@ -129,8 +163,7 @@ const drawTableHeader = (doc: jsPDF, columns: Column[], y: number): number => {
 const drawTable = (doc: jsPDF, columns: Column[], rows: Row[], startY: number): number => {
   let y = drawTableHeader(doc, columns, startY);
   rows.forEach((row, rowIndex) => {
-    const lineCount = Math.max(1, ...row.map((cell) => cell.length));
-    const height = lineCount * LINE_HEIGHT + ROW_EXTRA_HEIGHT;
+    const height = getRowHeight(row);
     if (y + height > PAGE_BOTTOM) {
       doc.addPage();
       y = drawTableHeader(doc, columns, PAGE_TOP);
@@ -159,23 +192,51 @@ const drawTable = (doc: jsPDF, columns: Column[], rows: Row[], startY: number): 
   return y;
 };
 
+/** Draws a titled table below `startY`, moving to a new page when the title would be left alone at the bottom. */
+const drawSection = (doc: jsPDF, title: string, columns: Column[], rows: Row[], startY: number): number => {
+  let y = startY + SECTION_GAP;
+  if (y + 4 + TABLE_HEADER_HEIGHT + getRowHeight(rows[0]) > PAGE_BOTTOM) {
+    doc.addPage();
+    y = PAGE_TOP + 4;
+  }
+  doc.setTextColor(...INK);
+  doc.setFontSize(11);
+  doc.text(title, MARGIN, y);
+  return drawTable(doc, columns, rows, y + 4);
+};
+
+const drawSummaryBand = (
+  doc: jsPDF,
+  y: number,
+  height: number,
+  label: string,
+  summary: string,
+  colors: { fill: Rgb; label: Rgb; summary: Rgb },
+): void => {
+  doc.setFillColor(...colors.fill);
+  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, height, 2, 2, 'F');
+  doc.setTextColor(...colors.label);
+  doc.setFontSize(8);
+  doc.text(label, MARGIN + 4, y + height / 2 + 1.4);
+  doc.setTextColor(...colors.summary);
+  fitFontSize(doc, summary, CONTENT_WIDTH - SUMMARY_LABEL_WIDTH, 11);
+  doc.text(summary, MARGIN + CONTENT_WIDTH - 4, y + height / 2 + 1.7, { align: 'right' });
+};
+
 const buildSaleRow = (
   doc: jsPDF,
   sale: Sale,
   input: SalesStatementPdfInput,
   money: (amount: number) => string,
 ): Row => {
-  const [dateColumn, invoiceColumn, itemsColumn, paymentColumn, totalColumn] = SALE_COLUMNS;
+  const [dateColumn, invoiceColumn, itemsColumn, paymentColumn, totalColumn, collectedColumn] = SALE_COLUMNS;
   const isCancelled = sale.status === 'cancelled';
   const textColor = isCancelled ? MUTED : INK;
-  const createdAt = new Date(sale.createdAt);
   const balanceDelta = sale.customerBalanceDelta ?? 0;
+  const collected = isCancelled ? 0 : getSaleCollectedAmount(sale);
 
   return [
-    [
-      ...wrapCell(doc, formatDate(sale.createdAt), dateColumn, textColor),
-      ...(Number.isNaN(createdAt.getTime()) ? [] : wrapCell(doc, timeFormatter.format(createdAt), dateColumn, MUTED)),
-    ],
+    buildDateCell(doc, sale.createdAt, dateColumn, textColor),
     [
       ...wrapCell(doc, sale.invoiceNo, invoiceColumn, textColor),
       ...(input.showCustomerNames ? wrapCell(doc, sale.customerName, invoiceColumn, MUTED) : []),
@@ -201,10 +262,33 @@ const buildSaleRow = (
       ...(balanceDelta < 0 ? wrapCell(doc, `Hesaptan düşüldü: ${money(Math.abs(balanceDelta))}`, itemsColumn, MUTED) : []),
     ],
     [
-      ...wrapCell(doc, getPaymentLabel(sale), paymentColumn, textColor),
+      ...wrapCell(doc, getSalePaymentLabel(sale), paymentColumn, textColor),
       ...(isCancelled ? wrapCell(doc, 'İptal edildi', paymentColumn, ROSE) : []),
     ],
     wrapCell(doc, money(sale.total), totalColumn, textColor),
+    collected === 0
+      ? wrapCell(doc, '-', collectedColumn, MUTED)
+      : wrapCell(doc, money(collected), collectedColumn, TEAL),
+  ];
+};
+
+const buildPaymentRow = (
+  doc: jsPDF,
+  payment: CustomerPayment,
+  showCustomerNames: boolean,
+  money: (amount: number) => string,
+): Row => {
+  const [dateColumn, noteColumn, methodColumn, amountColumn] = PAYMENT_COLUMNS;
+  const note = payment.notes?.trim() || (payment.amount < 0 ? 'Borç eklendi' : 'Tahsilat alındı');
+
+  return [
+    buildDateCell(doc, payment.createdAt, dateColumn, INK),
+    [
+      ...wrapCell(doc, note, noteColumn, INK),
+      ...(showCustomerNames ? wrapCell(doc, payment.customerName, noteColumn, MUTED) : []),
+    ],
+    wrapCell(doc, getMethodLabel(payment.paymentMethod), methodColumn, INK),
+    wrapCell(doc, money(payment.amount), amountColumn, payment.amount < 0 ? AMBER : TEAL),
   ];
 };
 
@@ -245,10 +329,14 @@ const buildProductRows = (
     ]);
 };
 
+const byCreatedAt = (a: { createdAt: string }, b: { createdAt: string }): number =>
+  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+
 export const buildSalesStatementPdf = async (input: SalesStatementPdfInput): Promise<Blob> => {
   const doc = await createPdfDocument();
   const money = createMoneyFormatter(input.currency);
-  const sales = [...input.sales].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const sales = [...input.sales].sort(byCreatedAt);
+  const payments = [...input.payments].sort(byCreatedAt);
   const completedSales = sales.filter((sale) => sale.status === 'completed');
   const cancelledCount = sales.length - completedSales.length;
   const totalQuantity = completedSales.reduce(
@@ -260,6 +348,8 @@ export const buildSalesStatementPdf = async (input: SalesStatementPdfInput): Pro
     0,
   );
   const totalAmount = completedSales.reduce((sum, sale) => sum + sale.total, 0);
+  const collectedInSales = completedSales.reduce((sum, sale) => sum + getSaleCollectedAmount(sale), 0);
+  const collectedAsPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   let y = PAGE_TOP;
   doc.setTextColor(...MUTED);
@@ -278,7 +368,7 @@ export const buildSalesStatementPdf = async (input: SalesStatementPdfInput): Pro
   doc.setFontSize(10);
   doc.text(
     [
-      'Satış dökümü',
+      'Satış ve tahsilat dökümü',
       ...(input.customerPhone ? [input.customerPhone] : []),
       ...(input.customerBalance !== undefined ? [getBalanceLabel(input.customerBalance, money)] : []),
     ].join(' · '),
@@ -292,21 +382,38 @@ export const buildSalesStatementPdf = async (input: SalesStatementPdfInput): Pro
   doc.text(String(doc.splitTextToSize(scopeLine, CONTENT_WIDTH)[0] ?? ''), MARGIN, y);
 
   y += 5;
-  doc.setFillColor(...TEAL);
-  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 12, 2, 2, 'F');
-  doc.setTextColor(...WHITE);
-  doc.setFontSize(8);
-  doc.text('Toplam', MARGIN + 4, y + 7.4);
-  const totalsLabel = `${completedSales.length} satış   ·   ${formatQuantity(totalQuantity)} adet   ·   İade ${formatQuantity(totalReturned)} adet   ·   ${money(totalAmount)}`;
-  fitFontSize(doc, totalsLabel, CONTENT_WIDTH - 28, 11);
-  doc.text(totalsLabel, MARGIN + CONTENT_WIDTH - 4, y + 7.7, { align: 'right' });
+  drawSummaryBand(
+    doc,
+    y,
+    12,
+    'Toplam',
+    `${completedSales.length} satış   ·   ${formatQuantity(totalQuantity)} adet   ·   İade ${formatQuantity(totalReturned)} adet   ·   ${money(totalAmount)}`,
+    { fill: TEAL, label: WHITE, summary: WHITE },
+  );
+
+  y += 12 + 2;
+  drawSummaryBand(
+    doc,
+    y,
+    12,
+    'Tahsilat',
+    `Satışlarda ${money(collectedInSales)}   ·   Borç tahsilatı ${money(collectedAsPayments)}   ·   Toplam ${money(collectedInSales + collectedAsPayments)}`,
+    { fill: STRIPE, label: MUTED, summary: INK },
+  );
 
   y += 12 + 6;
 
   if (sales.length === 0) {
     doc.setTextColor(...MUTED);
     doc.setFontSize(10);
-    doc.text('Seçilen müşteri ve tarih için satış bulunamadı.', MARGIN, y + 4);
+    doc.text(
+      payments.length === 0
+        ? 'Seçilen müşteri ve tarih için satış veya tahsilat bulunamadı.'
+        : 'Seçilen müşteri ve tarih için satış bulunamadı.',
+      MARGIN,
+      y + 4,
+    );
+    y += 4;
   } else {
     y = drawTable(
       doc,
@@ -321,20 +428,21 @@ export const buildSalesStatementPdf = async (input: SalesStatementPdfInput): Pro
       doc.setFontSize(8);
       doc.text(`İptal edilen ${cancelledCount} satış toplamlara dahil değildir.`, MARGIN, y);
     }
+  }
 
-    const productRows = buildProductRows(doc, completedSales, input.products, money);
-    if (productRows.length > 0) {
-      y += SECTION_GAP;
-      const firstRowHeight = productRows[0][0].length * LINE_HEIGHT + ROW_EXTRA_HEIGHT;
-      if (y + 4 + TABLE_HEADER_HEIGHT + firstRowHeight > PAGE_BOTTOM) {
-        doc.addPage();
-        y = PAGE_TOP + 4;
-      }
-      doc.setTextColor(...INK);
-      doc.setFontSize(11);
-      doc.text('Ürün özeti', MARGIN, y);
-      drawTable(doc, PRODUCT_COLUMNS, productRows, y + 4);
-    }
+  if (payments.length > 0) {
+    y = drawSection(
+      doc,
+      'Borç tahsilatları',
+      PAYMENT_COLUMNS,
+      payments.map((payment) => buildPaymentRow(doc, payment, input.showCustomerNames, money)),
+      y,
+    );
+  }
+
+  const productRows = buildProductRows(doc, completedSales, input.products, money);
+  if (productRows.length > 0) {
+    drawSection(doc, 'Ürün özeti', PRODUCT_COLUMNS, productRows, y);
   }
 
   const pageCount = doc.getNumberOfPages();

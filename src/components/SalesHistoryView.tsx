@@ -23,7 +23,7 @@ import {
   Share2,
   Loader2,
 } from 'lucide-react';
-import { Sale, Customer, Product, AppSettings } from '../types';
+import { Sale, Customer, CustomerPayment, Product, AppSettings } from '../types';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { exportToExcel, exportSalesToCSV } from '../utils/export-utils';
 import { getSaleReturns, getSaleReturnedQuantity, formatQuantity } from '../utils/sale-returns';
@@ -88,11 +88,48 @@ const getReportPeriod = (
   }
 };
 
+/** Builds the date check shared by the sales list and the collections that go into the PDF report. */
+const createDateMatcher = (
+  dateFilter: DateFilterType,
+  customStartDate: string,
+  customEndDate: string,
+): ((date: Date) => boolean) => {
+  const now = new Date();
+  const dayStart = (daysAgo: number): Date => new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, 0, 0, 0, 0);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const between = (start: Date, end: Date) => (date: Date): boolean => date >= start && date <= end;
+
+  switch (dateFilter) {
+    case 'today':
+      return between(dayStart(0), endOfToday);
+    case 'yesterday':
+      return between(dayStart(1), new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999));
+    case 'last7days':
+      return between(dayStart(6), endOfToday);
+    case 'last30days':
+      return between(dayStart(29), endOfToday);
+    case 'last1year':
+      return between(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 0, 0, 0, 0), endOfToday);
+    case 'custom': {
+      const toLocalDate = (dateKey: string, endOfDay: boolean): Date => {
+        const [year, month, day] = dateKey.split('-').map(Number);
+        return endOfDay ? new Date(year, month - 1, day, 23, 59, 59, 999) : new Date(year, month - 1, day, 0, 0, 0, 0);
+      };
+      const start = customStartDate ? toLocalDate(customStartDate, false) : null;
+      const end = customEndDate ? toLocalDate(customEndDate, true) : null;
+      return (date) => !(start && date < start) && !(end && date > end);
+    }
+    case 'all':
+      return () => true;
+  }
+};
+
 const toFileNamePart = (value: string): string =>
   value.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '');
 
 interface SalesHistoryViewProps {
   sales: Sale[];
+  payments: CustomerPayment[];
   customers: Customer[];
   products: Product[];
   settings: AppSettings;
@@ -105,6 +142,7 @@ interface SalesHistoryViewProps {
 
 export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   sales,
+  payments,
   customers,
   products,
   settings,
@@ -189,46 +227,11 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   }, [sales]);
 
   const filteredSales = useMemo(() => {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-    const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-
-    const startOf7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
-    const startOf30Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
-    const startOf1Year = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const matchesDate = createDateMatcher(dateFilter, customStartDate, customEndDate);
 
     return sales.filter((s) => {
       // 1. Tarih Filtresi
-      const saleDate = new Date(s.createdAt);
-      let matchDate = true;
-
-      if (dateFilter === 'today') {
-        matchDate = saleDate >= startOfToday && saleDate <= endOfToday;
-      } else if (dateFilter === 'yesterday') {
-        matchDate = saleDate >= startOfYesterday && saleDate <= endOfYesterday;
-      } else if (dateFilter === 'last7days') {
-        matchDate = saleDate >= startOf7Days && saleDate <= endOfToday;
-      } else if (dateFilter === 'last30days') {
-        matchDate = saleDate >= startOf30Days && saleDate <= endOfToday;
-      } else if (dateFilter === 'last1year') {
-        matchDate = saleDate >= startOf1Year && saleDate <= endOfToday;
-      } else if (dateFilter === 'custom') {
-        if (customStartDate) {
-          const [sy, sm, sd] = customStartDate.split('-').map(Number);
-          const cStart = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-          if (saleDate < cStart) matchDate = false;
-        }
-        if (customEndDate) {
-          const [ey, em, ed] = customEndDate.split('-').map(Number);
-          const cEnd = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-          if (saleDate > cEnd) matchDate = false;
-        }
-      } else if (dateFilter === 'all') {
-        matchDate = true;
-      }
+      const matchDate = matchesDate(new Date(s.createdAt));
 
       // 2. Ödeme Yöntemi Filtresi
       const matchMethod = methodFilter === 'all' || s.paymentMethod === methodFilter;
@@ -251,6 +254,23 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
     });
   }, [sales, dateFilter, customStartDate, customEndDate, methodFilter, statusFilter, search, customerFilter]);
 
+  // Satış dışında alınan borç tahsilatları; PDF raporunda satışlarla aynı filtrelerle yer alır
+  const filteredPayments = useMemo(() => {
+    if (statusFilter === 'cancelled') return [];
+    const matchesDate = createDateMatcher(dateFilter, customStartDate, customEndDate);
+    const q = search.toLowerCase().trim();
+
+    return payments.filter(
+      (payment) =>
+        matchesDate(new Date(payment.createdAt)) &&
+        (methodFilter === 'all' || payment.paymentMethod === methodFilter) &&
+        (customerFilter === ALL_CUSTOMERS || payment.customerId === customerFilter) &&
+        (!q || payment.customerName.toLowerCase().includes(q) || (payment.notes ?? '').toLowerCase().includes(q)),
+    );
+  }, [payments, dateFilter, customStartDate, customEndDate, methodFilter, statusFilter, search, customerFilter]);
+
+  const hasReportData = filteredSales.length > 0 || filteredPayments.length > 0;
+
   // Kayıtlı müşteriler ile satışlarda geçen (silinmiş ya da kayıtsız) müşteriler
   const customerOptions = useMemo(() => {
     const names = new Map(customers.map((customer) => [customer.id, customer.name]));
@@ -264,7 +284,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   const reportPeriod = getReportPeriod(dateFilter, customStartDate, customEndDate);
 
   const handleCustomerPdf = async (mode: 'download' | 'share') => {
-    if (pdfBusyMode !== null || filteredSales.length === 0) return;
+    if (pdfBusyMode !== null || !hasReportData) return;
     setPdfBusyMode(mode);
     try {
       const isSingleCustomer = customerFilter !== ALL_CUSTOMERS;
@@ -287,6 +307,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           ...(query ? [`Arama: "${query}"`] : []),
         ],
         sales: filteredSales,
+        payments: filteredPayments,
         products,
         currency: settings.currency,
       });
@@ -621,16 +642,16 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         </div>
 
         <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400" aria-live="polite">
-          {filteredSales.length === 0
-            ? `${reportPeriod.label} · Bu müşteri ve tarih için satış yok.`
-            : `${reportPeriod.label} · ${filteredSales.length} satış`}
+          {hasReportData
+            ? `${reportPeriod.label} · ${filteredSales.length} satış · ${filteredPayments.length} tahsilat kaydı`
+            : `${reportPeriod.label} · Bu müşteri ve tarih için satış yok.`}
         </p>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => handleCustomerPdf('download')}
-            disabled={filteredSales.length === 0 || pdfBusyMode !== null}
+            disabled={!hasReportData || pdfBusyMode !== null}
             aria-busy={pdfBusyMode === 'download'}
             className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50"
           >
@@ -642,7 +663,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           <button
             type="button"
             onClick={() => handleCustomerPdf('share')}
-            disabled={filteredSales.length === 0 || pdfBusyMode !== null}
+            disabled={!hasReportData || pdfBusyMode !== null}
             aria-busy={pdfBusyMode === 'share'}
             className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >

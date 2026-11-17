@@ -433,6 +433,7 @@ export default function App() {
           {activeTab === 'sales' && (
             <SalesHistoryView
               sales={sales}
+              payments={payments}
               customers={customers}
               products={products}
               settings={settings}
