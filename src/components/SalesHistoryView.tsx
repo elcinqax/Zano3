@@ -289,173 +289,6 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
 
   return (
     <div className="space-y-4 pb-20 md:pb-8">
-      {/* Sales List Table (Invoices view) */}
-      {viewMode === 'invoices' && (
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-          <h2>
-            <button
-              type="button"
-              onClick={() => setIsSalesListOpen((open) => !open)}
-              aria-expanded={isSalesListOpen}
-              aria-controls="sales-history-list"
-              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/70 active:bg-slate-100/70 dark:hover:bg-slate-800/40 dark:active:bg-slate-800/60"
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                  <FileText className="size-4" aria-hidden="true" />
-                </span>
-                <span className="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                  Kayıtlı Satış İşlemleri
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                  {filteredSales.length}
-                </span>
-                <ChevronDown
-                  className={`size-5 text-slate-500 transition-transform duration-300 motion-reduce:transition-none dark:text-slate-400 ${
-                    isSalesListOpen ? 'rotate-180' : ''
-                  }`}
-                  aria-hidden="true"
-                />
-              </span>
-            </button>
-          </h2>
-
-          {/* Collapsed rows stay mounted for the height animation; `invisible` keeps their buttons out of tab order. */}
-          <div
-            id="sales-history-list"
-            className={`grid transition-[grid-template-rows,visibility] duration-300 ease-out motion-reduce:transition-none ${
-              isSalesListOpen ? 'visible grid-rows-[1fr]' : 'invisible grid-rows-[0fr]'
-            }`}
-          >
-          <div className="min-h-0 overflow-hidden">
-          <div className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
-            {filteredSales.map((sale) => {
-              const isCancelled = sale.status === 'cancelled';
-              const saleItemCount = sale.items.reduce((acc, i) => acc + i.quantity, 0);
-              const saleReturnCount = getSaleReturnedQuantity(sale, products);
-
-              return (
-                <div
-                  key={sale.id}
-                  className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                    isCancelled
-                      ? 'opacity-50 bg-rose-50/20 dark:bg-rose-950/10'
-                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
-                  }`}
-                >
-                  {/* Left: Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
-                        {sale.invoiceNo}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        · {sale.customerName}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-mono">
-                        {saleItemCount} Adet Ürün
-                      </span>
-                      {saleReturnCount > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-mono">
-                          {formatQuantity(saleReturnCount)} Adet İade
-                        </span>
-                      )}
-                      {isCancelled && (
-                        <span className="text-[10px] text-rose-600 font-bold bg-rose-50 dark:bg-rose-950 px-1.5 py-0.5 rounded">
-                          İptal Edildi
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
-                      {sale.items.map((i) => `${i.productName} (${i.quantity} adet)`).join(', ')}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 mt-1">
-                      <span>{formatDateTime(sale.createdAt)}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="capitalize font-medium text-slate-600 dark:text-slate-300">
-                        {sale.total < 0
-                          ? 'İade'
-                          : sale.paymentMethod === 'cash'
-                          ? 'Nakit'
-                          : sale.paymentMethod === 'mixed'
-                          ? 'Karışık Ödeme'
-                          : sale.paymentMethod === 'credit'
-                          ? 'Açık Hesap (Veresiye)'
-                          : sale.paymentMethod === 'transfer'
-                          ? 'Havale'
-                          : 'Kart'}
-                      </span>
-                      {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta !== 0 && (
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                          sale.customerBalanceDelta > 0
-                            ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
-                            : 'text-blue-600 bg-blue-50 dark:bg-blue-950/40'
-                        }`}>
-                          {sale.customerBalanceDelta > 0
-                            ? `+${formatCurrency(sale.customerBalanceDelta)} Borca Eklendi`
-                            : `${formatCurrency(Math.abs(sale.customerBalanceDelta))} ${sale.total < 0 ? 'İade Hesaba İşlendi' : 'Avans Aktarıldı'}`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Amounts & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums block">
-                        {formatCurrency(sale.total)}
-                      </span>
-                      {!isCancelled && (
-                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums font-bold">
-                          +{formatCurrency(sale.profit)} kâr
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => startEditingSale(sale)} className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi düzenle"><Edit2 className="w-4 h-4" /></button>
-                      <button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(sale.id); }} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi kaldır"><Trash2 className="w-4 h-4" /></button>
-                      <button
-                        type="button"
-                        onClick={() => onSelectSaleForReceipt(sale)}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                        title="Fişi Görüntüle"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Fiş</span>
-                      </button>
-
-                      {!isCancelled && (
-                        <button
-                          type="button"
-                          onClick={() => onCancelSale(sale.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                          title="Satışı İptal Et & İade Al"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredSales.length === 0 && (
-              <div className="py-16 text-center text-slate-400 text-xs">
-                Kayıtlı satış işlemi bulunamadı.
-              </div>
-            )}
-          </div>
-          </div>
-          </div>
-        </section>
-      )}
-
       {/* Customer Purchases Breakdown View */}
       {viewMode === 'customers' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 sm:p-5 space-y-3">
@@ -737,6 +570,173 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Sales List Table (Invoices view) */}
+      {viewMode === 'invoices' && (
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <h2>
+            <button
+              type="button"
+              onClick={() => setIsSalesListOpen((open) => !open)}
+              aria-expanded={isSalesListOpen}
+              aria-controls="sales-history-list"
+              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/70 active:bg-slate-100/70 dark:hover:bg-slate-800/40 dark:active:bg-slate-800/60"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  <FileText className="size-4" aria-hidden="true" />
+                </span>
+                <span className="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Kayıtlı Satış İşlemleri
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  {filteredSales.length}
+                </span>
+                <ChevronDown
+                  className={`size-5 text-slate-500 transition-transform duration-300 motion-reduce:transition-none dark:text-slate-400 ${
+                    isSalesListOpen ? 'rotate-180' : ''
+                  }`}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+          </h2>
+
+          {/* Collapsed rows stay mounted for the height animation; `invisible` keeps their buttons out of tab order. */}
+          <div
+            id="sales-history-list"
+            className={`grid transition-[grid-template-rows,visibility] duration-300 ease-out motion-reduce:transition-none ${
+              isSalesListOpen ? 'visible grid-rows-[1fr]' : 'invisible grid-rows-[0fr]'
+            }`}
+          >
+          <div className="min-h-0 overflow-hidden">
+          <div className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+            {filteredSales.map((sale) => {
+              const isCancelled = sale.status === 'cancelled';
+              const saleItemCount = sale.items.reduce((acc, i) => acc + i.quantity, 0);
+              const saleReturnCount = getSaleReturnedQuantity(sale, products);
+
+              return (
+                <div
+                  key={sale.id}
+                  className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                    isCancelled
+                      ? 'opacity-50 bg-rose-50/20 dark:bg-rose-950/10'
+                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                  }`}
+                >
+                  {/* Left: Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {sale.invoiceNo}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        · {sale.customerName}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-mono">
+                        {saleItemCount} Adet Ürün
+                      </span>
+                      {saleReturnCount > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-mono">
+                          {formatQuantity(saleReturnCount)} Adet İade
+                        </span>
+                      )}
+                      {isCancelled && (
+                        <span className="text-[10px] text-rose-600 font-bold bg-rose-50 dark:bg-rose-950 px-1.5 py-0.5 rounded">
+                          İptal Edildi
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                      {sale.items.map((i) => `${i.productName} (${i.quantity} adet)`).join(', ')}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 mt-1">
+                      <span>{formatDateTime(sale.createdAt)}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="capitalize font-medium text-slate-600 dark:text-slate-300">
+                        {sale.total < 0
+                          ? 'İade'
+                          : sale.paymentMethod === 'cash'
+                          ? 'Nakit'
+                          : sale.paymentMethod === 'mixed'
+                          ? 'Karışık Ödeme'
+                          : sale.paymentMethod === 'credit'
+                          ? 'Açık Hesap (Veresiye)'
+                          : sale.paymentMethod === 'transfer'
+                          ? 'Havale'
+                          : 'Kart'}
+                      </span>
+                      {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta !== 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                          sale.customerBalanceDelta > 0
+                            ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
+                            : 'text-blue-600 bg-blue-50 dark:bg-blue-950/40'
+                        }`}>
+                          {sale.customerBalanceDelta > 0
+                            ? `+${formatCurrency(sale.customerBalanceDelta)} Borca Eklendi`
+                            : `${formatCurrency(Math.abs(sale.customerBalanceDelta))} ${sale.total < 0 ? 'İade Hesaba İşlendi' : 'Avans Aktarıldı'}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Amounts & Actions */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums block">
+                        {formatCurrency(sale.total)}
+                      </span>
+                      {!isCancelled && (
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums font-bold">
+                          +{formatCurrency(sale.profit)} kâr
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => startEditingSale(sale)} className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi düzenle"><Edit2 className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(sale.id); }} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi kaldır"><Trash2 className="w-4 h-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => onSelectSaleForReceipt(sale)}
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                        title="Fişi Görüntüle"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Fiş</span>
+                      </button>
+
+                      {!isCancelled && (
+                        <button
+                          type="button"
+                          onClick={() => onCancelSale(sale.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          title="Satışı İptal Et & İade Al"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredSales.length === 0 && (
+              <div className="py-16 text-center text-slate-400 text-xs">
+                Kayıtlı satış işlemi bulunamadı.
+              </div>
+            )}
+          </div>
+          </div>
+          </div>
+        </section>
+      )}
 
       {editingSale && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
