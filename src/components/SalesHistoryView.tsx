@@ -20,13 +20,76 @@ import {
   Edit2,
   Trash2,
   ChevronDown,
+  Share2,
+  Loader2,
 } from 'lucide-react';
 import { Sale, Customer, Product, AppSettings } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { exportToExcel, exportSalesToCSV } from '../utils/export-utils';
 import { getSaleReturns, getSaleReturnedQuantity, formatQuantity } from '../utils/sale-returns';
+import { buildSalesStatementPdf } from '../utils/sales-statement-pdf';
+import { downloadBlob, shareOrDownloadBlob } from '../utils/share-utils';
 
 export type DateFilterType = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'last1year' | 'custom' | 'all';
+
+const ALL_CUSTOMERS = 'all';
+const WALK_IN_CUSTOMER = 'walk-in';
+
+const getSaleCustomerKey = (sale: Sale): string => sale.customerId || WALK_IN_CUSTOMER;
+
+const PAYMENT_FILTERS = [
+  { id: 'all', label: 'Tüm Ödemeler' },
+  { id: 'cash', label: 'Nakit' },
+  { id: 'mixed', label: 'Karışık' },
+  { id: 'credit', label: 'Veresiye' },
+  { id: 'transfer', label: 'Havale' },
+];
+
+const toDateKey = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const formatDateKey = (dateKey: string): string => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return formatDate(new Date(year, month - 1, day).toISOString());
+};
+
+/** Describes the selected date filter for the PDF report: a readable label and a file-name-safe key. */
+const getReportPeriod = (
+  dateFilter: DateFilterType,
+  customStartDate: string,
+  customEndDate: string,
+): { label: string; fileKey: string } => {
+  const now = new Date();
+  const dayKey = (daysAgo: number): string => toDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo));
+  const singleDay = (title: string, key: string) => ({ label: `${title} · ${formatDateKey(key)}`, fileKey: key });
+  const span = (title: string, startKey: string, endKey: string) => ({
+    label: `${title} · ${formatDateKey(startKey)} – ${formatDateKey(endKey)}`,
+    fileKey: `${startKey}_${endKey}`,
+  });
+
+  switch (dateFilter) {
+    case 'today':
+      return singleDay('Bugün', dayKey(0));
+    case 'yesterday':
+      return singleDay('Dün', dayKey(1));
+    case 'last7days':
+      return span('Son 7 gün', dayKey(6), dayKey(0));
+    case 'last30days':
+      return span('Son 30 gün', dayKey(29), dayKey(0));
+    case 'last1year':
+      return span('Son 1 yıl', toDateKey(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())), dayKey(0));
+    case 'custom':
+      return {
+        label: `${customStartDate ? formatDateKey(customStartDate) : 'Başlangıç'} – ${customEndDate ? formatDateKey(customEndDate) : 'Bugün'}`,
+        fileKey: `${customStartDate || 'baslangic'}_${customEndDate || dayKey(0)}`,
+      };
+    case 'all':
+      return { label: 'Tüm zamanlar', fileKey: 'tum-zamanlar' };
+  }
+};
+
+const toFileNamePart = (value: string): string =>
+  value.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '');
 
 interface SalesHistoryViewProps {
   sales: Sale[];
@@ -56,6 +119,8 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
   const [viewMode, setViewMode] = useState<'invoices' | 'customers'>('invoices');
   const [isSalesListOpen, setIsSalesListOpen] = useState(false);
+  const [customerFilter, setCustomerFilter] = useState<string>(ALL_CUSTOMERS);
+  const [pdfBusyMode, setPdfBusyMode] = useState<'download' | 'share' | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editingItems, setEditingItems] = useState<Sale['items']>([]);
 
@@ -180,9 +245,71 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         (s.customerPhone && s.customerPhone.includes(q)) ||
         s.items.some((i) => i.productName.toLowerCase().includes(q));
 
-      return matchDate && matchMethod && matchStatus && matchQuery;
+      const matchCustomer = customerFilter === ALL_CUSTOMERS || getSaleCustomerKey(s) === customerFilter;
+
+      return matchDate && matchMethod && matchStatus && matchQuery && matchCustomer;
     });
-  }, [sales, dateFilter, customStartDate, customEndDate, methodFilter, statusFilter, search]);
+  }, [sales, dateFilter, customStartDate, customEndDate, methodFilter, statusFilter, search, customerFilter]);
+
+  // Kayıtlı müşteriler ile satışlarda geçen (silinmiş ya da kayıtsız) müşteriler
+  const customerOptions = useMemo(() => {
+    const names = new Map(customers.map((customer) => [customer.id, customer.name]));
+    sales.forEach((sale) => {
+      const key = getSaleCustomerKey(sale);
+      if (!names.has(key)) names.set(key, sale.customerName || 'Genel Müşteri');
+    });
+    return Array.from(names, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  }, [customers, sales]);
+
+  const reportPeriod = getReportPeriod(dateFilter, customStartDate, customEndDate);
+
+  const handleCustomerPdf = async (mode: 'download' | 'share') => {
+    if (pdfBusyMode !== null || filteredSales.length === 0) return;
+    setPdfBusyMode(mode);
+    try {
+      const isSingleCustomer = customerFilter !== ALL_CUSTOMERS;
+      const customer = customers.find((c) => c.id === customerFilter);
+      const customerName = isSingleCustomer
+        ? customerOptions.find((option) => option.id === customerFilter)?.name ?? 'Müşteri'
+        : 'Tüm müşteriler';
+      const paymentLabel = PAYMENT_FILTERS.find((filter) => filter.id === methodFilter)?.label;
+      const query = search.trim();
+
+      const blob = await buildSalesStatementPdf({
+        storeName: settings.storeName || 'Mobil Satış',
+        customerName,
+        customerPhone: customer?.phone,
+        customerBalance: customer?.balance,
+        showCustomerNames: !isSingleCustomer,
+        periodLabel: reportPeriod.label,
+        filterNotes: [
+          ...(methodFilter !== 'all' && paymentLabel ? [`Ödeme: ${paymentLabel}`] : []),
+          ...(query ? [`Arama: "${query}"`] : []),
+        ],
+        sales: filteredSales,
+        products,
+        currency: settings.currency,
+      });
+      const fileName = `${toFileNamePart(customerName) || 'musteri'}-${reportPeriod.fileKey}-satis-dokumu.pdf`;
+
+      if (mode === 'download') {
+        downloadBlob(blob, fileName);
+        return;
+      }
+      const outcome = await shareOrDownloadBlob(blob, fileName, {
+        title: `${customerName} - Satış dökümü`,
+        text: 'PDF raporunu bir uygulamayla açın veya paylaşın',
+      });
+      if (outcome === 'downloaded') {
+        window.alert('Bu cihaz paylaşım menüsünü desteklemiyor, PDF indirildi. Dosyalar uygulamasından açabilirsiniz.');
+      }
+    } catch (error) {
+      console.error('Müşteri satış dökümü PDF raporu oluşturulamadı:', error);
+      window.alert('PDF oluşturulamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+    } finally {
+      setPdfBusyMode(null);
+    }
+  };
 
   const totalFilteredAmount = useMemo(
     () => filteredSales.filter((s) => s.status === 'completed').reduce((sum, s) => sum + s.total, 0),
@@ -462,6 +589,71 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         )}
       </div>
 
+      {/* Müşteri seçimi ve seçilen tarih aralığı için PDF raporu */}
+      <section
+        aria-labelledby="customer-report-title"
+        className="flex flex-col gap-3 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm"
+      >
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <h2 id="customer-report-title" className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+            Müşteri Raporu
+          </h2>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="sales-history-customer" className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+            Müşteri
+          </label>
+          <select
+            id="sales-history-customer"
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+          >
+            <option value={ALL_CUSTOMERS}>Tüm müşteriler</option>
+            {customerOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400" aria-live="polite">
+          {filteredSales.length === 0
+            ? `${reportPeriod.label} · Bu müşteri ve tarih için satış yok.`
+            : `${reportPeriod.label} · ${filteredSales.length} satış`}
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleCustomerPdf('download')}
+            disabled={filteredSales.length === 0 || pdfBusyMode !== null}
+            aria-busy={pdfBusyMode === 'download'}
+            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50"
+          >
+            {pdfBusyMode === 'download'
+              ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
+              : <Download className="w-4 h-4 shrink-0" aria-hidden="true" />}
+            <span>PDF indir</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCustomerPdf('share')}
+            disabled={filteredSales.length === 0 || pdfBusyMode !== null}
+            aria-busy={pdfBusyMode === 'share'}
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            {pdfBusyMode === 'share'
+              ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
+              : <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" />}
+            <span>PDF paylaş</span>
+          </button>
+        </div>
+      </section>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -548,13 +740,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
 
         {/* Method filter buttons */}
         <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl overflow-x-auto max-w-full self-start sm:self-auto">
-          {[
-            { id: 'all', label: 'Tüm Ödemeler' },
-            { id: 'cash', label: 'Nakit' },
-            { id: 'mixed', label: 'Karışık' },
-            { id: 'credit', label: 'Veresiye' },
-            { id: 'transfer', label: 'Havale' },
-          ].map((m) => (
+          {PAYMENT_FILTERS.map((m) => (
             <button
               key={m.id}
               type="button"
