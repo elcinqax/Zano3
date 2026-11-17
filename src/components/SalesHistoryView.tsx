@@ -20,13 +20,76 @@ import {
   Edit2,
   Trash2,
   ChevronDown,
+  Share2,
+  Loader2,
 } from 'lucide-react';
 import { Sale, Customer, Product, AppSettings } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { exportToExcel, exportSalesToCSV } from '../utils/export-utils';
 import { getSaleReturns, getSaleReturnedQuantity, formatQuantity } from '../utils/sale-returns';
+import { buildSalesStatementPdf } from '../utils/sales-statement-pdf';
+import { downloadBlob, shareOrDownloadBlob } from '../utils/share-utils';
 
 export type DateFilterType = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'last1year' | 'custom' | 'all';
+
+const ALL_CUSTOMERS = 'all';
+const WALK_IN_CUSTOMER = 'walk-in';
+
+const getSaleCustomerKey = (sale: Sale): string => sale.customerId || WALK_IN_CUSTOMER;
+
+const PAYMENT_FILTERS = [
+  { id: 'all', label: 'Tüm Ödemeler' },
+  { id: 'cash', label: 'Nakit' },
+  { id: 'mixed', label: 'Karışık' },
+  { id: 'credit', label: 'Veresiye' },
+  { id: 'transfer', label: 'Havale' },
+];
+
+const toDateKey = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const formatDateKey = (dateKey: string): string => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return formatDate(new Date(year, month - 1, day).toISOString());
+};
+
+/** Describes the selected date filter for the PDF report: a readable label and a file-name-safe key. */
+const getReportPeriod = (
+  dateFilter: DateFilterType,
+  customStartDate: string,
+  customEndDate: string,
+): { label: string; fileKey: string } => {
+  const now = new Date();
+  const dayKey = (daysAgo: number): string => toDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo));
+  const singleDay = (title: string, key: string) => ({ label: `${title} · ${formatDateKey(key)}`, fileKey: key });
+  const span = (title: string, startKey: string, endKey: string) => ({
+    label: `${title} · ${formatDateKey(startKey)} – ${formatDateKey(endKey)}`,
+    fileKey: `${startKey}_${endKey}`,
+  });
+
+  switch (dateFilter) {
+    case 'today':
+      return singleDay('Bugün', dayKey(0));
+    case 'yesterday':
+      return singleDay('Dün', dayKey(1));
+    case 'last7days':
+      return span('Son 7 gün', dayKey(6), dayKey(0));
+    case 'last30days':
+      return span('Son 30 gün', dayKey(29), dayKey(0));
+    case 'last1year':
+      return span('Son 1 yıl', toDateKey(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())), dayKey(0));
+    case 'custom':
+      return {
+        label: `${customStartDate ? formatDateKey(customStartDate) : 'Başlangıç'} – ${customEndDate ? formatDateKey(customEndDate) : 'Bugün'}`,
+        fileKey: `${customStartDate || 'baslangic'}_${customEndDate || dayKey(0)}`,
+      };
+    case 'all':
+      return { label: 'Tüm zamanlar', fileKey: 'tum-zamanlar' };
+  }
+};
+
+const toFileNamePart = (value: string): string =>
+  value.replace(/[^a-z0-9ğüşöçıəİĞÜŞÖÇƏ]+/gi, '-').replace(/^-|-$/g, '');
 
 interface SalesHistoryViewProps {
   sales: Sale[];
@@ -56,6 +119,8 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
   const [viewMode, setViewMode] = useState<'invoices' | 'customers'>('invoices');
   const [isSalesListOpen, setIsSalesListOpen] = useState(false);
+  const [customerFilter, setCustomerFilter] = useState<string>(ALL_CUSTOMERS);
+  const [pdfBusyMode, setPdfBusyMode] = useState<'download' | 'share' | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editingItems, setEditingItems] = useState<Sale['items']>([]);
 
@@ -180,9 +245,71 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         (s.customerPhone && s.customerPhone.includes(q)) ||
         s.items.some((i) => i.productName.toLowerCase().includes(q));
 
-      return matchDate && matchMethod && matchStatus && matchQuery;
+      const matchCustomer = customerFilter === ALL_CUSTOMERS || getSaleCustomerKey(s) === customerFilter;
+
+      return matchDate && matchMethod && matchStatus && matchQuery && matchCustomer;
     });
-  }, [sales, dateFilter, customStartDate, customEndDate, methodFilter, statusFilter, search]);
+  }, [sales, dateFilter, customStartDate, customEndDate, methodFilter, statusFilter, search, customerFilter]);
+
+  // Kayıtlı müşteriler ile satışlarda geçen (silinmiş ya da kayıtsız) müşteriler
+  const customerOptions = useMemo(() => {
+    const names = new Map(customers.map((customer) => [customer.id, customer.name]));
+    sales.forEach((sale) => {
+      const key = getSaleCustomerKey(sale);
+      if (!names.has(key)) names.set(key, sale.customerName || 'Genel Müşteri');
+    });
+    return Array.from(names, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  }, [customers, sales]);
+
+  const reportPeriod = getReportPeriod(dateFilter, customStartDate, customEndDate);
+
+  const handleCustomerPdf = async (mode: 'download' | 'share') => {
+    if (pdfBusyMode !== null || filteredSales.length === 0) return;
+    setPdfBusyMode(mode);
+    try {
+      const isSingleCustomer = customerFilter !== ALL_CUSTOMERS;
+      const customer = customers.find((c) => c.id === customerFilter);
+      const customerName = isSingleCustomer
+        ? customerOptions.find((option) => option.id === customerFilter)?.name ?? 'Müşteri'
+        : 'Tüm müşteriler';
+      const paymentLabel = PAYMENT_FILTERS.find((filter) => filter.id === methodFilter)?.label;
+      const query = search.trim();
+
+      const blob = await buildSalesStatementPdf({
+        storeName: settings.storeName || 'Mobil Satış',
+        customerName,
+        customerPhone: customer?.phone,
+        customerBalance: customer?.balance,
+        showCustomerNames: !isSingleCustomer,
+        periodLabel: reportPeriod.label,
+        filterNotes: [
+          ...(methodFilter !== 'all' && paymentLabel ? [`Ödeme: ${paymentLabel}`] : []),
+          ...(query ? [`Arama: "${query}"`] : []),
+        ],
+        sales: filteredSales,
+        products,
+        currency: settings.currency,
+      });
+      const fileName = `${toFileNamePart(customerName) || 'musteri'}-${reportPeriod.fileKey}-satis-dokumu.pdf`;
+
+      if (mode === 'download') {
+        downloadBlob(blob, fileName);
+        return;
+      }
+      const outcome = await shareOrDownloadBlob(blob, fileName, {
+        title: `${customerName} - Satış dökümü`,
+        text: 'PDF raporunu bir uygulamayla açın veya paylaşın',
+      });
+      if (outcome === 'downloaded') {
+        window.alert('Bu cihaz paylaşım menüsünü desteklemiyor, PDF indirildi. Dosyalar uygulamasından açabilirsiniz.');
+      }
+    } catch (error) {
+      console.error('Müşteri satış dökümü PDF raporu oluşturulamadı:', error);
+      window.alert('PDF oluşturulamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+    } finally {
+      setPdfBusyMode(null);
+    }
+  };
 
   const totalFilteredAmount = useMemo(
     () => filteredSales.filter((s) => s.status === 'completed').reduce((sum, s) => sum + s.total, 0),
@@ -289,173 +416,6 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
 
   return (
     <div className="space-y-4 pb-20 md:pb-8">
-      {/* Sales List Table (Invoices view) */}
-      {viewMode === 'invoices' && (
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-          <h2>
-            <button
-              type="button"
-              onClick={() => setIsSalesListOpen((open) => !open)}
-              aria-expanded={isSalesListOpen}
-              aria-controls="sales-history-list"
-              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/70 active:bg-slate-100/70 dark:hover:bg-slate-800/40 dark:active:bg-slate-800/60"
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                  <FileText className="size-4" aria-hidden="true" />
-                </span>
-                <span className="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                  Kayıtlı Satış İşlemleri
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                  {filteredSales.length}
-                </span>
-                <ChevronDown
-                  className={`size-5 text-slate-500 transition-transform duration-300 motion-reduce:transition-none dark:text-slate-400 ${
-                    isSalesListOpen ? 'rotate-180' : ''
-                  }`}
-                  aria-hidden="true"
-                />
-              </span>
-            </button>
-          </h2>
-
-          {/* Collapsed rows stay mounted for the height animation; `invisible` keeps their buttons out of tab order. */}
-          <div
-            id="sales-history-list"
-            className={`grid transition-[grid-template-rows,visibility] duration-300 ease-out motion-reduce:transition-none ${
-              isSalesListOpen ? 'visible grid-rows-[1fr]' : 'invisible grid-rows-[0fr]'
-            }`}
-          >
-          <div className="min-h-0 overflow-hidden">
-          <div className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
-            {filteredSales.map((sale) => {
-              const isCancelled = sale.status === 'cancelled';
-              const saleItemCount = sale.items.reduce((acc, i) => acc + i.quantity, 0);
-              const saleReturnCount = getSaleReturnedQuantity(sale, products);
-
-              return (
-                <div
-                  key={sale.id}
-                  className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                    isCancelled
-                      ? 'opacity-50 bg-rose-50/20 dark:bg-rose-950/10'
-                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
-                  }`}
-                >
-                  {/* Left: Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
-                        {sale.invoiceNo}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        · {sale.customerName}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-mono">
-                        {saleItemCount} Adet Ürün
-                      </span>
-                      {saleReturnCount > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-mono">
-                          {formatQuantity(saleReturnCount)} Adet İade
-                        </span>
-                      )}
-                      {isCancelled && (
-                        <span className="text-[10px] text-rose-600 font-bold bg-rose-50 dark:bg-rose-950 px-1.5 py-0.5 rounded">
-                          İptal Edildi
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
-                      {sale.items.map((i) => `${i.productName} (${i.quantity} adet)`).join(', ')}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 mt-1">
-                      <span>{formatDateTime(sale.createdAt)}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="capitalize font-medium text-slate-600 dark:text-slate-300">
-                        {sale.total < 0
-                          ? 'İade'
-                          : sale.paymentMethod === 'cash'
-                          ? 'Nakit'
-                          : sale.paymentMethod === 'mixed'
-                          ? 'Karışık Ödeme'
-                          : sale.paymentMethod === 'credit'
-                          ? 'Açık Hesap (Veresiye)'
-                          : sale.paymentMethod === 'transfer'
-                          ? 'Havale'
-                          : 'Kart'}
-                      </span>
-                      {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta !== 0 && (
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                          sale.customerBalanceDelta > 0
-                            ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
-                            : 'text-blue-600 bg-blue-50 dark:bg-blue-950/40'
-                        }`}>
-                          {sale.customerBalanceDelta > 0
-                            ? `+${formatCurrency(sale.customerBalanceDelta)} Borca Eklendi`
-                            : `${formatCurrency(Math.abs(sale.customerBalanceDelta))} ${sale.total < 0 ? 'İade Hesaba İşlendi' : 'Avans Aktarıldı'}`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Amounts & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums block">
-                        {formatCurrency(sale.total)}
-                      </span>
-                      {!isCancelled && (
-                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums font-bold">
-                          +{formatCurrency(sale.profit)} kâr
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => startEditingSale(sale)} className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi düzenle"><Edit2 className="w-4 h-4" /></button>
-                      <button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(sale.id); }} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi kaldır"><Trash2 className="w-4 h-4" /></button>
-                      <button
-                        type="button"
-                        onClick={() => onSelectSaleForReceipt(sale)}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                        title="Fişi Görüntüle"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Fiş</span>
-                      </button>
-
-                      {!isCancelled && (
-                        <button
-                          type="button"
-                          onClick={() => onCancelSale(sale.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                          title="Satışı İptal Et & İade Al"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredSales.length === 0 && (
-              <div className="py-16 text-center text-slate-400 text-xs">
-                Kayıtlı satış işlemi bulunamadı.
-              </div>
-            )}
-          </div>
-          </div>
-          </div>
-        </section>
-      )}
-
       {/* Customer Purchases Breakdown View */}
       {viewMode === 'customers' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 sm:p-5 space-y-3">
@@ -629,6 +589,71 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
         )}
       </div>
 
+      {/* Müşteri seçimi ve seçilen tarih aralığı için PDF raporu */}
+      <section
+        aria-labelledby="customer-report-title"
+        className="flex flex-col gap-3 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm"
+      >
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <h2 id="customer-report-title" className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+            Müşteri Raporu
+          </h2>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="sales-history-customer" className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+            Müşteri
+          </label>
+          <select
+            id="sales-history-customer"
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+          >
+            <option value={ALL_CUSTOMERS}>Tüm müşteriler</option>
+            {customerOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400" aria-live="polite">
+          {filteredSales.length === 0
+            ? `${reportPeriod.label} · Bu müşteri ve tarih için satış yok.`
+            : `${reportPeriod.label} · ${filteredSales.length} satış`}
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleCustomerPdf('download')}
+            disabled={filteredSales.length === 0 || pdfBusyMode !== null}
+            aria-busy={pdfBusyMode === 'download'}
+            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50"
+          >
+            {pdfBusyMode === 'download'
+              ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
+              : <Download className="w-4 h-4 shrink-0" aria-hidden="true" />}
+            <span>PDF indir</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCustomerPdf('share')}
+            disabled={filteredSales.length === 0 || pdfBusyMode !== null}
+            aria-busy={pdfBusyMode === 'share'}
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            {pdfBusyMode === 'share'
+              ? <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
+              : <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" />}
+            <span>PDF paylaş</span>
+          </button>
+        </div>
+      </section>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -715,13 +740,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
 
         {/* Method filter buttons */}
         <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl overflow-x-auto max-w-full self-start sm:self-auto">
-          {[
-            { id: 'all', label: 'Tüm Ödemeler' },
-            { id: 'cash', label: 'Nakit' },
-            { id: 'mixed', label: 'Karışık' },
-            { id: 'credit', label: 'Veresiye' },
-            { id: 'transfer', label: 'Havale' },
-          ].map((m) => (
+          {PAYMENT_FILTERS.map((m) => (
             <button
               key={m.id}
               type="button"
@@ -737,6 +756,173 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Sales List Table (Invoices view) */}
+      {viewMode === 'invoices' && (
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <h2>
+            <button
+              type="button"
+              onClick={() => setIsSalesListOpen((open) => !open)}
+              aria-expanded={isSalesListOpen}
+              aria-controls="sales-history-list"
+              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50/70 active:bg-slate-100/70 dark:hover:bg-slate-800/40 dark:active:bg-slate-800/60"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  <FileText className="size-4" aria-hidden="true" />
+                </span>
+                <span className="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Kayıtlı Satış İşlemleri
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  {filteredSales.length}
+                </span>
+                <ChevronDown
+                  className={`size-5 text-slate-500 transition-transform duration-300 motion-reduce:transition-none dark:text-slate-400 ${
+                    isSalesListOpen ? 'rotate-180' : ''
+                  }`}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+          </h2>
+
+          {/* Collapsed rows stay mounted for the height animation; `invisible` keeps their buttons out of tab order. */}
+          <div
+            id="sales-history-list"
+            className={`grid transition-[grid-template-rows,visibility] duration-300 ease-out motion-reduce:transition-none ${
+              isSalesListOpen ? 'visible grid-rows-[1fr]' : 'invisible grid-rows-[0fr]'
+            }`}
+          >
+          <div className="min-h-0 overflow-hidden">
+          <div className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+            {filteredSales.map((sale) => {
+              const isCancelled = sale.status === 'cancelled';
+              const saleItemCount = sale.items.reduce((acc, i) => acc + i.quantity, 0);
+              const saleReturnCount = getSaleReturnedQuantity(sale, products);
+
+              return (
+                <div
+                  key={sale.id}
+                  className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                    isCancelled
+                      ? 'opacity-50 bg-rose-50/20 dark:bg-rose-950/10'
+                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                  }`}
+                >
+                  {/* Left: Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {sale.invoiceNo}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        · {sale.customerName}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-mono">
+                        {saleItemCount} Adet Ürün
+                      </span>
+                      {saleReturnCount > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-mono">
+                          {formatQuantity(saleReturnCount)} Adet İade
+                        </span>
+                      )}
+                      {isCancelled && (
+                        <span className="text-[10px] text-rose-600 font-bold bg-rose-50 dark:bg-rose-950 px-1.5 py-0.5 rounded">
+                          İptal Edildi
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                      {sale.items.map((i) => `${i.productName} (${i.quantity} adet)`).join(', ')}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 mt-1">
+                      <span>{formatDateTime(sale.createdAt)}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="capitalize font-medium text-slate-600 dark:text-slate-300">
+                        {sale.total < 0
+                          ? 'İade'
+                          : sale.paymentMethod === 'cash'
+                          ? 'Nakit'
+                          : sale.paymentMethod === 'mixed'
+                          ? 'Karışık Ödeme'
+                          : sale.paymentMethod === 'credit'
+                          ? 'Açık Hesap (Veresiye)'
+                          : sale.paymentMethod === 'transfer'
+                          ? 'Havale'
+                          : 'Kart'}
+                      </span>
+                      {sale.customerBalanceDelta !== undefined && sale.customerBalanceDelta !== 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                          sale.customerBalanceDelta > 0
+                            ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
+                            : 'text-blue-600 bg-blue-50 dark:bg-blue-950/40'
+                        }`}>
+                          {sale.customerBalanceDelta > 0
+                            ? `+${formatCurrency(sale.customerBalanceDelta)} Borca Eklendi`
+                            : `${formatCurrency(Math.abs(sale.customerBalanceDelta))} ${sale.total < 0 ? 'İade Hesaba İşlendi' : 'Avans Aktarıldı'}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Amounts & Actions */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums block">
+                        {formatCurrency(sale.total)}
+                      </span>
+                      {!isCancelled && (
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums font-bold">
+                          +{formatCurrency(sale.profit)} kâr
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => startEditingSale(sale)} className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi düzenle"><Edit2 className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => { if (window.confirm('Bu fişi kaldırmak istediğinizden emin misiniz?')) onDeleteSale(sale.id); }} className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Fişi kaldır"><Trash2 className="w-4 h-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => onSelectSaleForReceipt(sale)}
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                        title="Fişi Görüntüle"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Fiş</span>
+                      </button>
+
+                      {!isCancelled && (
+                        <button
+                          type="button"
+                          onClick={() => onCancelSale(sale.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          title="Satışı İptal Et & İade Al"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredSales.length === 0 && (
+              <div className="py-16 text-center text-slate-400 text-xs">
+                Kayıtlı satış işlemi bulunamadı.
+              </div>
+            )}
+          </div>
+          </div>
+          </div>
+        </section>
+      )}
 
       {editingSale && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
